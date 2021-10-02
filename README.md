@@ -1,1 +1,2 @@
-# main
+# AI challenge - Team 6
+
