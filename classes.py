@@ -1,11 +1,12 @@
 # TODO: add type check to data https://stackoverflow.com/questions/9305751/how-to-force-ensure-class-attributes-are-a-specific-type
 
 class Pressata:
-    def __init__ (self, id, componente):
-        self.ID         = id
-        self.componente = componente
-        self.serie      = []
-        self.warning    = False
+    def __init__ (self, id, stazione, timestamp):
+        self.id        = id
+        self.stazione  = stazione
+        self.timestamp = timestamp
+        self.serie     = []
+        self.warning   = False
     
     def add_value(self, val):
         self.serie.append(val)

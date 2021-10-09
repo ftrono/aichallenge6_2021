@@ -1,10 +1,11 @@
 {
-  "ID": "double"
-  "master": "int"
-  "taglia": "string"
-  "stadi": "int" 
-  "rapporto": "int"
-  "cd": "int"
-  "warnings": "boolean"
+  "model_version": 0.1,
+  "ID": "double",
+  "master": "int",
+  "taglia": "string",
+  "stadi": "int", 
+  "rapporto": "int",
+  "cd": "int",
+  "warnings": "boolean",
   "steps": ["Pressata"]
 }
