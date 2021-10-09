@@ -5,9 +5,13 @@ class Pressata:
         self.ID         = id
         self.componente = componente
         self.serie      = []
+        self.warning    = False
     
     def add_value(self, val):
         self.serie.append(val)
+    
+    def trigger_warn(self):
+        self.warnings=True
 
 class Riduttore:
     def __init__(self, id, master, taglia, stadi, rapporto, cd):

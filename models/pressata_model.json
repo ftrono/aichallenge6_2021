@@ -1,0 +1,6 @@
+{
+  "id": "string"
+  "stazione": "string"
+  "timestamp": "double"
+  "value": ["int"]
+}

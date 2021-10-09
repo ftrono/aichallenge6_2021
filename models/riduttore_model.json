@@ -1,0 +1,10 @@
+{
+  "ID": "double"
+  "master": "int"
+  "taglia": "string"
+  "stadi": "int" 
+  "rapporto": "int"
+  "cd": "int"
+  "warnings": "boolean"
+  "steps": ["Pressata"]
+}
