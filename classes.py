@@ -12,7 +12,14 @@ class Pressata:
         self.serie.append(val)
     
     def trigger_warn(self):
-        self.warnings=True
+        self.warning=True
+
+    def print(self):
+        print("\tID: {}\n\tStazione: {}\n\tTimestamp: {}\n\tWarning: {}\n\tSerie: {}".format(self.id,self.stazione,self.timestamp,self.warning,self.serie))
+
+
+    
+
 
 class Riduttore:
     def __init__(self, id, master, taglia, stadi, rapporto, cd):
@@ -31,11 +38,20 @@ class Riduttore:
     def trigger_warn(self):
         self.warnings=True
 
+    def print(self):
+        print("ID: {}\nMatser: {}\nTaglia: {}\nStadi: {}\nRapporto: {}\nCD: {}\nWarnings: {}\nPressate:".format(str(self.ID),str(self.master),self.taglia,str(self.stadi),str(self.rapporto),str(self.cd),str(self.warnings)))
+        for pressata in self.steps:
+            pressata.print()
+            print("---")
+        print() 
+
     def show_warn(self):
         if self.warnings==False:
             print("Non ci sono segnalazioni per il riduttore: ",self.id)
         else:
             # iterate over steps and check for true warning flag, if found print step ID
             pass
+
+    
 
 
