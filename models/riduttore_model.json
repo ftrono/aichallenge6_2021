@@ -1,5 +1,6 @@
+
 {
-  "model_version": 0.1,
+  "_model_version": 0.1,
   "ID": "double",
   "master": "int",
   "taglia": "string",

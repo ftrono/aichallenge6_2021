@@ -1,5 +1,5 @@
 {
-  "model_version": 0.1,
+  "_model_version": 0.1,
   "id": "string",
   "stazione": "string",
   "timestamp": "double",
