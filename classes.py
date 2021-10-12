@@ -15,11 +15,12 @@ class Item:
 class Pressata:
     def __init__ (self, id, stazione, timestamp): # creator
         # fields
-        self.id        = id
-        self.stazione  = stazione
-        self.timestamp = timestamp
-        self.serie     = []
-        self.warning   = False
+        self.id         = id
+        self.stazione   = stazione
+        self.timestamp  = timestamp
+        self.warning    = False
+        self.ripressato = False
+        self.serie      = []
     
     def add_value(self, val):
         self.serie.append(val) # append value to serie
@@ -35,11 +36,12 @@ class Pressata:
         for item in self.serie:
             pressure.append(item.to_json())
         pressata={
-            'id'        : self.id,
-            'stazione'  : self.stazione,
-            'timestamp' : self.timestamp,
-            'warning'   : self.warning,
-            'serie'     : pressure
+            'id'         : self.id,
+            'stazione'   : self.stazione,
+            'timestamp'  : self.timestamp,
+            'warning'    : self.warning,
+            'ripressato' : self.ripressato,
+            'serie'      : pressure
         }
         return pressata
 
