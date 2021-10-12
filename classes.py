@@ -1,5 +1,17 @@
 # TODO: add type check to data https://stackoverflow.com/questions/9305751/how-to-force-ensure-class-attributes-are-a-specific-type
 
+class Item:
+    def __init__(self,height,force):
+        self.height = height
+        self.force  = force
+
+    def to_json(self):
+        item={
+            'height': self.height,
+            'force' : self.force
+        }  
+        return item   
+
 class Pressata:
     def __init__ (self, id, stazione, timestamp): # creator
         # fields
@@ -18,9 +30,18 @@ class Pressata:
     def print(self):
         print("\tID: {}\n\tStazione: {}\n\tTimestamp: {}\n\tWarning: {}\n\tSerie: {}".format(self.id,self.stazione,self.timestamp,self.warning,self.serie))
 
-
-    
-
+    def to_json(self):
+        pressure=[]
+        for item in self.serie:
+            pressure.append(item.to_json())
+        pressata={
+            'id'        : self.id,
+            'stazione'  : self.stazione,
+            'timestamp' : self.timestamp,
+            'warning'   : self.warning,
+            'serie'     : pressure
+        }
+        return pressata
 
 class Riduttore:
     def __init__(self, id, master, taglia, stadi, rapporto, cd):
@@ -53,6 +74,23 @@ class Riduttore:
         else:
             # iterate over steps and check for true warning flag, if found print step ID
             pass
+    
+    def to_json(self):
+        steps=[]
+        for item in self.steps:
+            steps.append(item.to_json())
+        riduttore = {
+            'ID'       : self.ID,
+            'master'   : self.master,
+            'taglia'   : self.taglia,
+            'stadi'    : self.rapporto,
+            'cd'       : self.cd,
+            'warnings' : self.warnings,
+            'steps'    : steps
+        }
+        return riduttore
+        
+   
 
     
 

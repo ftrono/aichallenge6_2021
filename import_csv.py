@@ -1,7 +1,8 @@
-from classes import Riduttore, Pressata
 import csv
 import time
+from pymongo import MongoClient
 from utils import name_parser
+from classes import Riduttore, Pressata, Item
 
 start_time = time.time()
 produzione=dict()
@@ -10,7 +11,7 @@ with open('./Summary.csv', mode='r') as csv_file:
     line_count = 0 # initialize line counter
     f = open("log.txt", "w") # open log file to store exceptions
     for row in csv_reader: # iterate over rows in summary
-        if line_count > 0 and line_count < 3: # skip first row (colum names)
+        if line_count > 0: # skip first row (colum names)
             if not (row["Tempcode"] in produzione): # check if riduttore has already been saved
                 produzione[row["Tempcode"]]=Riduttore(row["Tempcode"],row["Master"],row["Taglia"],row["Stadi"],row["Rapporto"],row["CD"]) # generate new istance of riduttore
             with open(row["CSVpath"].replace('\\','/')) as pressata_csv_file: # open pressata csv (need to replace \ with normal /)
@@ -22,20 +23,28 @@ with open('./Summary.csv', mode='r') as csv_file:
                         pressata=Pressata(id,stazione,timestamp) # generate instance of pressata
                     elif t_line_count>1: # skip first 2 rows
                         try: 
-                            pressata.add_value(t_row[3]) # add value to serie in pressata
+                            pressata.add_value(Item(t_row[2],t_row[3])) # add value to serie in pressata
                         except: # handle exception due to malformed rows
                             print(str(row["CSVpath"])+" Unable to add value at line "+str(t_line_count+1) + " " + str(t_row))
                             f.write(str(row["CSVpath"])+" Unable to add value at line "+str(t_line_count+1)+" " + str(t_row)+"\n")
                     t_line_count+=1
                 produzione[row["Tempcode"]].add_step(pressata) # add pressata to instance of riduttore
-        line_count+=1
+        line_count+=1   
     f.close() 
+    print("Import process completed")
+    # mongo connection
+    client = MongoClient("mongodb://localhost:27017/")
+    db=client.novotic
+    for document in produzione.values():
+        result=db.test1.insert_one(document.to_json())
+        print('Inserted document {}'.format(result.inserted_id))
+    client.close()
 print("--- %s seconds ---" % (time.time() - start_time)) # print execution time 
 
 
 
-for key in produzione.keys():
-    produzione[key].print()
+# for key in produzione.keys():
+#     produzione[key].print()
         
 #mongodb://localhost:27017/
 
