@@ -64,8 +64,8 @@ class Riduttore:
     def _print(self):
         print("ID: {}\nMaster: {}\nTaglia: {}\nStadi: {}\nRapporto: {}\nCD: {}\nWarnings: {}\nPressate:".format(str(self.ID),str(self.master),self.taglia,str(self.stadi),str(self.rapporto),str(self.cd),str(self.warnings)))
         for pressata in self.steps:
-            pressata.print()
-            print("---")
+            pressata._print()
+            print("----")
         print() 
 
     def show_warn(self):
