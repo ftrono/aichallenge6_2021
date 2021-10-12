@@ -27,7 +27,7 @@ class Pressata:
     def trigger_warn(self):
         self.warning=True # throw warning
 
-    def print(self):
+    def _print(self):
         print("\tID: {}\n\tStazione: {}\n\tTimestamp: {}\n\tWarning: {}\n\tSerie: {}".format(self.id,self.stazione,self.timestamp,self.warning,self.serie))
 
     def to_json(self):
@@ -61,7 +61,7 @@ class Riduttore:
     def trigger_warn(self):
         self.warnings=True
 
-    def print(self):
+    def _print(self):
         print("ID: {}\nMaster: {}\nTaglia: {}\nStadi: {}\nRapporto: {}\nCD: {}\nWarnings: {}\nPressate:".format(str(self.ID),str(self.master),self.taglia,str(self.stadi),str(self.rapporto),str(self.cd),str(self.warnings)))
         for pressata in self.steps:
             pressata.print()
