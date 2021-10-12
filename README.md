@@ -1,4 +1,13 @@
 # AI challenge - Team 6
+# Premessa:
+Gli script presenti in questa repository sono stati ideati per essere eseguiti su un sistema operativo **linux** e sono testati su Ubuntu 18.04 LTS  
+### Prerequisiti:  
+* Python 3.3 o superiore   
+* mongod (https://docs.mongodb.com/manual/tutorial/install-mongodb-on-ubuntu/)  
+* pymongo drivers (```pip3 install pymongo```)  
+### Suggerimenti:  
+* MongoDB Compass
+
 # Getting started
 Per prima cosa clonare la repository in locale con  
 ```git clone https://github.com/aichallenge6/main.git```  
