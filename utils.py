@@ -1,7 +1,7 @@
 import datetime
 import pymongo
 
-CONNECTION_STRING="mongodb://localhost:27017/")
+CONNECTION_STRING="mongodb://localhost:27017/"
 
 def name_parser(name): # take as input the file name
     # get information from file name
