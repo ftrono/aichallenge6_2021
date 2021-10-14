@@ -1,9 +1,7 @@
-import pymongo
+from utils import mongo_connect, mongo_disconnect
 import matplotlib.pyplot as plt
-# mongo connection
-client = pymongo.MongoClient("mongodb://localhost:27017/")
-db = client.novotic
-posts = db.test1
+db,client = mongo_connect()
+posts=db.test1
 
 #Vars:
 ripressate = {}
@@ -72,14 +70,5 @@ for post in posts.find():
 for item in ripressate.items():
     print(item)
 
-
-'''
-query={"steps.id": "a0207"}
-result=db.test1.find(query)
-
-count=0
-for res in result:
-   if count==0:
-      print(res) 
-      count+=1
-'''
+# MOLTO IMPORTANTE ricordarsi di metterlo ogni volta che si apre una connessione
+mongo_disconnect(client)

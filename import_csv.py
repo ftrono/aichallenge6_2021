@@ -1,7 +1,6 @@
 import csv
 import time
-from pymongo import MongoClient
-from utils import name_parser
+from utils import name_parser, mongo_connect, mongo_disconnect
 from classes import Riduttore, Pressata, Item
 
 start_time = time.time()
@@ -32,13 +31,12 @@ with open('./Summary.csv', mode='r') as csv_file:
         line_count+=1   
     f.close() 
     print("Import process completed")
-    # mongo connection
-    client = MongoClient("mongodb://localhost:27017/")
-    db=client.novotic
+
+    db,client=mongo_connect()
     for document in produzione.values():
         result=db.test1.insert_one(document.to_json())
         print('Inserted document {}'.format(result.inserted_id))
-    client.close()
+    mongo_disconnect(client)
 print("--- %s seconds ---" % (time.time() - start_time)) # print execution time 
 
 
