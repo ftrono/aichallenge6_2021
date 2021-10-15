@@ -107,6 +107,7 @@ def find_duplicates(riduttore):
     return ripressate
 
 
+#MAIN:
 def main():
    i = 0
    limit = 1
@@ -135,6 +136,9 @@ def main():
 main()
 # MOLTO IMPORTANTE ricordarsi di metterlo ogni volta che si apre una connessione
 mongo_disconnect(client)
+
+
+
 
 '''
 #Launch find_masters:
