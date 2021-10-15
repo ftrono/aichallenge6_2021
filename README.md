@@ -40,6 +40,10 @@ Connettere Compass a localhost inserendo:
 * ***mongodb://localhost:27017/***
 
 
+Guida documentazione Pymongo per query da Python:
+* https://pymongo.readthedocs.io/en/stable/
+
+
 ## PUNTO C) PER IMPORTARE IL DUMP DEL DB (SOLO IN CASO DI NUOVI DUMP):
 * Decomprimere lo zip in una cartella (es. Home di Ubuntu)
 * Da bash, cd nella cartella dove lo decomprimiamo e lanciare ```mongorestore dump/```
