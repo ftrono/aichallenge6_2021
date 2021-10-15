@@ -1,8 +1,10 @@
 {
-  "_model_version": 0.1,
-  "id": "string",
-  "stazione": "string",
-  "timestamp": "double",
-  "warning": "boolean",
-  "value": ["int"]
+  "_model_version": 0.2,
+  "id"         : "string",
+  "stazione"   : "string",
+  "timestamp"  : "double",
+  "warning"    : "boolean",
+  "ripressato" : "boolean",
+  "altezza"    : ["float"],
+  "forza"      : ["float"] 
 }
