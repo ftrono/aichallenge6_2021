@@ -1,17 +1,5 @@
 # TODO: add type check to data https://stackoverflow.com/questions/9305751/how-to-force-ensure-class-attributes-are-a-specific-type
 
-class Item:
-    def __init__(self,height,force):
-        self.height = height
-        self.force  = force
-
-    def to_json(self):
-        item={
-            'height': self.height,
-            'force' : self.force
-        }  
-        return item   
-
 class Pressata:
     def __init__ (self, id, stazione, timestamp): # creator
         # fields
@@ -20,28 +8,28 @@ class Pressata:
         self.timestamp  = timestamp
         self.warning    = False
         self.ripressato = False
-        self.serie      = []
+        self.altezza    = []
+        self.forza      = []
     
-    def add_value(self, val):
-        self.serie.append(val) # append value to serie
+    def add_value(self, height, force):
+        self.altezza.append(float(height)) 
+        self.forza.append(float(force))
     
     def trigger_warn(self):
         self.warning=True # throw warning
 
-    def _print(self):
-        print("\tID: {}\n\tStazione: {}\n\tTimestamp: {}\n\tWarning: {}\n\tSerie: {}".format(self.id,self.stazione,self.timestamp,self.warning,self.serie))
+    # def _print(self):
+    #     print("\tID: {}\n\tStazione: {}\n\tTimestamp: {}\n\tWarning: {}\n\tSerie: {}".format(self.id,self.stazione,self.timestamp,self.warning,self.serie))
 
     def to_json(self):
-        pressure=[]
-        for item in self.serie:
-            pressure.append(item.to_json())
         pressata={
             'id'         : self.id,
             'stazione'   : self.stazione,
             'timestamp'  : self.timestamp,
             'warning'    : self.warning,
             'ripressato' : self.ripressato,
-            'serie'      : pressure
+            'altezza'    : self.altezza,
+            'forza'      : self.forza
         }
         return pressata
 
@@ -49,11 +37,11 @@ class Riduttore:
     def __init__(self, id, master, taglia, stadi, rapporto, cd):
         # fields
         self.ID       = id
-        self.master   = master
+        self.master   = int(master)
         self.taglia   = taglia
-        self.stadi    = stadi
+        self.stadi    = int(stadi)
         self.rapporto = rapporto
-        self.cd       = cd
+        self.cd       = int(cd)
         self.steps    = []
         self.warnings = False
     
@@ -63,12 +51,12 @@ class Riduttore:
     def trigger_warn(self):
         self.warnings=True
 
-    def _print(self):
-        print("ID: {}\nMaster: {}\nTaglia: {}\nStadi: {}\nRapporto: {}\nCD: {}\nWarnings: {}\nPressate:".format(str(self.ID),str(self.master),self.taglia,str(self.stadi),str(self.rapporto),str(self.cd),str(self.warnings)))
-        for pressata in self.steps:
-            pressata._print()
-            print("----")
-        print() 
+    # def _print(self):
+    #     print("ID: {}\nMaster: {}\nTaglia: {}\nStadi: {}\nRapporto: {}\nCD: {}\nWarnings: {}\nPressate:".format(str(self.ID),str(self.master),self.taglia,str(self.stadi),str(self.rapporto),str(self.cd),str(self.warnings)))
+    #     for pressata in self.steps:
+    #         pressata._print()
+    #         print("----")
+    #     print() 
 
     def show_warn(self):
         if self.warnings==False:

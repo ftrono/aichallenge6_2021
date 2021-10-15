@@ -1,0 +1,2 @@
+CSV_Files\20200313112012\20200313112012p0004__a3_2020_03_13_16_15_53.csv Unable to add value at line 3 ['Envelope-Pos-Up', 'Envelop-Force-Up', 'Chart-Pos', 'Chart-Force', 'Envelope-Pos-Low', 'Envelope-Force-Low', '']
+CSV_Files\20200313112012\20200313112012p0004__a3_2020_03_13_16_15_54.csv Unable to add value at line 3 ['Envelope-Pos-Up', 'Envelop-Force-Up', 'Chart-Pos', 'Chart-Force', 'Envelope-Pos-Low', 'Envelope-Force-Low', '']
