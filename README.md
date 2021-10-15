@@ -8,10 +8,14 @@ Gli script presenti in questa repository sono stati ideati per essere eseguiti s
 ### Suggerimenti:  
 * MongoDB Compass
 
+---
+
 # Indice:
 1) Operazioni e comandi ricorrenti
 2) Comandi e guida GitHub
 
+
+---
 
 # 1) OPERAZIONI RICORRENTI
 
@@ -40,6 +44,12 @@ Connettere Compass a localhost inserendo:
 * Da bash, cd nella cartella dove lo decomprimiamo e lanciare *mongorestore dump/*
 * Lanciare Compass (punto B in alto), apparirà il DB *novotic* e lì dentro la collection *test1*
 
+
+---
+
+**Altre info di configurazione sono disponibili in questa folder Drive: https://drive.google.com/drive/folders/1lOZpjl8pjfPhmlcCdAh9lYgR5AYi0LUy**
+
+---
 
 
 # 2) COMANDI E GUIDA GITHUB
