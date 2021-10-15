@@ -10,7 +10,7 @@ with open('./Summary.csv', mode='r') as csv_file:
     line_count = 0 # initialize line counter
     f = open("log.txt", "w") # open log file to store exceptions
     for row in csv_reader: # iterate over rows in summary
-        if line_count > 0 and line_count<20: # skip first row (colum names)
+        if line_count > 0: # skip first row (colum names)
             if not (row["Tempcode"] in produzione): # check if riduttore has already been saved
                 produzione[row["Tempcode"]]=Riduttore(row["Tempcode"],row["Master"],row["Taglia"],row["Stadi"],row["Rapporto"],row["CD"]) # generate new istance of riduttore
             with open(row["CSVpath"].replace('\\','/')) as pressata_csv_file: # open pressata csv (need to replace \ with normal /)
@@ -34,7 +34,7 @@ with open('./Summary.csv', mode='r') as csv_file:
 
     db,client=mongo_connect()
     for document in produzione.values():
-        result=db.test.insert_one(document.to_json())
+        result=db.test2.insert_one(document.to_json())
         print('Inserted document {}'.format(result.inserted_id))
     mongo_disconnect(client)
 print("--- %s seconds ---" % (time.time() - start_time)) # print execution time 
