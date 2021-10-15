@@ -8,6 +8,52 @@ Gli script presenti in questa repository sono stati ideati per essere eseguiti s
 ### Suggerimenti:  
 * MongoDB Compass
 
+---
+
+# Indice:
+* Operazioni e comandi ricorrenti
+* Comandi e guida GitHub
+
+
+---
+
+# 1) OPERAZIONI RICORRENTI
+
+## PUNTO 0) (SOLO PER WSL) AVVIARE FILE DESKTOP config.xlaunch (OGNI VOLTA):
+Avviare il file ***config.xlaunch*** salvato sul desktop, lancerà l’X-Server con la configurazione giusta (vale solo per WSL su Windows 10, non per Ubuntu/Mac).
+
+
+## PUNTO A) AVVIARE SERVER MONGODB (OGNI VOLTA):
+Usate i comandi (se Init):
+* ```sudo service mongod start``` per avviare il server MongoDB
+* ```sudo service mongod status``` per verificare che sia effettivamente attivo
+
+Se systemd, o per ulteriori comandi disponibili, vedere qui:
+* https://docs.mongodb.com/manual/tutorial/install-mongodb-on-ubuntu/
+
+
+## PUNTO B) AVVIARE APP GRAFICA COMPASS (OGNI VOLTA):
+Usate il comando:
+* ```mongodb-compass```
+
+Connettere Compass a localhost inserendo:
+* ***mongodb://localhost:27017/***
+
+
+## PUNTO C) PER IMPORTARE IL DUMP DEL DB (SOLO IN CASO DI NUOVI DUMP):
+* Decomprimere lo zip in una cartella (es. Home di Ubuntu)
+* Da bash, cd nella cartella dove lo decomprimiamo e lanciare ```mongorestore dump/```
+* Lanciare Compass (punto B in alto), apparirà il DB *novotic* e lì dentro la collection *test1*
+
+
+---
+
+**Altre info di configurazione sono disponibili in questa folder Drive: https://drive.google.com/drive/folders/1lOZpjl8pjfPhmlcCdAh9lYgR5AYi0LUy**
+
+---
+
+
+# 2) COMANDI E GUIDA GITHUB
 # Getting started
 Per prima cosa clonare la repository in locale con  
 ```git clone https://github.com/aichallenge6/main.git```  
