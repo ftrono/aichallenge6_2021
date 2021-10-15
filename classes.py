@@ -41,7 +41,7 @@ class Riduttore:
         self.taglia   = taglia
         self.stadi    = int(stadi)
         self.rapporto = rapporto
-        self.cd       = int(cd)
+        self.cd       = float(cd)
         self.steps    = []
         self.warnings = False
     
