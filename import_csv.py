@@ -1,7 +1,7 @@
 import csv
 import time
 from utils import name_parser, mongo_connect, mongo_disconnect
-from classes import Riduttore, Pressata, Item
+from classes import Riduttore, Pressata
 
 start_time = time.time()
 produzione=dict()
@@ -10,7 +10,7 @@ with open('./Summary.csv', mode='r') as csv_file:
     line_count = 0 # initialize line counter
     f = open("log.txt", "w") # open log file to store exceptions
     for row in csv_reader: # iterate over rows in summary
-        if line_count > 0: # skip first row (colum names)
+        if line_count > 0 and line_count<20: # skip first row (colum names)
             if not (row["Tempcode"] in produzione): # check if riduttore has already been saved
                 produzione[row["Tempcode"]]=Riduttore(row["Tempcode"],row["Master"],row["Taglia"],row["Stadi"],row["Rapporto"],row["CD"]) # generate new istance of riduttore
             with open(row["CSVpath"].replace('\\','/')) as pressata_csv_file: # open pressata csv (need to replace \ with normal /)
@@ -22,7 +22,7 @@ with open('./Summary.csv', mode='r') as csv_file:
                         pressata=Pressata(id,stazione,timestamp) # generate instance of pressata
                     elif t_line_count>1: # skip first 2 rows
                         try: 
-                            pressata.add_value(Item(t_row[2],t_row[3])) # add value to serie in pressata
+                            pressata.add_value(t_row[2].replace(',','.'),t_row[3].replace(',','.')) # add value to serie in pressata
                         except: # handle exception due to malformed rows
                             print(str(row["CSVpath"])+" Unable to add value at line "+str(t_line_count+1) + " " + str(t_row))
                             f.write(str(row["CSVpath"])+" Unable to add value at line "+str(t_line_count+1)+" " + str(t_row)+"\n")
@@ -34,7 +34,7 @@ with open('./Summary.csv', mode='r') as csv_file:
 
     db,client=mongo_connect()
     for document in produzione.values():
-        result=db.test1.insert_one(document.to_json())
+        result=db.test.insert_one(document.to_json())
         print('Inserted document {}'.format(result.inserted_id))
     mongo_disconnect(client)
 print("--- %s seconds ---" % (time.time() - start_time)) # print execution time 
