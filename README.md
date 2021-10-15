@@ -11,8 +11,8 @@ Gli script presenti in questa repository sono stati ideati per essere eseguiti s
 ---
 
 # Indice:
-1) Operazioni e comandi ricorrenti
-2) Comandi e guida GitHub
+* Operazioni e comandi ricorrenti
+* Comandi e guida GitHub
 
 
 ---
