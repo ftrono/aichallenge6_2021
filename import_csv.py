@@ -1,7 +1,7 @@
 import csv
 import time
 from utils import name_parser, mongo_connect, mongo_disconnect
-from classes import Riduttore, Pressata, Item
+from classes import Riduttore, Pressata
 
 start_time = time.time()
 produzione=dict()
@@ -22,7 +22,7 @@ with open('./Summary.csv', mode='r') as csv_file:
                         pressata=Pressata(id,stazione,timestamp) # generate instance of pressata
                     elif t_line_count>1: # skip first 2 rows
                         try: 
-                            pressata.add_value(Item(t_row[2],t_row[3])) # add value to serie in pressata
+                            pressata.add_value(t_row[2].replace(',','.'),t_row[3].replace(',','.')) # add value to serie in pressata
                         except: # handle exception due to malformed rows
                             print(str(row["CSVpath"])+" Unable to add value at line "+str(t_line_count+1) + " " + str(t_row))
                             f.write(str(row["CSVpath"])+" Unable to add value at line "+str(t_line_count+1)+" " + str(t_row)+"\n")
@@ -34,7 +34,7 @@ with open('./Summary.csv', mode='r') as csv_file:
 
     db,client=mongo_connect()
     for document in produzione.values():
-        result=db.test1.insert_one(document.to_json())
+        result=db.test2.insert_one(document.to_json())
         print('Inserted document {}'.format(result.inserted_id))
     mongo_disconnect(client)
 print("--- %s seconds ---" % (time.time() - start_time)) # print execution time 
