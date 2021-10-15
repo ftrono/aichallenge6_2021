@@ -57,7 +57,7 @@ def read_pressate(riduttore):
             #reset count:
             count = 0
 
-        #save to buffer:
+        #save to dict:
         pressate[new+"-"+str(count)] = [height, force]
 
         #Reset:
