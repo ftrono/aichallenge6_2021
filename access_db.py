@@ -13,6 +13,11 @@ def find_masters(POSTS):
 #input: pressata
 #output: 2 lists, one for height timeseries, the other for force timeseries.
 def read_timeseries(pressata):
+    '''
+    Create timeseries for height (list) and force (list) values
+    :param  pressata:
+    :return height:, force:
+    '''
     #Vars:
     height = []
     force = []
@@ -37,8 +42,11 @@ def read_timeseries(pressata):
 #input: 1 riduttore
 #output: dictionary with pressate+count as keys and pair of timeseries as values.
 def read_pressate(riduttore):
-
-    #Vars:
+    '''
+    Created dictionary of pressate
+    :param      riduttore:
+    :return:    pressate:
+    '''
     pressate = {}
     prior = ''
     new = ''
@@ -72,7 +80,11 @@ def read_pressate(riduttore):
 #input: 1 riduttore
 #output: dictionary with id_riduttore as key and list of tuples (component, count) for duplicates only as values.
 def find_duplicates(riduttore):
-
+    '''
+    Obtain list of duplicates only (ripressate) with counts
+    :param   riduttore:
+    :return: (component, count):
+    '''
     #Vars:
     ripressate = {}
     dups = []
