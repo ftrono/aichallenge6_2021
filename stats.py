@@ -1,5 +1,4 @@
-# TODO: group statistics by id before writing csv (due 10/16/21)
-# TODO: chech for duplicates (due 10/16/21)
+# TODO: per ogni punto, a parità di altezza --> media + varianza
 
 import statistics, math, csv
 from tqdm import tqdm
@@ -7,24 +6,28 @@ import warnings
 import pymongo
 from pymongo import MongoClient
 from utils import mongo_connect, mongo_disconnect
+from access_db import find_duplicates
 
 db, client = mongo_connect()
-POSTS = db.test2 #getting collection test2
+POSTS = db.test2                #getting collection test2
 
-def get_infos(key):
+def get_data_from_db(key):
     '''
-    Returns ALL the queries associated with the parameter key (string) passed
+    Returns all the database lines for the given key
     :param   key from database
     :return  same type as source
     '''
-    infos = post['steps'][0][str(key)]
-    return infos
+    data = post['steps'][0][str(key)]
+    return data
+
+
 
 def get_stats(misura, mean=False, variance=False):
     '''
+    Computes mean and variance of all the elements contained in the list misura
     :param mean: Bool
     :param variance: Bool
-    :param misura: any
+    :param misura: list
     :return: (float, float)
     '''
     if mean == True:
@@ -36,46 +39,53 @@ def get_stats(misura, mean=False, variance=False):
     return media, varianza
 
 
-# Set up CSV properties
-fields = ['id', 'forza_media', 'forza_varianza', 'altezza_media', 'altezza_varianza']   # columns
-rows = []                                                                               # rows
-filename = "stats_report.csv"                                                           # name of report
+if __name__ == '__main__':
 
-# Ignoring Deprecation Warnings
-warnings.filterwarnings("ignore", category=DeprecationWarning)
+    # Set up CSV properties
+    fields = ['id', 'forza_media', 'forza_varianza', 'altezza_media', 'altezza_varianza']   # columns (fixed header row)
+    rows = []                                                                               # rows
+    filename = "stats_report.csv"                                                           # name of report
 
-# iterate rows searching by key
-i = 0
-if db.test2.count() > 10000:
-    warning = '(might take a while)'
-else:
-    warnings = ''
-print(f"📊 Computing Statistics... {warning}")
-for post in tqdm(POSTS.find(), total=db.test2.count()):
-    if i > 0:
-        break
-    # Actual statistics 📊
-    id = get_infos('id')                                    # retrieve ID for `key`
-    forza = get_infos('forza')                              # retrieve strength for current ID
-    forza_media = get_stats(forza, mean=True)               # retrieve average(mean) of given list
-    altezza = get_infos('altezza')                          # retrieve travel for current ID
-    altezza_media = get_stats(altezza, mean=True)           # retrieve average(mean) of given list
-    forza_varianza = get_stats(forza, variance=True)        # retrieve variance of given list
-    altezza_varianza = get_stats(altezza, variance=True)    # retrieve variance of given list
+    # Ignoring Deprecation Warnings
+    warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-    # Prepare stats for CSV writer
-    rows.append([id,
-                 round(forza_media,2), round(forza_varianza,2),
-                 round(altezza_media,2), round(altezza_varianza,2)])
-print("Done analyzing")
+    if db.test2.count() > 10000:
+        warning = '(might take a while)'
+    else:
+        warnings = ''
+    print(f"📊 Computing Statistics... {warning}")
 
-#writing csv file ✏️
-print("Writing data to csv file...")
-with open(filename, "w") as csv_file:
-    #CSV object writer
-    csvwriter = csv.writer(csv_file)
+    # iterate rows searching by key
+    for post in tqdm(POSTS.find(), total=db.test2.count()):
 
-    csvwriter.writerow(fields)  # write headers
-    csvwriter.writerows(rows)   # write data
-print("Report export succeeded")
+        # Actual statistics 📊
+        id = get_data_from_db('id')                             # retrieve ID for `key`
+        forza = get_data_from_db('forza')                       # retrieve strength for current ID
+        forza_media = get_stats(forza, mean=True)               # retrieve average(mean) of given list
+        altezza = get_data_from_db('altezza')                   # retrieve travel for current ID
+        altezza_max = max(altezza)                              # (float)
+        max_index = altezza.index(altezza_max)
+        del altezza[max_index + 1 : len(altezza)]
+        del forza[max_index + 1: len(forza)]
+        altezza_media = get_stats(altezza, mean=True)           # retrieve average(mean) of given list
+        forza_varianza = get_stats(forza, variance=True)        # retrieve variance of given list
+        altezza_varianza = get_stats(altezza, variance=True)    # retrieve variance of given list
+
+        # Prepare stats for CSV writer
+        rows.append([id, round(forza_media, 2), round(forza_varianza, 2),
+                         round(altezza_media, 2), round(altezza_varianza, 2)])
+
+
+
+    print("Done analyzing")
+
+    #writing csv file ✏️
+    print("Writing data to csv file...")
+    with open(filename, "w") as csv_file:
+        #CSV object writer
+        csvwriter = csv.writer(csv_file)
+
+        csvwriter.writerow(fields)  # write headers
+        csvwriter.writerows(rows)   # write data
+    print("Report export succeeded")
 
