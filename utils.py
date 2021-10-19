@@ -1,5 +1,6 @@
 import datetime
 import pymongo
+import matplotlib.pyplot as plt
 
 CONNECTION_STRING="mongodb://localhost:27017/"
 
@@ -19,3 +20,28 @@ def mongo_connect():
 
 def mongo_disconnect(client):
     client.close()
+
+
+def plot_series(riduttore):
+    '''
+    Genera un diagramma per ogni riga contenuta nel parametro `riduttore`.
+    OCCIO: necessita di un'ulteriore iterazione del tipo `POSTS.find()`
+    :param riduttore: singolo elemento dell'iterazione di `POSTS.find()`.
+    :return PNG
+    '''
+    for pressata in riduttore['steps']:
+        # setting lists for plotting
+        labels = list()
+        xpoints = list()
+        ypoints = list()
+
+        # populating lists
+        labels.append(pressata['id'])
+        ypoints.append(pressata['forza'])
+        xpoints.append(pressata['altezza'])
+
+        # actual plotting
+        plt.plot(xpoints[0], ypoints[0])
+        plt.xlabel(labels[0])
+        diagram = plt.show()
+    return diagram
