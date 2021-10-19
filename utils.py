@@ -21,6 +21,7 @@ def mongo_connect():
 def mongo_disconnect(client):
     client.close()
 
+
 def plot_series(riduttore):
     '''
     Genera un diagramma per ogni riga contenuta nel parametro `riduttore`.
