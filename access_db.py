@@ -1,20 +1,47 @@
 from utils import mongo_connect, mongo_disconnect
-from classes import Series
+from classes import Combo, Series
 import matplotlib.pyplot as plt
 db,client = mongo_connect()
 POSTS=db.test2
 
-#QUERY FUNCTION:
-def query_db(riduttore, timestamp):
+
+#QUERY FUNCTION BY MASTER, TAGLIA, IDCOMP:
+def query_bycombo(master, taglia, idcomp):
+    '''
+    Get Combo object from MongoDB containing a list of Series objects with matching args.
+    :params  (str) master:, (int) taglia:, (int) idcomp:
+    :return (combo) Combo sequence of Series objects:
+    '''
+    #Objects:
+    master = str(master)
+    taglia = str(taglia)
+    idcomp = str(idcomp)
+    combo = Combo(master, taglia, idcomp)
+    
+    #query:
+    cases = POSTS.find({'master': master, 'taglia': taglia})
+    #Search for timestamp in riduttore (list of dicts):
+    for post in cases:
+        riduttore = str(post['ID'])
+        for d in post['steps']:
+            if d['id'] == idcomp:
+                #Store series for altezza and for forza:
+                combo.add_series(riduttore, d['timestamp'], d['altezza'], d['forza'])
+
+    return combo
+
+
+#QUERY FUNCTION BY PRESSATA TIMESTAMP:
+def query_bytimestamp(riduttore, timestamp):
     '''
     Get series object from MongoDB with height (list) and force (list) series of values.
     :params  (str) riduttore:, (int) timestamp:
-    :return series:
+    :return (series) Series object:
     '''
     #Objects:
     riduttore = str(riduttore)
     timestamp = int(timestamp)
-    series = Series(timestamp)
+    series = Series(riduttore, timestamp)
     #query:
     post = POSTS.find_one({'ID': riduttore})
     #Search for timestamp in riduttore (list of dicts):

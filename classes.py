@@ -88,13 +88,25 @@ class Riduttore:
         }
         return riduttore
         
-
+#For query:
 class Series:
-    def __init__(self, timestamp):
+    def __init__(self, riduttore, timestamp):
+        self.riduttore = riduttore
         self.timestamp = timestamp
         self.altezza = []
-        self.forza = []  
+        self.forza = []
 
-    
+#For DB scanning:
+class Combo:
+    def __init__(self, master, taglia, idcomp):
+        self.master = master
+        self.taglia = taglia
+        self.idcomp = idcomp
+        self.series = []
 
+    def add_series(self, riduttore, timestamp, altezza, forza):
+        series = Series(riduttore, timestamp)
+        series.altezza = altezza
+        series.forza = forza
+        self.series.append(series)
 
