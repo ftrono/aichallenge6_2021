@@ -114,7 +114,10 @@ def trial():
     '''
     Test functions in the module.
     '''
-    serie = query_db("20200313112012", 1584109742)
+    combo = query_bycombo("2", "MP080", 'a0215')
+    print(combo.series)
+    
+    serie = query_bytimestamp("20200313112012", 1584109742)
     print(serie.altezza)
     print(serie.forza)
 
