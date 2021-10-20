@@ -80,8 +80,10 @@ class Riduttore:
         }
         return riduttore
         
-   
 
+class Series:
+    def __init__(self, timestamp):
+        self.timestamp = timestamp
+        self.altezza = []
+        self.forza = []
     
-
-
