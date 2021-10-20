@@ -1,7 +1,7 @@
 from utils import mongo_connect, mongo_disconnect
 import matplotlib.pyplot as plt
 db,client = mongo_connect()
-POSTS=db.test1
+POSTS=db.test2
 
 #Find all distinct masters in DB:
 def find_masters(POSTS):
