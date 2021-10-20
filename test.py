@@ -4,8 +4,9 @@ from numpy import mean
 def mean_sample_rate(samples):
     tmp=[]
     pos=1
-    while pos<=len(samples):
+    while pos<len(samples):
         tmp.append(samples[pos]-samples[pos-1])
+        pos+=1
     return mean(tmp)
 
 
@@ -25,7 +26,7 @@ sample_rates={}
 for id in ids:
     sample_rates[id]=[]
 
-result= collection.find({"steps.id" : "a0207"},{"steps.id":1,"steps.altezza":1,"steps.forza":1})
+result= collection.find({},{"steps.id":1,"steps.altezza":1,"steps.forza":1})
 
 for pres in result:
     for pressata in pres["steps"]:
@@ -34,7 +35,7 @@ for pres in result:
                 sample_rates[id].append(mean_sample_rate(pressata["altezza"]))
 
 for elem in sample_rates.items():
-    print(elem.key,elem.value)
+    print(elem[0],mean(elem[1]))
 
 
 

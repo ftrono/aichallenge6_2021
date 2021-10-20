@@ -27,6 +27,7 @@ with open('./Summary.csv', mode='r') as csv_file:
                             print(str(row["CSVpath"])+" Unable to add value at line "+str(t_line_count+1) + " " + str(t_row))
                             f.write(str(row["CSVpath"])+" Unable to add value at line "+str(t_line_count+1)+" " + str(t_row)+"\n")
                     t_line_count+=1
+                pressata.set_max_values()
                 produzione[row["Tempcode"]].add_step(pressata) # add pressata to instance of riduttore
         line_count+=1   
     f.close() 
