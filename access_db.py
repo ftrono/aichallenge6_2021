@@ -8,7 +8,7 @@ POSTS=db.test2
 #QUERY FUNCTION BY MASTER, TAGLIA, IDCOMP:
 def query_bycombo(master, taglia, idcomp):
     '''
-    Get Combo object from MongoDB containing a list of Series objects with matching args.
+    Get Combo object from MongoDB containing a list of all Series objects with matching args.
     :params  (str) master:, (int) taglia:, (int) idcomp:
     :return (combo) Combo sequence of Series objects:
 
@@ -28,23 +28,30 @@ def query_bycombo(master, taglia, idcomp):
     #query:
     print("Querying DB...")
     cases = POSTS.find({'master': master, 'taglia': taglia})
-    #Search for timestamp in riduttore (list of dicts):
-    for post in cases:
-        riduttore = str(post['ID'])
-        for d in post['steps']:
-            if d['id'] == idcomp:
-                #Store series for altezza and for forza:
-                combo.add_series(d['timestamp'], d['altezza'], d['forza'])
+    try:
+        #Search for timestamp in riduttore (list of dicts):
+        for post in cases:
+            riduttore = str(post['ID'])
+            for d in post['steps']:
+                if d['id'] == idcomp:
+                    #Store series for altezza and for forza:
+                    combo.add_series(d['timestamp'], d['altezza'], d['forza'])
+    except:
+        print("Query: no match found.")
 
     return combo
 
 
-#QUERY FUNCTION BY PRESSATA TIMESTAMP:
+#QUERY FUNCTION BY RIDUTTORE AND PRESSATA TIMESTAMP:
 def query_bytimestamp(riduttore, timestamp):
     '''
-    Get series object from MongoDB with height (list) and force (list) series of values.
+    Query for 1 Series object only from MongoDB, identified by a riduttore and timestamp.
     :params  (str) riduttore:, (int) timestamp:
     :return (series) Series object:
+
+    METHODS:
+    :series.altezza -> access list of altezza within the Series object;
+    :series.forza -> access list of forza within the Series object.
     '''
     #Objects:
     riduttore = str(riduttore)
