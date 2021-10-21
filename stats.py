@@ -1,6 +1,6 @@
 # TODO: per ogni punto, a parità di altezza --> media + varianza
 
-import statistics, math, csv
+import statistics, csv
 from tqdm import tqdm
 import warnings
 import pymongo

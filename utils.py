@@ -29,7 +29,7 @@ def plot_series(riduttore):
     Genera un diagramma per ogni riga contenuta nel parametro `riduttore`.
     OCCIO: necessita di un'ulteriore iterazione del tipo `POSTS.find()`
     :param riduttore: singolo elemento dell'iterazione di `POSTS.find()`.
-    :return PNG
+    :return immagine PNG
     '''
     for pressata in riduttore['steps']:
         # setting lists for plotting
@@ -61,3 +61,31 @@ def filter_series(series):
     a = 1
     filtered_series = lfilter(b,a,series) 
     return filtered_series
+
+
+def normalize(array, plot=False):
+    '''
+    Takes an array as input, returns the same array with normalized values for `altezza` and `forza`.
+    :param array: array of numbers in the form [float1, float2, ... , floatN] or [int1, int2, ... , intN]
+    :param plot: Boolean, lets you plot the normalized array
+    :return: normalized array & plot of the array if requested
+    '''
+    x_data = array['altezza']
+    y_data = array['forza']
+    lenx = len(x_data)
+    leny = len(y_data)
+    if lenx != leny:
+        raise Warning('Illegal values! The number of elements for x axis and y axis should coincide.'
+                      f'Instead you provided {lenx}, and {leny}, respectively!')
+
+    norm_xdata = [round(float(i)/max(x_data), 2) for i in x_data]
+    norm_ydata = [round(float(i)/max(y_data), 2) for i in y_data]
+    array['altezza'] = x_data
+    array['forza'] = y_data
+
+    if plot == True:
+        label = array['id']
+        plt.plot(norm_xdata, norm_ydata)
+        plt.xlabel(label)
+        return plt.show()
+    return array
