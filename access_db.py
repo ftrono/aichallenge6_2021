@@ -57,6 +57,7 @@ def query_bytimestamp(riduttore, timestamp):
     timestamp = int(timestamp)
     series = Series(timestamp)
     #query:
+    print("Querying DB...")
     post = POSTS.find_one({'ID': riduttore})
     try:
         #Search for timestamp in riduttore (list of dicts):
@@ -70,6 +71,50 @@ def query_bytimestamp(riduttore, timestamp):
         print("Query: no match found.")
 
     return series
+
+
+#DUPLICATES COUNT:
+def get_assembly_seq(master = None, taglia = None):
+    '''
+    Get dictionary with the occurrences of every possible assembly sequence of components for a given master / taglia / both.
+    Duplicates are counted only once.
+    :params  (str) master:, (str) taglia: (can use only one or both);
+    :return (dict) dict with assembly sequence and frequency of its occurrence in the whole DB:
+    '''
+    #Objects:
+    buf = []
+    assembly = {}
+    
+    #query:
+    print("Querying DB...")
+    if master and taglia:
+        master = str(master)
+        taglia = str(taglia)
+        cases = POSTS.find({'master': master, 'taglia': taglia})
+    elif master:
+        master = str(master)
+        cases = POSTS.find({'master': master})
+    elif taglia:
+        taglia = str(taglia)
+        cases = POSTS.find({'taglia': taglia})
+    try:
+        #store idcomp in assembly sequence (list):
+        for post in cases:
+            for d in post['steps']:
+                if d['id'] not in buf:
+                    buf.append(d['id'])
+            #save buffer:
+            buf = str(buf)
+            if buf not in assembly.keys():
+                assembly[buf] = 1
+            else:
+                assembly[buf] = int(assembly[buf])+1
+            #reset buffer:
+            buf = []
+    except:
+        print("Query: no match found.")
+
+    return assembly
 
 
 #DUPLICATES COUNT:
@@ -88,6 +133,7 @@ def find_duplicates(riduttore):
     count = 1
 
     #query:
+    print("Querying DB...")
     post = POSTS.find_one({'ID': riduttore})
     try:
         #Check every pressata (dict) in riduttore (list of dicts):
@@ -120,12 +166,13 @@ def find_duplicates(riduttore):
     return ripressate
 
 
-#Find all distinct masters in DB:
-def find_masters(POSTS):
+#Find all distinct search items in DB:
+def find_unique(searchitem):
     '''
-    Get list of unique masters in the database.
+    Get list of unique search items in the database.
     '''
-    tags = POSTS.distinct("master")
+    print("Querying DB...")
+    tags = POSTS.distinct(searchitem)
     return tags
 
 
@@ -146,6 +193,20 @@ def trial():
 
     ripressate = find_duplicates("20200313112012")
     print(ripressate)
+
+    un = find_unique("taglia")
+    #un = find_unique("steps.id")
+    print(un)
+
+    #seqs = get_assembly_seq(master=7)
+    #for c in seqs.items():
+    #    print(c)
+
+    # for t in taglie:
+    #     print(t)
+    #     seqs = get_assembly_seq(master=2, taglia=t)
+    #     for c in seqs.items():
+    #         print(c)
 
 
 #trial()
