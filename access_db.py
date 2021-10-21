@@ -9,7 +9,7 @@ POSTS=db.test2
 def query_bycombo(master, taglia, idcomp):
     '''
     Get Combo object from MongoDB containing a list of all Series objects with matching args.
-    :params  (str) master:, (int) taglia:, (int) idcomp:
+    :params  (str) master:, (str) taglia:, (str) idcomp:
     :return (combo) Combo sequence of Series objects:
 
     METHODS:
