@@ -167,7 +167,7 @@ def find_duplicates(riduttore):
 
 
 #Find all distinct search items in DB:
-def find_unique(POSTS, searchitem):
+def find_unique(searchitem):
     '''
     Get list of unique search items in the database.
     '''
@@ -194,7 +194,9 @@ def trial():
     ripressate = find_duplicates("20200313112012")
     print(ripressate)
 
-    taglie = find_unique(POSTS, "taglia")
+    un = find_unique("taglia")
+    #un = find_unique("steps.id")
+    print(un)
 
     #seqs = get_assembly_seq(master=7)
     #for c in seqs.items():
