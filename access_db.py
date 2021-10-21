@@ -31,7 +31,6 @@ def query_bycombo(master, taglia, idcomp):
     try:
         #Search for timestamp in riduttore (list of dicts):
         for post in cases:
-            riduttore = str(post['ID'])
             for d in post['steps']:
                 if d['id'] == idcomp:
                     #Store series for altezza and for forza:
