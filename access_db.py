@@ -11,6 +11,13 @@ def query_bycombo(master, taglia, idcomp):
     Get Combo object from MongoDB containing a list of Series objects with matching args.
     :params  (str) master:, (int) taglia:, (int) idcomp:
     :return (combo) Combo sequence of Series objects:
+
+    METHODS:
+    :combo.series -> access list of Combo sequence of Series objects;
+    :combo.series[index].altezza -> access list of altezza within 1 Series object in the Combo sequence;
+    :combo.series[index].forza -> access list of forza within 1 Series object in the Combo sequence;
+    :combo.get_series(timestamp)-> get Series object with the indicated timestamp;
+    :can then use combo.get_series(timestamp).altezza and/or combo.get_series(timestamp).forza
     '''
     #Objects:
     master = str(master)
@@ -19,6 +26,7 @@ def query_bycombo(master, taglia, idcomp):
     combo = Combo(master, taglia, idcomp)
     
     #query:
+    print("Querying DB...")
     cases = POSTS.find({'master': master, 'taglia': taglia})
     #Search for timestamp in riduttore (list of dicts):
     for post in cases:
@@ -26,7 +34,7 @@ def query_bycombo(master, taglia, idcomp):
         for d in post['steps']:
             if d['id'] == idcomp:
                 #Store series for altezza and for forza:
-                combo.add_series(riduttore, d['timestamp'], d['altezza'], d['forza'])
+                combo.add_series(d['timestamp'], d['altezza'], d['forza'])
 
     return combo
 
@@ -41,7 +49,7 @@ def query_bytimestamp(riduttore, timestamp):
     #Objects:
     riduttore = str(riduttore)
     timestamp = int(timestamp)
-    series = Series(riduttore, timestamp)
+    series = Series(timestamp)
     #query:
     post = POSTS.find_one({'ID': riduttore})
     #Search for timestamp in riduttore (list of dicts):
@@ -115,11 +123,14 @@ def trial():
     Test functions in the module.
     '''
     combo = query_bycombo("2", "MP080", 'a0215')
-    print(combo.series)
+    print(combo.series[0].altezza)
+    print(combo.series[0].forza)
+    print(combo.get_series(1584122174).forza) #return
+    #print(combo.get_series(1584109742)) #no match found
     
-    serie = query_bytimestamp("20200313112012", 1584109742)
-    print(serie.altezza)
-    print(serie.forza)
+    #serie = query_bytimestamp("20200313112012", 1584109742)
+    #print(serie.altezza)
+    #print(serie.forza)
 
     ripressate = find_duplicates("20200313112012")
     print(ripressate)

@@ -2,7 +2,8 @@ import datetime
 import pymongo
 import matplotlib.pyplot as plt
 
-CONNECTION_STRING="mongodb://localhost:27017/"
+CONNECTION_STRING="mongodb://localhost:27017/" #to executing locally
+#CONNECTION_STRING="mongodb://team6:MLoMuk2b@localhost:27017" #for executing on the Azure VM
 
 def name_parser(name): # take as input the file name
     # get information from file name

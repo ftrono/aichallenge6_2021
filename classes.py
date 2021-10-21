@@ -90,13 +90,13 @@ class Riduttore:
         
 #For query:
 class Series:
-    def __init__(self, riduttore, timestamp):
-        self.riduttore = riduttore
+    def __init__(self, timestamp):
         self.timestamp = timestamp
         self.altezza = []
         self.forza = []
 
 #For DB scanning:
+#Combo sequence of Series objects:
 class Combo:
     def __init__(self, master, taglia, idcomp):
         self.master = master
@@ -104,9 +104,18 @@ class Combo:
         self.idcomp = idcomp
         self.series = []
 
-    def add_series(self, riduttore, timestamp, altezza, forza):
-        series = Series(riduttore, timestamp)
+    #Add a series object to the Combo sequence:
+    def add_series(self, timestamp, altezza, forza):
+        series = Series(timestamp)
         series.altezza = altezza
         series.forza = forza
         self.series.append(series)
 
+    #Access one Series object within the Combo sequence:
+    def get_series(self, timestamp):
+        timestamp = int(timestamp)
+        for series in self.series:
+            if series.timestamp == timestamp:
+                return series
+        #Should execute only if match not found:
+        print("Series {} not found.".format(timestamp))
