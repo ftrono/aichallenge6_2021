@@ -1,6 +1,7 @@
 import datetime
 import pymongo
 import matplotlib.pyplot as plt
+from scipy.signal import lfilter
 
 CONNECTION_STRING="mongodb://localhost:27017/" #to executing locally
 #CONNECTION_STRING="mongodb://team6:MLoMuk2b@hitvmiac-06.northeurope.cloudapp.azure.com:27017" #for executing on the Azure VM
@@ -46,3 +47,17 @@ def plot_series(riduttore):
         plt.xlabel(labels[0])
         diagram = plt.show()
     return diagram
+
+def filter_series(series):
+    '''
+    Funzione per fare uno smoothing di una curva e rimuovere il rumore 
+    Visto che modifica abbastanza i valori sarebbe meglio utilizzarla solo per la 
+    prima parte del grafico.
+    : series: array dei valori da cui rimuovere il rumore (nel nostro caso le potenze)
+    : return un array della stessa dimensione  
+    '''
+    n = 15
+    b = [1.0 / n] * n
+    a = 1
+    filtered_series = lfilter(b,a,series) 
+    return filtered_series
