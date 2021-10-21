@@ -1,6 +1,7 @@
 from utils import mongo_connect, mongo_disconnect
 from classes import Combo, Series
 import matplotlib.pyplot as plt
+import sys
 db,client = mongo_connect()
 POSTS=db.test2
 
@@ -74,11 +75,11 @@ def query_bytimestamp(riduttore, timestamp):
 
 
 #DUPLICATES COUNT:
-def get_assembly_seq(master = None, taglia = None):
+def get_assembly_seq(ripressate: bool, master = None, taglia = None):
     '''
     Get dictionary with the occurrences of every possible assembly sequence of components for a given master / taglia / both.
-    Duplicates are counted only once.
-    :params  (str) master:, (str) taglia: (can use only one or both);
+    :params  (bool) ripressate: if False, duplicates are counted only once (better);
+    :other params  (str) master:, (str) taglia: (can use only one or both);
     :return (dict) dict with assembly sequence and frequency of its occurrence in the whole DB:
     '''
     #Objects:
@@ -101,7 +102,7 @@ def get_assembly_seq(master = None, taglia = None):
         #store idcomp in assembly sequence (list):
         for post in cases:
             for d in post['steps']:
-                if d['id'] not in buf:
+                if (ripressate == True) or (d['id'] not in buf):
                     buf.append(d['id'])
             #save buffer:
             buf = str(buf)
@@ -184,7 +185,7 @@ def trial():
     combo = query_bycombo("2", "MP080", 'a0215')
     print(combo.series[0].altezza)
     print(combo.series[0].forza)
-    print(combo.get_series(1584122174).forza) #return
+    # print(combo.get_series(1584122174).forza) #return
     #print(combo.get_series(1584109742)) #no match found
     
     #serie = query_bytimestamp("20200313112012", 1584109742)
@@ -198,13 +199,13 @@ def trial():
     #un = find_unique("steps.id")
     print(un)
 
-    #seqs = get_assembly_seq(master=7)
-    #for c in seqs.items():
-    #    print(c)
+    seqs = get_assembly_seq(ripressate=False, master=1)
+    for c in seqs.items():
+       print(c)
 
     # for t in taglie:
     #     print(t)
-    #     seqs = get_assembly_seq(master=2, taglia=t)
+    #     seqs = get_assembly_seq(ripressate=False, master=1, taglia=t)
     #     for c in seqs.items():
     #         print(c)
 
