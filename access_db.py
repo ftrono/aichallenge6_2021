@@ -58,13 +58,16 @@ def query_bytimestamp(riduttore, timestamp):
     series = Series(timestamp)
     #query:
     post = POSTS.find_one({'ID': riduttore})
-    #Search for timestamp in riduttore (list of dicts):
-    for d in post['steps']:
-        if d['timestamp'] == timestamp:
-            #Store series for altezza and for forza:
-            series.altezza = d['altezza']
-            series.forza = d['forza']
-            break
+    try:
+        #Search for timestamp in riduttore (list of dicts):
+        for d in post['steps']:
+            if d['timestamp'] == timestamp:
+                #Store series for altezza and for forza:
+                series.altezza = d['altezza']
+                series.forza = d['forza']
+                break
+    except:
+        print("Query: no match found.")
 
     return series
 
@@ -86,30 +89,33 @@ def find_duplicates(riduttore):
 
     #query:
     post = POSTS.find_one({'ID': riduttore})
+    try:
+        #Check every pressata (dict) in riduttore (list of dicts):
+        for pressata in post["steps"]:
+            new = str(pressata["id"])        
 
-    #Check every pressata (dict) in riduttore (list of dicts):
-    for pressata in post["steps"]:
-        new = str(pressata["id"])        
+            #Duplicate match:
+            #If ripressata, increment count:
+            if (new == prior):
+                count = count+1
 
-        #Duplicate match:
-        #If ripressata, increment count:
-        if (new == prior):
-            count = count+1
+            else:
+                #Check if accumulated duplicates counts exist:
+                if count > 1:
+                    #Store to tuple:
+                    tup = (prior, count)
+                    dups.append(tup)
+                #reset count:
+                count = 1
 
-        else:
-            #Check if accumulated duplicates counts exist:
-            if count > 1:
-                #Store to tuple:
-                tup = (prior, count)
-                dups.append(tup)
-            #reset count:
-            count = 1
-
-        #Reset id:
-        prior = new
+            #Reset id:
+            prior = new
+        
+        #Store list of duplicates in dictionary:
+        ripressate[str(post["_id"])] = dups
     
-    #Store list of duplicates in dictionary:
-    ripressate[str(post["_id"])] = dups
+    except:
+        print("Query: no match found.")
 
     return ripressate
 
