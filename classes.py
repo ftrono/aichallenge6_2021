@@ -3,13 +3,15 @@
 class Pressata:
     def __init__ (self, id, stazione, timestamp): # creator
         # fields
-        self.id         = id
-        self.stazione   = stazione
-        self.timestamp  = timestamp
-        self.warning    = False
-        self.ripressato = False
-        self.altezza    = []
-        self.forza      = []
+        self.id          = id
+        self.stazione    = stazione
+        self.timestamp   = timestamp
+        self.warning     = False
+        self.ripressato  = False
+        self.max_forza   = 0
+        self.max_altezza = 0
+        self.altezza     = []
+        self.forza       = []
     
     def add_value(self, height, force):
         self.altezza.append(float(height)) 
@@ -18,18 +20,24 @@ class Pressata:
     def trigger_warn(self):
         self.warning=True # throw warning
 
+    def set_max_values(self):
+        self.max_altezza = max(self.altezza)
+        self.max_forza   = max(self.forza)
+
     # def _print(self):
     #     print("\tID: {}\n\tStazione: {}\n\tTimestamp: {}\n\tWarning: {}\n\tSerie: {}".format(self.id,self.stazione,self.timestamp,self.warning,self.serie))
 
     def to_json(self):
         pressata={
-            'id'         : self.id,
-            'stazione'   : self.stazione,
-            'timestamp'  : self.timestamp,
-            'warning'    : self.warning,
-            'ripressato' : self.ripressato,
-            'altezza'    : self.altezza,
-            'forza'      : self.forza
+            'id'          : self.id,
+            'stazione'    : self.stazione,
+            'timestamp'   : self.timestamp,
+            'max_altezza' : self.max_altezza,
+            'max_forza'   : self.max_forza,
+            'warning'     : self.warning,
+            'ripressato'  : self.ripressato,
+            'altezza'     : self.altezza,
+            'forza'       : self.forza
         }
         return pressata
 
@@ -46,7 +54,7 @@ class Riduttore:
         self.warnings = False
     
     def add_step(self, step):
-        self.steps.append(step) # add pressata to seteps serie
+        self.steps.append(step) # add pressata to steps serie
 
     def trigger_warn(self):
         self.warnings=True
@@ -80,8 +88,34 @@ class Riduttore:
         }
         return riduttore
         
-   
+#For query:
+class Series:
+    def __init__(self, timestamp):
+        self.timestamp = timestamp
+        self.altezza = []
+        self.forza = []
 
-    
+#For DB scanning:
+#Combo sequence of Series objects:
+class Combo:
+    def __init__(self, master, taglia, idcomp):
+        self.master = master
+        self.taglia = taglia
+        self.idcomp = idcomp
+        self.series = []
 
+    #Add a series object to the Combo sequence:
+    def add_series(self, timestamp, altezza, forza):
+        series = Series(timestamp)
+        series.altezza = altezza
+        series.forza = forza
+        self.series.append(series)
 
+    #Access one Series object within the Combo sequence:
+    def get_series(self, timestamp):
+        timestamp = int(timestamp)
+        for series in self.series:
+            if series.timestamp == timestamp:
+                return series
+        #Should execute only if match not found:
+        print("Series {} not found.".format(timestamp))

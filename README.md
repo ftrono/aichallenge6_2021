@@ -34,7 +34,7 @@ Se systemd, o per ulteriori comandi disponibili, vedere qui:
 
 ## PUNTO B) AVVIARE APP GRAFICA COMPASS (OGNI VOLTA):
 Usate il comando:
-* ```mongodb-compass```
+* ```mongodb-compass``` (oppure ```mongodb-compass &``` per lanciarlo in background in modo da non bloccare bash)
 
 Connettere Compass a localhost inserendo:
 * ***mongodb://localhost:27017/***
