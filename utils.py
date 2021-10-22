@@ -110,3 +110,11 @@ def normalize(array, plot=False, resize=False, **size):
         return graph
 
     return norm_array
+
+#Clipping
+def clipping(height,force):
+    max_value = max(height)
+    index_max = height.index(max_value)
+    del height[index_max+1:len(height)] 
+    del force [index_max+1:len(force)]
+    return height, force
