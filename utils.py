@@ -63,29 +63,49 @@ def filter_series(series):
     return filtered_series
 
 
-def normalize(array, plot=False):
+def normalize(array, plot=False, resize=False, **size):
     '''
     Takes an array as input, returns the same array with normalized values for `altezza` and `forza`.
+    Plotting and Resizing features on request.
     :param array: array of numbers in the form [float1, float2, ... , floatN] or [int1, int2, ... , intN]
-    :param plot: Boolean, lets you plot the normalized array
+    :param size: Size you want the array to be resized to. (length)
     :return: normalized array & plot of the array if requested
     '''
     x_data = array['altezza']
     y_data = array['forza']
     lenx = len(x_data)
     leny = len(y_data)
+
+    # Handling discordant lenghts for 'altezza' and 'forza'
     if lenx != leny:
         raise Warning('Illegal values! The number of elements for x axis and y axis should coincide.'
                       f'Instead you provided {lenx}, and {leny}, respectively!')
 
-    norm_xdata = [round(float(i)/max(x_data), 2) for i in x_data]
-    norm_ydata = [round(float(i)/max(y_data), 2) for i in y_data]
-    array['altezza'] = x_data
-    array['forza'] = y_data
+    # Resizing (optional)
+    if resize == True:
+        # Handling non numeric attributions to size
+        if type(size['size']) == str:
+            raise Warning('Size parameter must be either int or float.')
+        factor = size['size']/len(x_data)
+        zoomed_height = zoom(x_data, factor)
+        zoomed_strength = zoom(y_data, factor)
+        x_data = zoomed_height
+        y_data = zoomed_strength
 
+    # Normalization
+    norm_xdata = [round(i/max(x_data), 2) for i in x_data]
+    norm_ydata = [round(i/max(y_data), 2) for i in y_data]
+    # Creating normalized array to preserve original
+    norm_array = array
+    norm_array['altezza'] = norm_xdata
+    norm_array['forza'] = norm_ydata
+
+    # Plotting (optional)
     if plot == True:
-        label = array['id']
+        label = norm_array['id']
         plt.plot(norm_xdata, norm_ydata)
         plt.xlabel(label)
-        return plt.show()
-    return array
+        graph = plt.show()
+        return graph
+
+    return norm_array
