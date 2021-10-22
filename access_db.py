@@ -1,7 +1,6 @@
 from utils import mongo_connect, mongo_disconnect
 from classes import Combo, Series
 import matplotlib.pyplot as plt
-import sys
 db,client = mongo_connect()
 POSTS=db.test2
 
@@ -98,22 +97,35 @@ def get_assembly_seq(ripressate: bool, master = None, taglia = None):
     elif taglia:
         taglia = str(taglia)
         cases = POSTS.find({'taglia': taglia})
-    try:
+    #try:
         #store idcomp in assembly sequence (list):
-        for post in cases:
-            for d in post['steps']:
-                if (ripressate == True) or (d['id'] not in buf):
-                    buf.append(d['id'])
-            #save buffer:
-            buf = str(buf)
-            if buf not in assembly.keys():
-                assembly[buf] = 1
-            else:
-                assembly[buf] = int(assembly[buf])+1
-            #reset buffer:
-            buf = []
-    except:
-        print("Query: no match found.")
+    for post in cases:
+        for d in post['steps']:
+            if (ripressate == False) and (d['id'] not in buf):
+                buf.append(d['id'])
+            elif (ripressate == True):
+                if (buf != []) and (buf[-1][0] == d['id']):
+                    #update count for idcomp:
+                    c = buf[-1][1] + 1
+                    #replace tuple:
+                    buf.pop()
+                else:
+                    #start count:
+                    c = 1
+                #append tuple:
+                t = (d['id'], c)
+                buf.append(t)
+
+        #save buffer:
+        buf = str(buf)
+        if buf not in assembly.keys():
+            assembly[buf] = 1
+        else:
+            assembly[buf] = int(assembly[buf])+1
+        #reset buffer:
+        buf = []
+    #except:
+    #    print("Query: no match found.")
 
     return assembly
 
@@ -185,21 +197,21 @@ def trial():
     combo = query_bycombo("2", "MP080", 'a0215')
     print(combo.series[0].altezza)
     print(combo.series[0].forza)
-    # print(combo.get_series(1584122174).forza) #return
+    #print(combo.get_series(1584122174).forza) #return
     #print(combo.get_series(1584109742)) #no match found
     
     #serie = query_bytimestamp("20200313112012", 1584109742)
     #print(serie.altezza)
     #print(serie.forza)
 
-    ripressate = find_duplicates("20200313112012")
-    print(ripressate)
+    # ripressate = find_duplicates("20200313112012")
+    # print(ripressate)
 
     un = find_unique("taglia")
     #un = find_unique("steps.id")
     print(un)
 
-    seqs = get_assembly_seq(ripressate=False, master=1)
+    seqs = get_assembly_seq(ripressate=True, master=1)
     for c in seqs.items():
        print(c)
 
