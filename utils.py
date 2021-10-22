@@ -2,6 +2,7 @@ import datetime
 import pymongo
 import matplotlib.pyplot as plt
 from scipy.signal import lfilter
+from scipy.ndimage import zoom
 
 CONNECTION_STRING="mongodb://localhost:27017/" #to executing locally
 #CONNECTION_STRING="mongodb://team6:MLoMuk2b@hitvmiac-06.northeurope.cloudapp.azure.com:27017" #for executing on the Azure VM
@@ -76,14 +77,14 @@ def normalize(array, plot=False, resize=False, **size):
     lenx = len(x_data)
     leny = len(y_data)
 
-    # Handling discordant lenghts for 'altezza' and 'forza'
+    # Handling error for discordant lenghts for 'altezza' and 'forza'
     if lenx != leny:
         raise Warning('Illegal values! The number of elements for x axis and y axis should coincide.'
                       f'Instead you provided {lenx}, and {leny}, respectively!')
 
     # Resizing (optional)
     if resize == True:
-        # Handling non numeric attributions to size
+        # Handling error for non numeric attributions to size
         if type(size['size']) == str:
             raise Warning('Size parameter must be either int or float.')
         factor = size['size']/len(x_data)
