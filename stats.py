@@ -38,6 +38,60 @@ def get_stats(misura, mean=False, variance=False):
         return varianza
     return media, varianza
 
+def ideal_curve(input):
+    '''
+    Function to compute the ideal curve for a specific combination given by 
+    the mean value between its points on the x-axis 
+
+    Parameters
+    input : list of list
+        It's the collection of already normalized series of which we want to 
+        compute the ideal behaviour. That said it is critical that each series 
+        should be of the same size!
+
+    Returns
+    out : list
+        A list contining the average value of each point in all the series, 
+        it's lenght is the same as the one of every series
+
+    '''
+    out = []
+    for i in range(0,len(input[0])):
+        temp = []
+        for j in range(0, len(input)):
+            temp.append(input[j][i])
+        avg = get_stats(temp, mean=True, variance=False)
+        out.append(avg)
+    return out
+
+def threshold_variance(input):
+    '''
+    Function to compute the average varience value to be used as threshold 
+    when looking if a new sample will be in or out the ideal curve
+
+    Parameters
+    ----------
+    input : list of list
+        It's the collection of already normalized series of which we want to 
+        compute the ideal behaviour. That said it is critical that each series 
+        should be of the same size!
+
+    Returns
+    -------
+    avg_var : double
+        A list contining the average value of each point in all the series, 
+        it's lenght is the same as the one of every series
+
+    '''
+    var_list = []
+    for i in range(0,len(input[0])):
+        temp = []
+        for j in range(0, len(input)):
+            temp.append(input[j][i])
+        var = get_stats(temp, mean=False, variance=True)
+        var_list.append(var)
+    avg_var = get_stats(var_list, mean=True, variance=False)
+    return avg_var
 
 if __name__ == '__main__':
 
