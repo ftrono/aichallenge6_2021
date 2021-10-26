@@ -2,7 +2,9 @@ import csv
 import time
 from utils import name_parser, mongo_connect, mongo_disconnect
 from classes import Riduttore, Pressata
+import os
 
+print("Starting csv import...")
 start_time = time.time()
 produzione=dict()
 with open('./Summary.csv', mode='r') as csv_file:
@@ -20,25 +22,32 @@ with open('./Summary.csv', mode='r') as csv_file:
                     if t_line_count==0: 
                         tempcode,id,stazione,timestamp=name_parser(row["CSVname"]) # get informations form file name
                         pressata=Pressata(id,stazione,timestamp) # generate instance of pressata
-                    elif t_line_count>1: # skip first 2 rows
+                    elif t_line_count>2: # skip first 3 rows
                         try: 
                             pressata.add_value(t_row[2].replace(',','.'),t_row[3].replace(',','.')) # add value to serie in pressata
                         except: # handle exception due to malformed rows
-                            print(str(row["CSVpath"])+" Unable to add value at line "+str(t_line_count+1) + " " + str(t_row))
+                            #print(str(row["CSVpath"])+" Unable to add value at line "+str(t_line_count+1) + " " + str(t_row))
                             f.write(str(row["CSVpath"])+" Unable to add value at line "+str(t_line_count+1)+" " + str(t_row)+"\n")
                     t_line_count+=1
-                pressata.set_max_values()
+                try:
+                    pressata.set_max_values()
+                except:
+                    print(str(row["CSVpath"])+" Unable to compute maximum values vectors are empty")
+                    f.write(str(row["CSVpath"])+" Unable to compute maximum values vectors are empty\n")
+                    cmd='rm /home/azureadmin/main/' + str(row["CSVpath"]).replace('\\','/')
+                    #os.system(cmd)
                 produzione[row["Tempcode"]].add_step(pressata) # add pressata to instance of riduttore
         line_count+=1   
     f.close() 
-    print("Import process completed")
-
+    print("Import from csv completed.")
+    print("Connecting...")
     db,client=mongo_connect()
+    print("Connection enstablished.\nStarting DB population...")
     for document in produzione.values():
         result=db.test2.insert_one(document.to_json())
-        print('Inserted document {}'.format(result.inserted_id))
+        #print('Inserted document {}'.format(result.inserted_id))
     mongo_disconnect(client)
-print("--- %s seconds ---" % (time.time() - start_time)) # print execution time 
+print("Process completed in: %s seconds" % (time.time() - start_time)) # print execution time 
 
 
 

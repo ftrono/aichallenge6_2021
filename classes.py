@@ -24,9 +24,6 @@ class Pressata:
         self.max_altezza = max(self.altezza)
         self.max_forza   = max(self.forza)
 
-    # def _print(self):
-    #     print("\tID: {}\n\tStazione: {}\n\tTimestamp: {}\n\tWarning: {}\n\tSerie: {}".format(self.id,self.stazione,self.timestamp,self.warning,self.serie))
-
     def to_json(self):
         pressata={
             'id'          : self.id,
@@ -81,7 +78,8 @@ class Riduttore:
             'ID'       : self.ID,
             'master'   : self.master,
             'taglia'   : self.taglia,
-            'stadi'    : self.rapporto,
+            'stadi'    : self.stadi,
+            'rapporto' : self.rapporto,
             'cd'       : self.cd,
             'warnings' : self.warnings,
             'steps'    : steps
