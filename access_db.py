@@ -1,42 +1,58 @@
 from utils import mongo_connect, mongo_disconnect
 from classes import Combo, Series
 import matplotlib.pyplot as plt
+import warnings
 db,client = mongo_connect()
 POSTS=db.test2
 
 
-#QUERY FUNCTION BY MASTER, TAGLIA, IDCOMP:
-def query_bycombo(master, taglia, idcomp):
+#QUERY FUNCTION BY COMBO TAGLIA & IDCOMP (mandatory)
+#(also can add MASTER (optional) and/or N. STADI (optional)):
+def query_bycombo(taglia, idcomp, master = None, stadi = None):
     '''
     Get Combo object from MongoDB containing a list of all Series objects with matching args.
-    :params  (str) master:, (str) taglia:, (str) idcomp:
+    :params  (str) taglia:, (str) idcomp, (str optional) master:, (str optional) stadi:
     :return (combo) Combo sequence of Series objects:
 
     METHODS:
     :combo.series -> access list of Combo sequence of Series objects;
+    :combo.series[index].max_altezza -> access value of max_altezza within 1 Series object in the Combo sequence;
+    :combo.series[index].max_forza -> access value of max_forza within 1 Series object in the Combo sequence;
     :combo.series[index].altezza -> access list of altezza within 1 Series object in the Combo sequence;
     :combo.series[index].forza -> access list of forza within 1 Series object in the Combo sequence;
     :combo.get_series(timestamp)-> get Series object with the indicated timestamp;
-    :can then use combo.get_series(timestamp).altezza and/or combo.get_series(timestamp).forza
+    :can then use combo.get_series(timestamp).altezza and/or .forza and/or .max_altezza and/or .max_forza
     '''
     #Objects:
-    master = str(master)
     taglia = str(taglia)
     idcomp = str(idcomp)
-    combo = Combo(master, taglia, idcomp)
+    if master:
+        master = str(master)
+    if stadi:
+        stadi = str(stadi)
+    combo = Combo(taglia, idcomp, master, stadi)
     
     #query:
-    print("Querying DB...")
-    cases = POSTS.find({'master': master, 'taglia': taglia})
-    try:
+    if master and stadi:
+        cases = POSTS.find({'master': master, 'taglia': taglia, 'stadi': stadi}, {'steps.id': 1, 'steps.timestamp': 1, 'steps.max_altezza': 1, 'steps.max_forza': 1, 'steps.altezza': 1, 'steps.forza': 1})
+    elif master:
+        cases = POSTS.find({'master': master, 'taglia': taglia}, {'steps.id': 1, 'steps.timestamp': 1, 'steps.max_altezza': 1, 'steps.max_forza': 1, 'steps.altezza': 1, 'steps.forza': 1})
+    elif stadi:
+        cases = POSTS.find({'taglia': taglia, 'stadi': stadi}, {'steps.id': 1, 'steps.timestamp': 1, 'steps.max_altezza': 1, 'steps.max_forza': 1, 'steps.altezza': 1, 'steps.forza': 1})
+    else:
+        cases = POSTS.find({'taglia': taglia}, {'steps.id': 1, 'steps.timestamp': 1, 'steps.max_altezza': 1, 'steps.max_forza': 1, 'steps.altezza': 1, 'steps.forza': 1})
+    
+    #data extraction:
+    if cases == None:
         #Search for timestamp in riduttore (list of dicts):
         for post in cases:
+            #steps is list of dicts:
             for d in post['steps']:
                 if d['id'] == idcomp:
                     #Store series for altezza and for forza:
-                    combo.add_series(d['timestamp'], d['altezza'], d['forza'])
-    except:
-        print("Query: no match found.")
+                    combo.add_series(d['timestamp'], d['max_altezza'], d['max_forza'], d['altezza'], d['forza'])
+    else:
+        warnings.warn("Query: no match found.")
 
     return combo
 
@@ -56,14 +72,19 @@ def query_bytimestamp(riduttore, timestamp):
     riduttore = str(riduttore)
     timestamp = int(timestamp)
     series = Series(timestamp)
+    
     #query:
-    print("Querying DB...")
-    post = POSTS.find_one({'ID': riduttore})
+    post = POSTS.find_one({'ID': riduttore}, {'steps.timestamp': 1, 'steps.max_altezza': 1, 'steps.max_forza': 1, 'steps.altezza': 1, 'steps.forza': 1})
+    print(post)
+    
+    #data extraction:
     try:
         #Search for timestamp in riduttore (list of dicts):
         for d in post['steps']:
             if d['timestamp'] == timestamp:
                 #Store series for altezza and for forza:
+                series.max_altezza = d['max_altezza']
+                series.max_forza = d['max_forza']
                 series.altezza = d['altezza']
                 series.forza = d['forza']
                 break
@@ -74,7 +95,7 @@ def query_bytimestamp(riduttore, timestamp):
 
 
 #DUPLICATES COUNT:
-def get_assembly_seq(ripressate: bool, master = None, taglia = None):
+def get_assembly_seq(ripressate: bool, master = None, taglia = None, stadi = None):
     '''
     Get dictionary with the occurrences of every possible assembly sequence of components for a given master / taglia / both.
     :params  (bool) ripressate: if False, duplicates are counted only once (better);
@@ -86,46 +107,63 @@ def get_assembly_seq(ripressate: bool, master = None, taglia = None):
     assembly = {}
     
     #query:
-    print("Querying DB...")
-    if master and taglia:
+    if master and taglia and stadi:
         master = str(master)
         taglia = str(taglia)
-        cases = POSTS.find({'master': master, 'taglia': taglia})
+        stadi = str(stadi)
+        cases = POSTS.find({'master': master, 'taglia': taglia, 'stadi': stadi}, {'steps.id': 1, 'steps.timestamp': 1})
+    elif master and stadi:
+        master = str(master)
+        stadi = str(stadi)
+        cases = POSTS.find({'master': master, 'stadi': stadi}, {'steps.id': 1, 'steps.timestamp': 1})
+    elif master and taglia:
+        master = str(master)
+        taglia = str(taglia)
+        cases = POSTS.find({'master': master, 'taglia': taglia}, {'steps.id': 1, 'steps.timestamp': 1})
+    elif taglia and stadi:
+        taglia = str(taglia)
+        stadi = str(stadi)
+        cases = POSTS.find({'taglia': taglia, 'stadi': stadi}, {'steps.id': 1, 'steps.timestamp': 1})
     elif master:
         master = str(master)
-        cases = POSTS.find({'master': master})
+        cases = POSTS.find({'master': master}, {'steps.id': 1, 'steps.timestamp': 1})
     elif taglia:
         taglia = str(taglia)
-        cases = POSTS.find({'taglia': taglia})
-    #try:
+        cases = POSTS.find({'taglia': taglia}, {'steps.id': 1, 'steps.timestamp': 1})
+    elif stadi:
+        stadi = str(stadi)
+        cases = POSTS.find({'stadi': stadi}, {'steps.id': 1, 'steps.timestamp': 1})
+    
+    #data extraction:
+    try:
         #store idcomp in assembly sequence (list):
-    for post in cases:
-        for d in post['steps']:
-            if (ripressate == False) and (d['id'] not in buf):
-                buf.append(d['id'])
-            elif (ripressate == True):
-                if (buf != []) and (buf[-1][0] == d['id']):
-                    #update count for idcomp:
-                    c = buf[-1][1] + 1
-                    #replace tuple:
-                    buf.pop()
-                else:
-                    #start count:
-                    c = 1
-                #append tuple:
-                t = (d['id'], c)
-                buf.append(t)
+        for post in cases:
+            for d in post['steps']:
+                if (ripressate == False) and (d['id'] not in buf):
+                    buf.append(d['id'])
+                elif (ripressate == True):
+                    if (buf != []) and (buf[-1][0] == d['id']):
+                        #update count for idcomp:
+                        c = buf[-1][1] + 1
+                        #replace tuple:
+                        buf.pop()
+                    else:
+                        #start count:
+                        c = 1
+                    #append tuple:
+                    t = (d['id'], c)
+                    buf.append(t)
 
-        #save buffer:
-        buf = str(buf)
-        if buf not in assembly.keys():
-            assembly[buf] = 1
-        else:
-            assembly[buf] = int(assembly[buf])+1
-        #reset buffer:
-        buf = []
-    #except:
-    #    print("Query: no match found.")
+            #save buffer:
+            buf = str(buf)
+            if buf not in assembly.keys():
+                assembly[buf] = 1
+            else:
+                assembly[buf] = int(assembly[buf])+1
+            #reset buffer:
+            buf = []
+    except:
+        print("Query: no match found.")
 
     return assembly
 
@@ -146,8 +184,9 @@ def find_duplicates(riduttore):
     count = 1
 
     #query:
-    print("Querying DB...")
-    post = POSTS.find_one({'ID': riduttore})
+    post = POSTS.find_one({'ID': riduttore}, {'steps.id': 1, 'steps.timestamp': 1})
+
+    #data extraction:
     try:
         #Check every pressata (dict) in riduttore (list of dicts):
         for pressata in post["steps"]:
@@ -194,9 +233,12 @@ def trial():
     '''
     Test functions in the module.
     '''
-    combo = query_bycombo("2", "MP080", 'a0215')
-    print(combo.series[0].altezza)
-    print(combo.series[0].forza)
+    combo = query_bycombo(taglia="MP080hgewfifgi", idcomp='a0215')
+    # print(combo.series[0].timestamp)
+    # print(combo.series[0].max_altezza)
+    # print(combo.series[0].max_forza)
+    # print(combo.series[0].altezza)
+    # print(combo.series[0].forza)
     #print(combo.get_series(1584122174).forza) #return
     #print(combo.get_series(1584109742)) #no match found
     
@@ -204,24 +246,25 @@ def trial():
     #print(serie.altezza)
     #print(serie.forza)
 
-    # ripressate = find_duplicates("20200313112012")
-    # print(ripressate)
+    #ripressate = find_duplicates("20200313112012")
+    #print(ripressate)
 
-    un = find_unique("taglia")
+    #un = find_unique("taglia")
     #un = find_unique("steps.id")
-    print(un)
+    #print(un)
 
-    seqs = get_assembly_seq(ripressate=True, master=1)
-    for c in seqs.items():
-       print(c)
+    # seqs = get_assembly_seq(ripressate=True, master=1)
+    # for c in seqs.items():
+    #    print(c)
 
+    # taglie= ['MP060', 'MP053']
     # for t in taglie:
     #     print(t)
-    #     seqs = get_assembly_seq(ripressate=False, master=1, taglia=t)
+    #     seqs = get_assembly_seq(ripressate=False, master=1, taglia=t, stadi=1)
     #     for c in seqs.items():
     #         print(c)
 
 
-#trial()
+trial()
 # MOLTO IMPORTANTE ricordarsi di metterlo ogni volta che si apre una connessione
 mongo_disconnect(client)

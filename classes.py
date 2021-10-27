@@ -89,22 +89,29 @@ class Riduttore:
 #For query:
 class Series:
     def __init__(self, timestamp):
-        self.timestamp = timestamp
+        self.timestamp = int(timestamp)
+        self.max_altezza = 0
+        self.max_forza = 0
         self.altezza = []
         self.forza = []
 
 #For DB scanning:
 #Combo sequence of Series objects:
 class Combo:
-    def __init__(self, master, taglia, idcomp):
-        self.master = master
+    def __init__(self, taglia, idcomp, master = None, stadi = None):
         self.taglia = taglia
         self.idcomp = idcomp
+        if master:
+            self.master = master
+        if stadi:
+            self.stadi = stadi
         self.series = []
 
     #Add a series object to the Combo sequence:
-    def add_series(self, timestamp, altezza, forza):
+    def add_series(self, timestamp, max_altezza, max_forza, altezza, forza):
         series = Series(timestamp)
+        series.max_altezza = max_altezza
+        series.max_forza = max_forza
         series.altezza = altezza
         series.forza = forza
         self.series.append(series)
