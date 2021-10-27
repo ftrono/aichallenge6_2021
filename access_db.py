@@ -78,7 +78,7 @@ def query_bytimestamp(riduttore, timestamp):
     print(post)
     
     #data extraction:
-    try:
+    if post == None:
         #Search for timestamp in riduttore (list of dicts):
         for d in post['steps']:
             if d['timestamp'] == timestamp:
@@ -88,8 +88,8 @@ def query_bytimestamp(riduttore, timestamp):
                 series.altezza = d['altezza']
                 series.forza = d['forza']
                 break
-    except:
-        print("Query: no match found.")
+    else:
+        warnings.warn("Query: no match found.")
 
     return series
 
@@ -135,7 +135,7 @@ def get_assembly_seq(ripressate: bool, master = None, taglia = None, stadi = Non
         cases = POSTS.find({'stadi': stadi}, {'steps.id': 1, 'steps.timestamp': 1})
     
     #data extraction:
-    try:
+    if cases == None:
         #store idcomp in assembly sequence (list):
         for post in cases:
             for d in post['steps']:
@@ -162,8 +162,8 @@ def get_assembly_seq(ripressate: bool, master = None, taglia = None, stadi = Non
                 assembly[buf] = int(assembly[buf])+1
             #reset buffer:
             buf = []
-    except:
-        print("Query: no match found.")
+    else:
+        warnings.warn("Query: no match found.")
 
     return assembly
 
@@ -187,7 +187,7 @@ def find_duplicates(riduttore):
     post = POSTS.find_one({'ID': riduttore}, {'steps.id': 1, 'steps.timestamp': 1})
 
     #data extraction:
-    try:
+    if post == None:
         #Check every pressata (dict) in riduttore (list of dicts):
         for pressata in post["steps"]:
             new = str(pressata["id"])        
@@ -212,8 +212,8 @@ def find_duplicates(riduttore):
         #Store list of duplicates in dictionary:
         ripressate[str(post["_id"])] = dups
     
-    except:
-        print("Query: no match found.")
+    else:
+        warnings.warn("Query: no match found.")
 
     return ripressate
 
@@ -234,11 +234,11 @@ def trial():
     Test functions in the module.
     '''
     combo = query_bycombo(taglia="MP080hgewfifgi", idcomp='a0215')
-    # print(combo.series[0].timestamp)
-    # print(combo.series[0].max_altezza)
-    # print(combo.series[0].max_forza)
-    # print(combo.series[0].altezza)
-    # print(combo.series[0].forza)
+    print(combo.series[0].timestamp)
+    print(combo.series[0].max_altezza)
+    print(combo.series[0].max_forza)
+    print(combo.series[0].altezza)
+    print(combo.series[0].forza)
     #print(combo.get_series(1584122174).forza) #return
     #print(combo.get_series(1584109742)) #no match found
     
@@ -265,6 +265,6 @@ def trial():
     #         print(c)
 
 
-trial()
+#trial()
 # MOLTO IMPORTANTE ricordarsi di metterlo ogni volta che si apre una connessione
 mongo_disconnect(client)
