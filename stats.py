@@ -11,15 +11,14 @@ from access_db import find_duplicates
 db, client = mongo_connect()
 POSTS = db.test2                #getting collection test2
 
-def get_data_from_db(key):
+def get_data_from_db(pressata, key):
     '''
     Returns all the database lines for the given key
     :param   key from database
     :return  same type as source
     '''
-    data = post['steps'][0][str(key)]
+    data = pressata['steps'][0][str(key)]
     return data
-
 
 
 def get_stats(misura, mean=False, variance=False):
@@ -31,10 +30,10 @@ def get_stats(misura, mean=False, variance=False):
     :return: (float, float)
     '''
     if mean == True:
-        media = statistics.fmean(misura)
+        media = statistics.stdev(misura)
         return media
     if variance == True:
-        varianza = statistics.variance(misura)
+        varianza = statistics.stdev(misura)
         return varianza
     return media, varianza
 
