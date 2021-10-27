@@ -45,9 +45,12 @@ Guida documentazione Pymongo per query da Python:
 
 
 ## PUNTO C) PER IMPORTARE IL DUMP DEL DB (SOLO IN CASO DI NUOVI DUMP):
+* Andare nella folder con il vecchio dump (es Home di Ubuntu) e cancellare completamente le cartelle col vecchio dump.
+* Lanciare Compass, andare su Novotic, cancellare l'intero DB e poi chiudere Compass.
+* Scaricare il nuovo dump da qui → https://drive.google.com/drive/folders/1H8gPxUXjoTiyChFAaESglrwUa03_ZXQj
 * Decomprimere lo zip in una cartella (es. Home di Ubuntu)
 * Da bash, cd nella cartella dove lo decomprimiamo e lanciare ```mongorestore dump/```
-* Lanciare Compass (punto B in alto), apparirà il DB *novotic* e lì dentro la collection *test1*
+* Lanciare Compass (punto B in alto), apparirà il DB *novotic* e lì dentro la collection *test2*
 
 
 ---
