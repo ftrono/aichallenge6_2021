@@ -65,7 +65,7 @@ def ideal_curve(input):
 
 def threshold_variance(input):
     '''
-    Function to compute the average varience value to be used as threshold 
+    Function to compute the average variance value to be used as threshold 
     when looking if a new sample will be in or out the ideal curve
 
     Parameters
@@ -91,6 +91,35 @@ def threshold_variance(input):
         var_list.append(var)
     avg_var = get_stats(var_list, mean=True, variance=False)
     return avg_var
+
+def batch_standardize(input):
+    '''
+    From a list of strength values find the maximum one to be used as reference
+    for this configuration. Moreover it computes a value (the standerd deviaion)
+    for accepting or not a new data 
+    
+    Parameters
+    ----------
+    input : list of list
+        It's the collection of already normalized series of which we want to 
+        compute the ideal behaviour. That said it is critical that each series 
+        should be of the same size!
+
+    Returns
+    -------
+    max_force : double 
+        It's the highest value of the force for all the series given as input
+    threshold : double
+        The standard deviation of the list collecting all of the max force for 
+        each series
+
+    '''
+    max_values = []
+    for l in input:
+        max_values.append(max(l))
+    max_force = max(max_values)
+    threshold = get_stats(max_values, mean=False, variance=True)
+    return max_force, threshold
 
 if __name__ == '__main__':
 
