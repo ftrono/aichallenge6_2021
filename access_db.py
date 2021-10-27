@@ -43,7 +43,7 @@ def query_bycombo(taglia, idcomp, master = None, stadi = None):
         cases = POSTS.find({'taglia': taglia}, {'steps.id': 1, 'steps.timestamp': 1, 'steps.max_altezza': 1, 'steps.max_forza': 1, 'steps.altezza': 1, 'steps.forza': 1})
     
     #data extraction:
-    if cases == None:
+    if cases != None:
         #Search for timestamp in riduttore (list of dicts):
         for post in cases:
             #steps is list of dicts:
@@ -78,7 +78,7 @@ def query_bytimestamp(riduttore, timestamp):
     print(post)
     
     #data extraction:
-    if post == None:
+    if post != None:
         #Search for timestamp in riduttore (list of dicts):
         for d in post['steps']:
             if d['timestamp'] == timestamp:
@@ -135,7 +135,7 @@ def get_assembly_seq(ripressate: bool, master = None, taglia = None, stadi = Non
         cases = POSTS.find({'stadi': stadi}, {'steps.id': 1, 'steps.timestamp': 1})
     
     #data extraction:
-    if cases == None:
+    if cases != None:
         #store idcomp in assembly sequence (list):
         for post in cases:
             for d in post['steps']:
@@ -187,7 +187,7 @@ def find_duplicates(riduttore):
     post = POSTS.find_one({'ID': riduttore}, {'steps.id': 1, 'steps.timestamp': 1})
 
     #data extraction:
-    if post == None:
+    if post != None:
         #Check every pressata (dict) in riduttore (list of dicts):
         for pressata in post["steps"]:
             new = str(pressata["id"])        
@@ -233,7 +233,7 @@ def trial():
     '''
     Test functions in the module.
     '''
-    combo = query_bycombo(taglia="MP080hgewfifgi", idcomp='a0215')
+    combo = query_bycombo(taglia="MP080", idcomp='a0215')
     print(combo.series[0].timestamp)
     print(combo.series[0].max_altezza)
     print(combo.series[0].max_forza)
