@@ -21,21 +21,20 @@ def get_data_from_db(pressata, key):
     return data
 
 
-def get_stats(misura, mean=False, variance=False):
+def get_stats(misura):
     '''
     Computes mean and variance of all the elements contained in the list misura
     :param mean: Bool
     :param variance: Bool
-    :param misura: list
+    :param misura: array
     :return: (float, float)
     '''
-    if mean == True:
-        media = statistics.stdev(misura)
-        return media
-    if variance == True:
-        varianza = statistics.stdev(misura)
-        return varianza
+
+    media = statistics.stdev(misura)
+    varianza = statistics.stdev(misura)
+
     return media, varianza
+
 
 def ideal_curve(input):
     '''

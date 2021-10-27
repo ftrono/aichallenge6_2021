@@ -61,17 +61,6 @@ def filter_series(series):
     return filtered_series
 
 
-def get_data_from_db(pressata, key):
-    '''
-    Returns all the database lines for the given key
-    :param   string key from database
-    :return  same type as source
-    '''
-    if not type(key) == str:
-        raise Warning('Parameter key must be a string!')
-    data = pressata[str(key)]
-    return data
-
 def normalize(array, plot=False):
     '''
     Takes an array as input, returns the same array with normalized values for `altezza` and `forza`.
