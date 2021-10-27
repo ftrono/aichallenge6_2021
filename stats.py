@@ -58,7 +58,7 @@ def ideal_curve(input):
         temp = []
         for j in range(0, len(input)):
             temp.append(input[j][i])
-        avg = get_stats(temp, mean=True, variance=False)
+        avg, v = get_stats(temp)
         out.append(avg)
     return out
 
@@ -86,23 +86,22 @@ def threshold_variance(input):
         temp = []
         for j in range(0, len(input)):
             temp.append(input[j][i])
-        var = get_stats(temp, mean=False, variance=True)
+        a, var = get_stats(temp)
         var_list.append(var)
-    avg_var = get_stats(var_list, mean=True, variance=False)
+    avg_var, v = get_stats(var_list)
     return avg_var
 
-def batch_standardize(input):
+def batch_standardize(max_values):
     '''
-    From a list of strength values find the maximum one to be used as reference
-    for this configuration. Moreover it computes a value (the standerd deviaion)
-    for accepting or not a new data 
+    From a list of max strength values for eacch series, then finds the maximum 
+    one to be used as reference for this configuration. 
+    Moreover it computes a value (the standerd deviaion) for accepting or not 
+    a new data 
     
     Parameters
     ----------
-    input : list of list
-        It's the collection of already normalized series of which we want to 
-        compute the ideal behaviour. That said it is critical that each series 
-        should be of the same size!
+    max_values : list 
+        List containing the max force applied for each series
 
     Returns
     -------
@@ -113,11 +112,8 @@ def batch_standardize(input):
         each series
 
     '''
-    max_values = []
-    for l in input:
-        max_values.append(max(l))
     max_force = max(max_values)
-    threshold = get_stats(max_values, mean=False, variance=True)
+    m, threshold = get_stats(max_values)
     return max_force, threshold
 
 if __name__ == '__main__':
