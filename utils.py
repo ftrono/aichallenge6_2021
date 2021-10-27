@@ -27,29 +27,24 @@ def mongo_disconnect(client):
     client.close()
 
 
-def plot_series(riduttore):
-    '''
-    Genera un diagramma per ogni riga contenuta nel parametro `riduttore`.
-    OCCIO: necessita di un'ulteriore iterazione del tipo `POSTS.find()`
-    :param riduttore: singolo elemento dell'iterazione di `POSTS.find()`.
-    :return immagine PNG
-    '''
-    for pressata in riduttore['steps']:
-        # setting lists for plotting
-        labels = list()
-        xpoints = list()
-        ypoints = list()
 
-        # populating lists
-        labels.append(pressata['id'])
-        ypoints.append(pressata['forza'])
-        xpoints.append(pressata['altezza'])
+def plot_series(id, x, y, **title):
+    '''
 
-        # actual plotting
-        plt.plot(xpoints[0], ypoints[0])
-        plt.xlabel(labels[0])
-        diagram = plt.show()
-    return diagram
+    :param id: label
+    :param x: altezza
+    :param y: forza
+    :param title: optional
+    :return:
+    '''
+    label = id
+    plt.plot(x, y)
+    plt.xlabel(label)
+    plt.title(title)
+    graph = plt.show()
+    return graph
+
+
 
 def filter_series(series):
     '''
@@ -62,11 +57,11 @@ def filter_series(series):
     n = 15
     b = [1.0 / n] * n
     a = 1
-    filtered_series = lfilter(b,a,series) 
+    filtered_series = lfilter(b,a,series)
     return filtered_series
 
 
-def normalize(array, plot=False, resize=False, **size):
+def normalize(array, plot=False):
     '''
     Takes an array as input, returns the same array with normalized values for `altezza` and `forza`.
     Plotting and Resizing features on request.
@@ -84,34 +79,24 @@ def normalize(array, plot=False, resize=False, **size):
         raise Warning('Illegal values! The number of elements for x axis and y axis should coincide.'
                       f'Instead you provided {lenx}, and {leny}, respectively!')
 
-    # Resizing (optional)
-    if resize == True:
-        # Handling error for non numeric attributions to size
-        if type(size['size']) == str:
-            raise Warning('Size parameter must be either int or float.')
-        factor = size['size']/len(x_data)
-        zoomed_height = zoom(x_data, factor)
-        zoomed_strength = zoom(y_data, factor)
-        x_data = zoomed_height
-        y_data = zoomed_strength
+    # Strength data normalization
+    # leaving x data untouched
+    norm_ydata = [round(i/max(y_data), 4) for i in y_data]
 
-    # Normalization
-    norm_xdata = [round(i/max(x_data), 2) for i in x_data]
-    norm_ydata = [round(i/max(y_data), 2) for i in y_data]
     # Creating normalized array to preserve original
-    norm_array = array
-    norm_array['altezza'] = norm_xdata
-    norm_array['forza'] = norm_ydata
+    normie = array
+    normie['forza'] = norm_ydata
 
     # Plotting (optional)
     if plot == True:
-        label = norm_array['id']
-        plt.plot(norm_xdata, norm_ydata)
+        label = normie['id']
+        plt.plot(normie, norm_ydata)
         plt.xlabel(label)
         graph = plt.show()
         return graph
 
-    return norm_array
+    return normie
+
 
 #Clipping
 def clipping(height,force):
