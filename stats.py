@@ -91,11 +91,11 @@ def threshold_variance(input):
     avg_var, v = get_stats(var_list)
     return avg_var
 
-def batch_standardize(max_values):
+def max_force_threshold(max_values):
     '''
-    From a list of max strength values for eacch series, then finds the maximum 
-    one to be used as reference for this configuration. 
-    Moreover it computes a value (the standerd deviaion) for accepting or not 
+    From a list of max strength values for each series, then finds the average 
+    to be used as reference for this configuration. 
+    Moreover it computes a value (the standard deviaion) for accepting or not 
     a new data 
     
     Parameters
@@ -106,15 +106,14 @@ def batch_standardize(max_values):
     Returns
     -------
     max_force : double 
-        It's the highest value of the force for all the series given as input
+        Average force from all the series given as input
     threshold : double
         The standard deviation of the list collecting all of the max force for 
         each series
 
     '''
-    max_force = max(max_values)
-    m, threshold = get_stats(max_values)
-    return max_force, threshold
+    avg, threshold = get_stats(max_values)
+    return avg, threshold
 
 if __name__ == '__main__':
 
