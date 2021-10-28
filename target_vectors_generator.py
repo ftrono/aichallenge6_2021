@@ -1,5 +1,5 @@
 from utils import mongo_connect,mongo_disconnect
-from numpy import mean,arange
+from numpy import NaN, mean,arange
 import json
 
 def mean_sample_rate(samples):
@@ -18,7 +18,7 @@ def generate_vector(max_h, rate):
     vector=[]
     value=0
     while value<=max_h:
-        vector.append(value)
+        vector.append(round(value,2))
         value+=round(rate,2)
     return vector
 
@@ -75,8 +75,9 @@ for id in ids:
 
 for comp in sample_rates.keys():
         for tg in sample_rates[comp].keys():
-            res=to_json(comp,tg,sample_rates[comp][tg]["max_v"],sample_rates[comp][tg]["rate"])
-            db.target_vectors.insert_one(res)
+            if sample_rates[comp][tg]["max_v"] != 0:
+                res=to_json(comp,tg,sample_rates[comp][tg]["max_v"],sample_rates[comp][tg]["rate"])
+                db.target_vectors.insert_one(res)
 
 # keep at end of query
 mongo_disconnect(client)
