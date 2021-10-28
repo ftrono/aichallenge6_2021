@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import warnings
 db,client = mongo_connect()
 POSTS=db.test2
+TGTS=db.target_vectors
 
 
 #QUERY FUNCTION BY COMBO TAGLIA & IDCOMP (mandatory)
@@ -56,6 +57,30 @@ def query_bycombo(taglia, idcomp, master = None, stadi = None):
 
     return combo
 
+#QUERY FROM TARGET_VECTORS COLLECTION:
+def query_tgtvectors(taglia, idcomp):
+    '''
+    Extract max_h and tgt_vector from "target_vectors" collection in MongoDB.
+    :params  (str) taglia:, (str) idcomp:
+    :return (float) max_h:, (float) s_rate:, (list) tgt_vector:
+    '''
+    #Objects:
+    taglia = str(taglia)
+    idcomp = str(idcomp)
+    max_h = 0
+    s_rate = 0
+    tgt_vec = []
+    #query:
+    obj = TGTS.find_one({'comp_id': idcomp, 'taglia': taglia}, {'max_h': 1, 'rate': 1, 'vector': 1})
+    #data extraction:
+    if obj != None:
+        max_h = obj['max_h']
+        s_rate = obj['rate']
+        tgt_vec = obj['vector']
+    else:
+        warnings.warn("Query: no match found.")
+
+    return max_h, s_rate, tgt_vec
 
 #QUERY FUNCTION BY RIDUTTORE AND PRESSATA TIMESTAMP:
 def query_bytimestamp(riduttore, timestamp):
@@ -241,6 +266,8 @@ def trial():
     print(combo.series[0].forza)
     #print(combo.get_series(1584122174).forza) #return
     #print(combo.get_series(1584109742)) #no match found
+
+    #print(query_tgtvectors(taglia='MP060', idcomp='a0007'))
     
     #serie = query_bytimestamp("20200313112012", 1584109742)
     #print(serie.altezza)
