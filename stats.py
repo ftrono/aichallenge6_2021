@@ -6,7 +6,8 @@ import warnings
 import pymongo
 from pymongo import MongoClient
 from utils import mongo_connect, mongo_disconnect
-from access_db import find_duplicates
+from access_db import find_duplicates, query_bycombo
+
 
 db, client = mongo_connect()
 POSTS = db.test2                #getting collection test2
