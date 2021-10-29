@@ -157,6 +157,43 @@ def batch_standardize(taglia,idcomp):
 
     return curva_ideale,avg_var,max_force,threshold
 
+def evaluate(max_forza, forza, curva_ideale, avg_var, max_forza_target, threshold):
+    '''
+    Function that evaluates if pressata is correctly or not. 
+    If: the value that represents the max force in the process is between max force
+    target +- a threshold, the algorithm makes another comparison with ideal curve: 
+        if the curves already interpolate and normalized is similar to the ideal 
+        curve, then pressata is correctly 
+
+    Otherwise something is wrong
+
+    Parameters:
+    -------------------
+    input: 
+    - max_forza (double)
+    - forza(list) 
+    - curva_ideale (list)
+    - avg_var (double)
+    - max_forza_target (double)
+    - threshold (double) 
+    
+    output: 
+    count (int): that counts how many times pressata is correctly
+    '''
+
+    if (max_forza >= max_forza_target - threshold) and (max_forza <= max_forza_target + threshold):
+        count=0
+        for i,item in enumerate(forza):
+            if (item >= curva_ideale[i]- avg_var) and (item <= curva_ideale[i] + avg_var):
+                count+= count 
+            else:
+                print("WARNING SOMETHING IS WRONG")
+
+    else:
+        print("WARNING SOMETHING IS WRONG")
+    
+    return count
+
 if __name__ == '__main__':
 
     # Set up CSV properties
