@@ -1,6 +1,8 @@
+import warnings
 from utils import mongo_connect, mongo_disconnect
 from access_db import query_bycombo, query_tgtvectors
 import matplotlib.pyplot as plt
+import warnings
 
 #HORIZONTAL INTERPOLATION:
 #interpolate curve based on target altezza vector for the combo:
@@ -13,6 +15,9 @@ def interpolate_curve(taglia, idcomp, altezza, forza):
     #get target vector for (taglia, idcomp):
     _, _, tgt_h = query_tgtvectors(taglia, idcomp)
     tgt_len = len(tgt_h)
+
+    if altezza == [] or tgt_h == []:
+        return warnings.warn("Error: empty list.")
 
     #1) initial padding:
     if altezza[0] > tgt_h[0]:
@@ -67,23 +72,24 @@ def interpolate_curve(taglia, idcomp, altezza, forza):
 
 #MAIN:
 def trial():
-    combo = query_bycombo(taglia="MP080", idcomp="a0215")
+    #combos tested:
+    #"MP080", "a0215"
+    #"MP080", "a0206"
+    #"MP080", "a0211"
+    #"MP060", "a0007"
+    combo = query_bycombo(taglia="MP080", idcomp="a0206")
     altezza = combo.series[0].altezza
     forza = combo.series[0].forza
 
     #trial3(tgt_altezza, altezza, forza)
-    tgth, newf = interpolate_curve("MP080", "a0215", altezza, forza)
+    tgth, newf = interpolate_curve("MP080", "a0206", altezza, forza)
     print(tgth)
     print(newf)
     print(len(tgth), len(newf))
 
     #PLOT:
-    plt_orig = plt.figure(1)
-    plt.plot(altezza, forza, label = "Orig")
-
-    plt_new = plt.figure(2)
-    plt.plot(tgth, newf, label = "New")
-
+    plt.plot(altezza, forza, linewidth = 4)
+    plt.plot(tgth, newf, linewidth=2)
     plt.show()
 
 #MAIN:
