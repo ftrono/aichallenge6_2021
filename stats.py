@@ -115,6 +115,47 @@ def max_force_threshold(max_values):
     avg, threshold = get_stats(max_values)
     return avg, threshold
 
+def batch_standardize(taglia,idcomp):
+    '''
+    Function that computes the query selecting taglia and idcomp and 
+    create a variable called combo; then for every series in the combo it appends
+    on the list "batch_forces" -> 'forza' (list of the list) and
+    it appends on the list "batch_max" -> 'max_forza'(list). 
+
+    It puts togheter different functions:
+    - query_bycombo(taglia,idcomp)
+    - ideal_curve(input)
+    - threshold_variance(input)
+    - max_force_threshold(input)
+
+    Parameters:
+    --------------
+    input : taglia and idcomp : string
+    String containig the taglia of "riduttore" and id of the "componente"
+
+    Returns
+    -------------
+    Output : 4 parameters
+    - curva_ideale (list)
+    - avg_var (double)
+    - max_force (double)
+    - threshold (oudble)
+    
+    '''
+    batch_forces = []
+    batch_max = []
+    
+    combo = query_bycombo(taglia,idcomp)
+    for series in combo.series:
+        batch_forces.append(series.forza)
+        batch_max.append(series.max_forza)
+    
+    curva_ideale = ideal_curve(batch_forces)
+    avg_var = threshold_variance(batch_forces)
+    max_force,threshold = max_force_threshold(batch_max)
+
+    return curva_ideale,avg_var,max_force,threshold
+
 if __name__ == '__main__':
 
     # Set up CSV properties
