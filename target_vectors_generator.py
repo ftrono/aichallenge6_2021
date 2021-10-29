@@ -96,6 +96,7 @@ for comp in sample_rates.keys():
             if sample_rates[comp][tg]["max_v"] != 0:
                 res=to_json(comp,tg,sample_rates[comp][tg]["max_v"],sample_rates[comp][tg]["rate"])
                 db.target_vectors.insert_one(res)
+            logging.debug("Inserted one")
 logging.debug("Completed DB insertion")
 
 # keep at end of query
