@@ -36,6 +36,7 @@ def to_json(comp_id,taglia,max_h,rate):
 # DB initilization
 db,client=mongo_connect()
 collection= db.test2
+db.target_vectors.drop()
 
 result= collection.find().distinct("steps.id")
 ids=[]
@@ -66,11 +67,15 @@ for riduttore in result:
         max_altezza = max(pressata["altezza"])
         if max_altezza > sample_rates[id][taglia_r]["max_v"]:
             sample_rates[pressata["id"]][taglia_r]["max_v"]=max_altezza
-        sample_rates[pressata["id"]][taglia_r]["rate"].append(mean_sample_rate(pressata["altezza"]))
+        if len(pressata["altezza"])>0:
+            #sample_rates[pressata["id"]][taglia_r]["rate"].append(mean_sample_rate(pressata["altezza"]))
+            sample_rates[pressata["id"]][taglia_r]["rate"].append(min(pressata["altezza"]))
 
 for id in ids:
     for taglia in tgl:
-        sample_rates[id][taglia]["rate"]=mean(sample_rates[id][taglia]["rate"])
+        #sample_rates[id][taglia]["rate"]=mean(sample_rates[id][taglia]["rate"])
+        if len(sample_rates[id][taglia]["rate"])>0:
+            sample_rates[id][taglia]["rate"]=min(sample_rates[id][taglia]["rate"])
 
 
 for comp in sample_rates.keys():
