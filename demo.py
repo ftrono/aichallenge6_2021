@@ -65,7 +65,7 @@ def demo(taglia, idcomp, valpcg = None):
     #test on new curve:
     frz = combo.series[0].forza
     mfrz = combo.series[0].max_forza
-    print("Current max_forza: {}, Target max_forza: {}, Accettable delta: +-{}".format(mfrz, max_force, mfthreshold))
+    print("Current max_forza: {}, Target max_forza: {}, Acceptable delta: +-{}".format(mfrz, max_force, mfthreshold))
 
     cnt = evaluate(mfrz, frz, curva_ideale, avg_var, max_force, mfthreshold)
     
