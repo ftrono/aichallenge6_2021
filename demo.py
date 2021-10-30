@@ -34,9 +34,8 @@ def bs_demo(combo, train_len = None):
 
     return curva_ideale,avg_var,max_force,threshold
 
-#______________________________________________
+
 #DEMO:
-#______________________________________________
 
 #LAUNCH DEMO:
 def demo(taglia, idcomp, valpcg = None):
@@ -74,6 +73,12 @@ def demo(taglia, idcomp, valpcg = None):
 
     return cnt
 
+
 #MAIN:
+#combos tested:
+#"MP080", "a0206"
+#"MP060", "a0007"
+#"MP080", "a0211"
+#"MP080", "a0215"
 demo("MP080", "a0206")
 
