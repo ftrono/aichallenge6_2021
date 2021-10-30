@@ -57,7 +57,7 @@ def demo(taglia, idcomp, valpcg = None):
     else:
         train_len = -1
     #get the 4 key Target Parameters:
-    curva_ideale, avg_var, max_force, threshold = bs_demo(combo, train_len)
+    curva_ideale, avg_var, max_force, mfthreshold = bs_demo(combo, train_len)
     print("Avg variance for curve: {}". format(avg_var))
 
     #3) EVALUATE:
@@ -65,9 +65,9 @@ def demo(taglia, idcomp, valpcg = None):
     #test on new curve:
     frz = combo.series[0].forza
     mfrz = combo.series[0].max_forza
-    print("Current max_forza: {}, Target max_forza: {}, Accettable delta: +-{}".format(mfrz, max_force, threshold))
+    print("Current max_forza: {}, Target max_forza: {}, Accettable delta: +-{}".format(mfrz, max_force, mfthreshold))
 
-    cnt = evaluate(mfrz, frz, curva_ideale, avg_var, max_force, threshold)
+    cnt = evaluate(mfrz, frz, curva_ideale, avg_var, max_force, mfthreshold)
     
     #VISUALIZE CURVES:
     plot_curves(curva_ideale, avg_var, tgt_h, frz)
