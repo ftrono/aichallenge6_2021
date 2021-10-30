@@ -1,27 +1,10 @@
-# TODO: per ogni punto, a parità di altezza --> media + varianza
-
-import statistics, csv
-from tqdm import tqdm
+import statistics
 import warnings
-import pymongo
-from pymongo import MongoClient
-from utils import mongo_connect, mongo_disconnect
-from access_db import find_duplicates, query_bycombo
+from access_db import query_bycombo
 
+#STATISTICAL ANALYSIS, TRAINING & EVALUATION FUNCTIONS:
 
-db, client = mongo_connect()
-POSTS = db.test2                #getting collection test2
-
-def get_data_from_db(pressata, key):
-    '''
-    Returns all the database lines for the given key
-    :param   key from database
-    :return  same type as source
-    '''
-    data = pressata['steps'][0][str(key)]
-    return data
-
-
+#Mean & variance:
 def get_stats(misura):
     '''
     Computes mean and variance of all the elements contained in the list misura
@@ -37,6 +20,7 @@ def get_stats(misura):
     return media, varianza
 
 
+#BS1:
 def ideal_curve(input):
     '''
     Function to compute the ideal curve for a specific combination given by 
@@ -63,6 +47,8 @@ def ideal_curve(input):
         out.append(avg)
     return out
 
+
+#BS2:
 def threshold_variance(input):
     '''
     Function to compute the average variance value to be used as threshold 
@@ -92,6 +78,8 @@ def threshold_variance(input):
     avg_var, v = get_stats(var_list)
     return avg_var
 
+
+#BS3:
 def max_force_threshold(max_values):
     '''
     From a list of max strength values for each series, then finds the average 
@@ -116,6 +104,8 @@ def max_force_threshold(max_values):
     avg, threshold = get_stats(max_values)
     return avg, threshold
 
+
+#BS4:
 def batch_standardize(taglia,idcomp):
     '''
     Function that computes the query selecting taglia and idcomp and 
@@ -153,11 +143,13 @@ def batch_standardize(taglia,idcomp):
     
     curva_ideale = ideal_curve(batch_forces)
     avg_var = threshold_variance(batch_forces)
-    max_force,threshold = max_force_threshold(batch_max)
+    max_force, mfthreshold = max_force_threshold(batch_max)
 
-    return curva_ideale,avg_var,max_force,threshold
+    return curva_ideale, avg_var, max_force, mfthreshold
 
-def evaluate(max_forza, forza, curva_ideale, avg_var, max_forza_target, threshold):
+
+#EV0: Evaluate function:
+def evaluate(max_forza, forza, curva_ideale, avg_var, max_forza_target, mfthreshold):
     '''
     Function that evaluates if pressata is correctly or not. 
     If: the value that represents the max force in the process is between max force
@@ -175,72 +167,26 @@ def evaluate(max_forza, forza, curva_ideale, avg_var, max_forza_target, threshol
     - curva_ideale (list)
     - avg_var (double)
     - max_forza_target (double)
-    - threshold (double) 
+    - mfthreshold (double) 
     
     output: 
     count (int): that counts how many times pressata is correctly
     '''
+    count_out = 0
 
-    if (max_forza >= max_forza_target - threshold) and (max_forza <= max_forza_target + threshold):
-        count=0
+    if (max_forza >= max_forza_target - mfthreshold) and (max_forza <= max_forza_target + mfthreshold):
+        print("Max_forza: accepted.")
         for i,item in enumerate(forza):
-            if (item >= curva_ideale[i]- avg_var) and (item <= curva_ideale[i] + avg_var):
-                count+= count 
-            else:
-                print("WARNING SOMETHING IS WRONG")
+            if (item < curva_ideale[i]- avg_var) or (item > curva_ideale[i] + avg_var):
+                count_out+= count_out
+        
+        if count_out == 0:
+            print("Curve: assembly success. .")
+        else:
+            warnings.warn("WARNING: curve out of bounds in {} points out of {}! Please check the assembly.".format(count_out, len(forza)))
 
     else:
-        print("WARNING SOMETHING IS WRONG")
+        warnings.warn("WARNING: max_forza out of acceptable range! Please check the assembly.")
     
-    return count
-
-if __name__ == '__main__':
-
-    # Set up CSV properties
-    fields = ['id', 'forza_media', 'forza_varianza', 'altezza_media', 'altezza_varianza']   # columns (fixed header row)
-    rows = []                                                                               # rows
-    filename = "stats_report.csv"                                                           # name of report
-
-    # Ignoring Deprecation Warnings
-    warnings.filterwarnings("ignore", category=DeprecationWarning)
-
-    if db.test2.count() > 10000:
-        warning = '(might take a while)'
-    else:
-        warnings = ''
-    print(f"📊 Computing Statistics... {warning}")
-
-    # iterate rows searching by key
-    for post in tqdm(POSTS.find(), total=db.test2.count()):
-
-        # Actual statistics 📊
-        id = get_data_from_db('id')                             # retrieve ID for `key`
-        forza = get_data_from_db('forza')                       # retrieve strength for current ID
-        forza_media = get_stats(forza, mean=True)               # retrieve average(mean) of given list
-        altezza = get_data_from_db('altezza')                   # retrieve travel for current ID
-        altezza_max = max(altezza)                              # (float)
-        max_index = altezza.index(altezza_max)
-        del altezza[max_index + 1 : len(altezza)]
-        del forza[max_index + 1: len(forza)]
-        altezza_media = get_stats(altezza, mean=True)           # retrieve average(mean) of given list
-        forza_varianza = get_stats(forza, variance=True)        # retrieve variance of given list
-        altezza_varianza = get_stats(altezza, variance=True)    # retrieve variance of given list
-
-        # Prepare stats for CSV writer
-        rows.append([id, round(forza_media, 2), round(forza_varianza, 2),
-                         round(altezza_media, 2), round(altezza_varianza, 2)])
-
-
-
-    print("Done analyzing")
-
-    #writing csv file ✏️
-    print("Writing data to csv file...")
-    with open(filename, "w") as csv_file:
-        #CSV object writer
-        csvwriter = csv.writer(csv_file)
-
-        csvwriter.writerow(fields)  # write headers
-        csvwriter.writerows(rows)   # write data
-    print("Report export succeeded")
+    return count_out
 

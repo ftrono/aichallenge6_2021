@@ -2,10 +2,21 @@ from utils import mongo_connect, mongo_disconnect
 from classes import Combo, Series
 import matplotlib.pyplot as plt
 import warnings
+
 db,client = mongo_connect()
 POSTS=db.test2
 TGTS=db.target_vectors
 
+#QUERY FUNCTIONS:
+
+#Find all distinct search items in DB:
+def find_unique(searchitem):
+    '''
+    Get list of unique search items in the database.
+    '''
+    print("Querying DB...")
+    tags = POSTS.distinct(searchitem)
+    return tags
 
 #QUERY FUNCTION BY COMBO TAGLIA & IDCOMP (mandatory)
 #(also can add MASTER (optional) and/or N. STADI (optional)):
@@ -118,6 +129,8 @@ def query_bytimestamp(riduttore, timestamp):
 
     return series
 
+
+#DATABASE ANALYSIS:
 
 #DUPLICATES COUNT:
 def get_assembly_seq(ripressate: bool, master = None, taglia = None, stadi = None):
@@ -243,17 +256,9 @@ def find_duplicates(riduttore):
     return ripressate
 
 
-#Find all distinct search items in DB:
-def find_unique(searchitem):
-    '''
-    Get list of unique search items in the database.
-    '''
-    print("Querying DB...")
-    tags = POSTS.distinct(searchitem)
-    return tags
-
-
 #MAIN:
+
+#Main:
 def trial():
     '''
     Test functions in the module.
