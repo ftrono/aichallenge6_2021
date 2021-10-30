@@ -9,8 +9,8 @@ from stats import ideal_curve, threshold_variance, max_force_threshold
 #normalize and interpolate all curves in combo:
 def nni_combo(combo, tgt_h):
     for series in combo.series:
-        newf = normalize(series.forza)
-        newh, newf = interpolate_curve(tgt_h, series.altezza, newf)
+        newh, newf = interpolate_curve(tgt_h, series.altezza, series.forza)
+        newf = normalize(newf)
         series.altezza = newh
         series.forza = newf
     return combo
