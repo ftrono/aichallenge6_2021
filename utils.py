@@ -67,39 +67,21 @@ def plot_series(id, x, y, **title):
 
 #VERTICAL NORMALIZATION:
 #Push all force curve values bewteen [0, 1]:
-def normalize(array, plot=False):
+def normalize(y_data, plot=False):
     '''
-    Takes an array as input, returns the same array with normalized values for `altezza` and `forza`.
-    Plotting and Resizing features on request.
+    Takes an array as input, returns the same array with normalized values (to be used only for `forza`).
+    Plotting feature on request.
+    
     :param array: array of numbers in the form [float1, float2, ... , floatN] or [int1, int2, ... , intN]
-    :param size: Size you want the array to be resized to. (length)
     :return: normalized array & plot of the array if requested
     '''
-    x_data = array['altezza']
-    y_data = array['forza']
-    lenx = len(x_data)
-    leny = len(y_data)
-
-    # Handling error for discordant lenghts for 'altezza' and 'forza'
-    if lenx != leny:
-        raise Warning('Illegal values! The number of elements for x axis and y axis should coincide.'
-                      f'Instead you provided {lenx}, and {leny}, respectively!')
-
-    # Strength data normalization
-    # leaving x data untouched
-    norm_ydata = [round(i/max(y_data), 4) for i in y_data]
-
-    # Creating normalized array to preserve original
-    normie = array
-    normie['forza'] = norm_ydata
+    #Strength data normalization:
+    normie = [round(i/max(y_data), 4) for i in y_data]
 
     # Plotting (optional)
     if plot == True:
-        label = normie['id']
-        plt.plot(normie, norm_ydata)
-        plt.xlabel(label)
-        graph = plt.show()
-        return graph
+        plt.plot(normie)
+        plt.show()
 
     return normie
 

@@ -1,5 +1,6 @@
 from utils import mongo_connect, mongo_disconnect, plot_series, normalize
 from stats import get_stats
+import matplotlib.pyplot as plt
 from scipy.signal import lfilter
 from scipy.ndimage import zoom
 from tqdm import tqdm
@@ -46,6 +47,44 @@ def clipping(height,force):
     del height[index_max+1:len(height)] 
     del force [index_max+1:len(force)]
     return height, force
+
+
+#Vertical normalization (original version):
+def normalize_orig(array, plot=False):
+    '''
+    Takes an array as input, returns the same array with normalized values for `altezza` and `forza`.
+    Plotting and Resizing features on request.
+    :param array: array of numbers in the form [float1, float2, ... , floatN] or [int1, int2, ... , intN]
+    :param size: Size you want the array to be resized to. (length)
+    :return: normalized array & plot of the array if requested
+    '''
+    x_data = array['altezza']
+    y_data = array['forza']
+    lenx = len(x_data)
+    leny = len(y_data)
+
+    # Handling error for discordant lenghts for 'altezza' and 'forza'
+    if lenx != leny:
+        raise Warning('Illegal values! The number of elements for x axis and y axis should coincide.'
+                      f'Instead you provided {lenx}, and {leny}, respectively!')
+
+    # Strength data normalization
+    # leaving x data untouched
+    norm_ydata = [round(i/max(y_data), 4) for i in y_data]
+
+    # Creating normalized array to preserve original
+    normie = array
+    normie['forza'] = norm_ydata
+
+    # Plotting (optional)
+    if plot == True:
+        label = normie['id']
+        plt.plot(normie, norm_ydata)
+        plt.xlabel(label)
+        graph = plt.show()
+        return graph
+
+    return normie
 
 
 #MAIN:

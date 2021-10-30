@@ -1,6 +1,6 @@
 from access_db import query_bycombo, query_tgtvectors
 from stats import evaluate
-from utils import interpolate_curve, plot_curves
+from utils import normalize, interpolate_curve, plot_curves
 from stats import ideal_curve, threshold_variance, max_force_threshold
 
 #LAUNCH ALGORITHM DEMO:
@@ -9,7 +9,8 @@ from stats import ideal_curve, threshold_variance, max_force_threshold
 #normalize and interpolate all curves in combo:
 def nni_combo(combo, tgt_h):
     for series in combo.series:
-        newh, newf = interpolate_curve(tgt_h, series.altezza, series.forza)
+        newf = normalize(series.forza)
+        newh, newf = interpolate_curve(tgt_h, series.altezza, newf)
         series.altezza = newh
         series.forza = newf
     return combo
