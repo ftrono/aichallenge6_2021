@@ -1,4 +1,4 @@
-from utils import mongo_connect, get_data_from_db, filter_series, clipping, plot_series, normalize
+from utils import mongo_connect, mongo_disconnect, plot_series, normalize
 from stats import get_stats
 from scipy.signal import lfilter
 from scipy.ndimage import zoom
@@ -138,3 +138,6 @@ def do_the_hard_work():
             i += 1
     
     return 0
+
+# MOLTO IMPORTANTE ricordarsi di metterlo ogni volta che si apre una connessione
+mongo_disconnect(client)
