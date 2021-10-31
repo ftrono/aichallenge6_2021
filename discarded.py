@@ -14,20 +14,6 @@ POSTS = db.test2
 #_______________________________________________________
 
 
-#Mean & variance:
-def get_stats(misura):
-    '''
-    Computes mean and variance of all the elements contained in the list misura:
-    :param misura: array
-    :return: (float, float)
-    '''
-
-    media = statistics.mean(misura)
-    varianza = statistics.stdev(misura)
-
-    return media, varianza
-
-
 def filter_series(series):
     '''
     Funzione per fare uno smoothing di una curva e rimuovere il rumore 
@@ -60,6 +46,20 @@ def clipping(height,force):
     del height[index_max+1:len(height)] 
     del force [index_max+1:len(force)]
     return height, force
+
+
+#Mean & variance:
+def get_stats(misura):
+    '''
+    Computes mean and variance of all the elements contained in the list misura:
+    :param misura: array
+    :return: (float, float)
+    '''
+
+    media = statistics.mean(misura)
+    varianza = statistics.stdev(misura)
+
+    return media, varianza
 
 
 
