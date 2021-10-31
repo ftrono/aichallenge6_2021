@@ -2,9 +2,11 @@ import statistics
 import warnings
 from access_db import query_bycombo
 
+#Color codes for printing to stdout:
 OKGREEN = '\033[92m'
 WARNINGCOL = '\033[93m'
-ENDCOLOR = '\033[0m'
+ENDCOLOR = '\033[0m' #reset to white
+
 
 #STATISTICAL ANALYSIS, TRAINING & EVALUATION FUNCTIONS:
 
