@@ -1,5 +1,4 @@
 from utils import mongo_connect, mongo_disconnect, plot_series, normalize
-from stats import get_stats
 import matplotlib.pyplot as plt
 from scipy.signal import lfilter
 from scipy.ndimage import zoom
