@@ -39,7 +39,7 @@ def ideal_curve(input):
 
 
 #BS2:
-def threshold_variance(input, sigma):
+def threshold_variance(input, sigma=1):
     '''
     Function to compute the average variance value to be used as threshold 
     when looking if a new sample will be in or out the ideal curve
@@ -50,6 +50,8 @@ def threshold_variance(input, sigma):
         It's the collection of already normalized series of which we want to 
         compute the ideal behaviour. That said it is critical that each series 
         should be of the same size!
+    sigma : int 
+        Multiplier to increase avg_var range (default: 1)
 
     Returns
     -------
@@ -73,7 +75,7 @@ def threshold_variance(input, sigma):
 
 
 #BS3:
-def max_force_threshold(max_values, sigma):
+def max_force_threshold(max_values, sigma=1):
     '''
     From a list of max strength values for each series, then finds the average 
     to be used as reference for this configuration. 
@@ -84,6 +86,8 @@ def max_force_threshold(max_values, sigma):
     ----------
     max_values : list 
         List containing the max force applied for each series
+    sigma : int 
+        Multiplier to increase threshold range (default: 1)
 
     Returns
     -------
@@ -102,14 +106,14 @@ def max_force_threshold(max_values, sigma):
 
 
 #BS4:
-def batch_standardize(taglia,idcomp, sigmac, sigmaf):
+def batch_standardize(taglia,idcomp, sigmac=1, sigmaf=1):
     '''
     Function that computes the query selecting taglia and idcomp and 
     create a variable called combo; then for every series in the combo it appends
     on the list "batch_forces" -> 'forza' (list of the list) and
     it appends on the list "batch_max" -> 'max_forza'(list). 
 
-    It puts togheter different functions:
+    It puts together different functions:
     - query_bycombo(taglia,idcomp)
     - ideal_curve(input)
     - threshold_variance(input)
@@ -117,8 +121,10 @@ def batch_standardize(taglia,idcomp, sigmac, sigmaf):
 
     Parameters:
     --------------
-    input : taglia and idcomp : string
-    String containig the taglia of "riduttore" and id of the "componente"
+    taglia, idcomp : string
+        Strings containing the taglia of "riduttore" and id of the "componente"
+    sigmac, sigmaf : int 
+        Multipliers to increase threshold range, one for curve and the other for max_forza (default: 1)
 
     Returns
     -------------
