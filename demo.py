@@ -17,15 +17,12 @@ def nni_combo(combo, tgt_h):
 
 
 #COPY of bs (ONLY for DEMO):
-def bs_demo(combo, train_len = None):
+def bs_demo(combo):
 
     batch_forces = []
     batch_max = []
-    
-    if not train_len:
-        train_len = -1
 
-    for series in combo.series[0:train_len]:
+    for series in combo.series:
         batch_forces.append(series.forza)
         batch_max.append(series.max_forza)
     
@@ -39,7 +36,7 @@ def bs_demo(combo, train_len = None):
 #DEMO:
 
 #LAUNCH DEMO:
-def demo(taglia, idcomp, valpcg = None):
+def demo(taglia, idcomp):
     #1) PREPROCESSING:
     print("Phase 1 - Preprocessing...")
     #get orig curves:
@@ -51,13 +48,8 @@ def demo(taglia, idcomp, valpcg = None):
     
     #2) TRAIN:
     print("Phase 2 - Training...")
-    #define validation split:
-    if valpcg:
-        train_len = round(valpcg * len(combo.series), 0)
-    else:
-        train_len = -1
     #get the 4 key Target Parameters:
-    curva_ideale, avg_var, max_force, mfthreshold = bs_demo(combo, train_len)
+    curva_ideale, avg_var, max_force, mfthreshold = bs_demo(combo)
     print("Avg variance for curve: {}". format(avg_var))
 
     #3) EVALUATE:
