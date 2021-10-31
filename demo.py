@@ -3,6 +3,9 @@ from stats import evaluate
 from utils import normalize, interpolate_curve, plot_curves
 from stats import ideal_curve, threshold_variance, max_force_threshold
 
+sigmac = 3
+sigmaf = 1
+
 #LAUNCH ALGORITHM DEMO:
 
 #HELPER FUNCTIONS:
@@ -17,7 +20,7 @@ def nni_combo(combo, tgt_h):
 
 
 #COPY of bs (ONLY for DEMO):
-def bs_demo(combo):
+def bs_demo(combo, sigmac, sigmaf):
 
     batch_forces = []
     batch_max = []
@@ -27,10 +30,10 @@ def bs_demo(combo):
         batch_max.append(series.max_forza)
     
     curva_ideale = ideal_curve(batch_forces)
-    avg_var = threshold_variance(batch_forces)
-    max_force,threshold = max_force_threshold(batch_max)
+    avg_var = threshold_variance(batch_forces, sigmac)
+    max_force, mf_threshold = max_force_threshold(batch_max, sigmaf)
 
-    return curva_ideale,avg_var,max_force,threshold
+    return curva_ideale, avg_var, max_force, mf_threshold
 
 
 #DEMO:
@@ -49,7 +52,7 @@ def demo(taglia, idcomp):
     #2) TRAIN:
     print("Phase 2 - Training...")
     #get the 4 key Target Parameters:
-    curva_ideale, avg_var, max_force, mfthreshold = bs_demo(combo)
+    curva_ideale, avg_var, max_force, mf_threshold = bs_demo(combo, sigmac, sigmaf)
     print("Avg variance for curve: {}". format(avg_var))
 
     #3) EVALUATE:
@@ -57,9 +60,9 @@ def demo(taglia, idcomp):
     #test on new curve:
     frz = combo.series[0].forza
     mfrz = combo.series[0].max_forza
-    print("Current max_forza: {}, Target max_forza: {}, Acceptable delta: +-{}".format(mfrz, max_force, mfthreshold))
+    print("Current max_forza: {}, Target max_forza: {}, Acceptable delta: +-{}".format(mfrz, max_force, mf_threshold))
 
-    cnt = evaluate(mfrz, frz, curva_ideale, avg_var, max_force, mfthreshold)
+    cnt = evaluate(mfrz, frz, curva_ideale, avg_var, max_force, mf_threshold)
     
     #VISUALIZE CURVES:
     plot_curves(curva_ideale, avg_var, tgt_h, frz)
