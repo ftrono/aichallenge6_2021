@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 from scipy.signal import lfilter
 from scipy.ndimage import zoom
 from tqdm import tqdm
-import csv
-import warnings
+import csv, warnings, statistics
+
 
 db,client = mongo_connect()
 POSTS = db.test2
@@ -13,6 +13,20 @@ POSTS = db.test2
 #_______________________________________________________
 #ALL OF THE FOLLOWING ARE DISCARDED FUNCTIONS
 #_______________________________________________________
+
+
+#Mean & variance:
+def get_stats(misura):
+    '''
+    Computes mean and variance of all the elements contained in the list misura:
+    :param misura: array
+    :return: (float, float)
+    '''
+
+    media = statistics.mean(misura)
+    varianza = statistics.stdev(misura)
+
+    return media, varianza
 
 
 def filter_series(series):
