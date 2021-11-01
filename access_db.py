@@ -1,7 +1,8 @@
 from utils import mongo_connect, mongo_disconnect
 from classes import Combo, Series
 import matplotlib.pyplot as plt
-import warnings
+import numpy as np
+import warnings, statistics
 
 db,client = mongo_connect()
 POSTS=db.test2
@@ -32,7 +33,9 @@ def query_bycombo(taglia, idcomp, master = None, stadi = None):
     :combo.series[index].max_forza -> access value of max_forza within 1 Series object in the Combo sequence;
     :combo.series[index].altezza -> access list of altezza within 1 Series object in the Combo sequence;
     :combo.series[index].forza -> access list of forza within 1 Series object in the Combo sequence;
+    :combo.series[index].riduttore -> access riduttore (timecode) to which the current pressata / Series belongs;
     :combo.get_series(timestamp)-> get Series object with the indicated timestamp;
+    :combo.get_fromriduttore(riduttore)-> get list of Series objects belonging to the same riduttore timecode;
     :can then use combo.get_series(timestamp).altezza and/or .forza and/or .max_altezza and/or .max_forza
     '''
     #Objects:
@@ -46,13 +49,13 @@ def query_bycombo(taglia, idcomp, master = None, stadi = None):
     
     #query:
     if master and stadi:
-        cases = POSTS.find({'master': master, 'taglia': taglia, 'stadi': stadi}, {'steps.id': 1, 'steps.timestamp': 1, 'steps.max_altezza': 1, 'steps.max_forza': 1, 'steps.altezza': 1, 'steps.forza': 1})
+        cases = POSTS.find({'master': master, 'taglia': taglia, 'stadi': stadi}, {'ID': 1, 'steps.id': 1, 'steps.timestamp': 1, 'steps.warning':1, 'steps.max_altezza': 1, 'steps.max_forza': 1, 'steps.altezza': 1, 'steps.forza': 1})
     elif master:
-        cases = POSTS.find({'master': master, 'taglia': taglia}, {'steps.id': 1, 'steps.timestamp': 1, 'steps.max_altezza': 1, 'steps.max_forza': 1, 'steps.altezza': 1, 'steps.forza': 1})
+        cases = POSTS.find({'master': master, 'taglia': taglia}, {'ID': 1, 'steps.id': 1, 'steps.timestamp': 1, 'steps.warning':1, 'steps.max_altezza': 1, 'steps.max_forza': 1, 'steps.altezza': 1, 'steps.forza': 1})
     elif stadi:
-        cases = POSTS.find({'taglia': taglia, 'stadi': stadi}, {'steps.id': 1, 'steps.timestamp': 1, 'steps.max_altezza': 1, 'steps.max_forza': 1, 'steps.altezza': 1, 'steps.forza': 1})
+        cases = POSTS.find({'taglia': taglia, 'stadi': stadi}, {'ID': 1, 'steps.id': 1, 'steps.timestamp': 1, 'steps.warning':1, 'steps.max_altezza': 1, 'steps.max_forza': 1, 'steps.altezza': 1, 'steps.forza': 1})
     else:
-        cases = POSTS.find({'taglia': taglia}, {'steps.id': 1, 'steps.timestamp': 1, 'steps.max_altezza': 1, 'steps.max_forza': 1, 'steps.altezza': 1, 'steps.forza': 1})
+        cases = POSTS.find({'taglia': taglia}, {'ID': 1, 'steps.id': 1, 'steps.warning':1, 'steps.timestamp': 1, 'steps.max_altezza': 1, 'steps.max_forza': 1, 'steps.altezza': 1, 'steps.forza': 1})
     
     #data extraction:
     if cases != None:
@@ -62,7 +65,7 @@ def query_bycombo(taglia, idcomp, master = None, stadi = None):
             for d in post['steps']:
                 if d['id'] == idcomp:
                     #Store series for altezza and for forza:
-                    combo.add_series(d['timestamp'], d['max_altezza'], d['max_forza'], d['altezza'], d['forza'])
+                    combo.add_series(d['timestamp'], post['ID'], d['warning'], d['max_altezza'], d['max_forza'], d['altezza'], d['forza'])
     else:
         warnings.warn("Query: no match found.")
 
@@ -93,6 +96,7 @@ def query_tgtvectors(taglia, idcomp):
 
     return max_h, s_rate, tgt_vec
 
+
 #QUERY FUNCTION BY RIDUTTORE AND PRESSATA TIMESTAMP:
 def query_bytimestamp(riduttore, timestamp):
     '''
@@ -101,8 +105,10 @@ def query_bytimestamp(riduttore, timestamp):
     :return (series) Series object:
 
     METHODS:
-    :series.altezza -> access list of altezza within the Series object;
-    :series.forza -> access list of forza within the Series object.
+    :series.max_altezza -> access value of max_altezza within 1 Series object in the Combo sequence;
+    :series.max_forza -> access value of max_forza within 1 Series object in the Combo sequence;
+    :series.altezza -> access list of altezza within 1 Series object in the Combo sequence;
+    :series.forza -> access list of forza within 1 Series object in the Combo sequence;
     '''
     #Objects:
     riduttore = str(riduttore)
@@ -110,7 +116,7 @@ def query_bytimestamp(riduttore, timestamp):
     series = Series(timestamp)
     
     #query:
-    post = POSTS.find_one({'ID': riduttore}, {'steps.timestamp': 1, 'steps.max_altezza': 1, 'steps.max_forza': 1, 'steps.altezza': 1, 'steps.forza': 1})
+    post = POSTS.find_one({'ID': riduttore}, {'steps.timestamp': 1, 'steps.warning':1, 'steps.max_altezza': 1, 'steps.max_forza': 1, 'steps.altezza': 1, 'steps.forza': 1})
     print(post)
     
     #data extraction:
@@ -119,6 +125,8 @@ def query_bytimestamp(riduttore, timestamp):
         for d in post['steps']:
             if d['timestamp'] == timestamp:
                 #Store series for altezza and for forza:
+                series.riduttore = riduttore
+                series.warning = d['warning']
                 series.max_altezza = d['max_altezza']
                 series.max_forza = d['max_forza']
                 series.altezza = d['altezza']
@@ -129,8 +137,6 @@ def query_bytimestamp(riduttore, timestamp):
 
     return series
 
-
-#DATABASE ANALYSIS:
 
 #DUPLICATES COUNT:
 def get_assembly_seq(ripressate: bool, master = None, taglia = None, stadi = None):
@@ -265,6 +271,7 @@ def trial():
     '''
     combo = query_bycombo(taglia="MP080", idcomp='a0215')
     print(combo.series[0].timestamp)
+    print(combo.series[0].riduttore)
     print(combo.series[0].max_altezza)
     print(combo.series[0].max_forza)
     print(combo.series[0].altezza)

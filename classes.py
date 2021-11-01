@@ -90,6 +90,8 @@ class Riduttore:
 class Series:
     def __init__(self, timestamp):
         self.timestamp = int(timestamp)
+        self.riduttore = 0
+        self.warning = False
         self.max_altezza = 0
         self.max_forza = 0
         self.altezza = []
@@ -101,6 +103,8 @@ class Combo:
     def __init__(self, taglia, idcomp, master = None, stadi = None):
         self.taglia = taglia
         self.idcomp = idcomp
+        self.max_altezza = 0
+        self.mh_threshold = 0
         if master:
             self.master = master
         if stadi:
@@ -108,8 +112,10 @@ class Combo:
         self.series = []
 
     #Add a series object to the Combo sequence:
-    def add_series(self, timestamp, max_altezza, max_forza, altezza, forza):
+    def add_series(self, timestamp, riduttore, warning, max_altezza, max_forza, altezza, forza):
         series = Series(timestamp)
+        series.riduttore = riduttore
+        self.warning = warning
         series.max_altezza = max_altezza
         series.max_forza = max_forza
         series.altezza = altezza
@@ -124,3 +130,16 @@ class Combo:
                 return series
         #Should execute only if match not found:
         print("Series {} not found.".format(timestamp))
+
+    #Get list of Series objects within the Combo belonging to the same riduttore tempcode:
+    def get_fromriduttore(self, riduttore):
+        riduttore = str(riduttore)
+        rid = []
+        for series in self.series:
+            if series.riduttore == riduttore:
+                rid.append(series)        
+        if rid != []:
+            return rid
+        else:
+            #Should execute only if match not found:
+            print("Riduttore {} not found in Combo.".format(riduttore))
