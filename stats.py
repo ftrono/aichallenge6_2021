@@ -29,12 +29,20 @@ def ideal_curve(input):
 
     '''
     out = []
+    #first cycle for a number of times equal to the numeber of point of each 
+    #series of pressate
     for i in range(0,len(input[0])):
         temp = []
+        #then cylcle for the number of pressate to be taken into consideration
         for j in range(0, len(input)):
+            #in this temporary list we collect all of the pressate values of
+            #the same point in time
             temp.append(input[j][i])
+        #of this list we compute the average and append it to the final list
         avg = statistics.mean(temp)
         out.append(avg)
+        #then we repeat the cycle for another set of pressate in the following
+        #point in time
     return out
 
 
@@ -61,13 +69,20 @@ def threshold_variance(input, sigma=1):
 
     '''
     var_list = []
+    #like before we cycle for a number of times equal to the numeber of point  
+    #of each series of pressate
     for i in range(0,len(input[0])):
         temp = []
+        #then cylcle for the number of pressate to be taken into consideration
         for j in range(0, len(input)):
+            #in this temporary list we collect all of the pressate values of
+            #the same point in time
             temp.append(input[j][i])
+        #of this list we compute the standard deviation and append it to a list
         var = statistics.stdev(temp)
         var_list.append(var)
-
+    #from the list of all the variances we copute the average to be used as 
+    #threshold for the ideal curve
     avg_var = statistics.mean(var_list)
     avg_var = avg_var*sigma
 
@@ -98,6 +113,8 @@ def max_force_threshold(max_values, sigma=1):
         each series
 
     '''
+    #in this implementation we simply compute the average of the maximum values of 
+    #each sereis and it's variance, but we may change it for better results
     avg = statistics.mean(max_values)
     threshold = statistics.stdev(max_values)
     threshold = threshold*sigma
