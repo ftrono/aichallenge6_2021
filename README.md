@@ -3,10 +3,10 @@
 Gli script presenti in questa repository sono stati ideati per essere eseguiti su un sistema operativo **linux** e sono testati su Ubuntu 18.04 LTS  
 ### Prerequisiti:  
 * Python 3.3 o superiore   
-* mongodb (https://docs.mongodb.com/manual/tutorial/install-mongodb-on-ubuntu/)  
-* pymongo drivers (```pip3 install pymongo```)  
+* Microsoft (MS) SQL Server (https://docs.microsoft.com/en-us/sql/linux/quickstart-install-connect-ubuntu?view=sql-server-ver15)  
+* *pyodbc* drivers (```pip3 install pyodbc``` o ```pip install pyodbc```)  
 ### Suggerimenti:  
-* MongoDB Compass
+* Installare MS SQL Server direttamente su Ubuntu o in WSL (guida step by step -> https://docs.google.com/document/d/1Hg8LUDYuBbO3p3FYNTM139w2DzV25sPZxpKnWhFTuPc/edit )
 
 ---
 
@@ -19,38 +19,32 @@ Gli script presenti in questa repository sono stati ideati per essere eseguiti s
 
 # 1) OPERAZIONI RICORRENTI
 
-## PUNTO 0) (SOLO PER WSL) AVVIARE FILE DESKTOP config.xlaunch (OGNI VOLTA):
-Avviare il file ***config.xlaunch*** salvato sul desktop, lancerà l’X-Server con la configurazione giusta (vale solo per WSL su Windows 10, non per Ubuntu/Mac).
+## 1. (DA BASH) AVVIARE SERVIZIO MSSQL SERVER DA BASH (OGNI VOLTA):
+A) Da Ubuntu:
+* START: ```sudo service mssql-server start```
+* STOP: ```sudo service mssql-server start```
+* CHECK STATUS: ```systemctl status mssql-server --no-pager```
+
+B) Da WSL:
+* Al posto dei comandi sopra, utilizzare TUTTO questo comando invece (è tutto una sola riga): ```sudo -b -u mssql /opt/mssql/bin/sqlservr -c -d/var/opt/mssql/data/master.mdf -l/var/opt/mssql/data/mastlog.ldf -e/var/opt/mssql/log/errorlog -x >/dev/null```
 
 
-## PUNTO A) AVVIARE SERVER MONGODB (OGNI VOLTA):
-Usate i comandi (se Init):
-* ```sudo service mongod start``` per avviare il server MongoDB
-* ```sudo service mongod status``` per verificare che sia effettivamente attivo
-
-Se systemd, o per ulteriori comandi disponibili, vedere qui:
-* https://docs.mongodb.com/manual/tutorial/install-mongodb-on-ubuntu/
 
 
-## PUNTO B) AVVIARE APP GRAFICA COMPASS (OGNI VOLTA):
-Usate il comando:
-* ```mongodb-compass``` (oppure ```mongodb-compass &``` per lanciarlo in background in modo da non bloccare bash)
+## 2. PARAMETRI CONNESSIONE:
+**NOTA**: alla prima connessione è necessario creare un DB vuoto, chiamato "NovoticAI", in cui importeremo i dump. Sequire le istruzioni qui (punto 3) usando GLI STESSI nomi per DB, username e passwords indicati -> https://docs.google.com/document/d/1Hg8LUDYuBbO3p3FYNTM139w2DzV25sPZxpKnWhFTuPc/edit
 
-Connettere Compass a localhost inserendo:
-* ***mongodb://localhost:27017/***
+Dopo la prima connessione, i parametri ricorrenti di connessione al DB in localhost sono i seguenti:
+* DA BASH: ```sqlcmd -S 127.0.0.1 -U SA -P AIchallenge6```
+* DA VSCODE: hostname ```127.0.0.1```, username ```SA```, password ```AIchallenge6```. Mettere ```NovoticAI``` sia come nome DB che come nome profilo.
+* DA PYODBC: driver ```{ODBC Driver 17 for SQL Server}```, server ```127.0.0.1```, database ```NovoticAI```, username ```sa```, password ```AIchallenge6```
+
+Guida documentazione Pyodbc per utilizzo e query da Python:
+* https://github.com/mkleehammer/pyodbc/wiki
 
 
-Guida documentazione Pymongo per query da Python:
-* https://pymongo.readthedocs.io/en/stable/
-
-
-## PUNTO C) PER IMPORTARE IL DUMP DEL DB (SOLO IN CASO DI NUOVI DUMP):
-* Andare nella folder con il vecchio dump (es Home di Ubuntu) e cancellare completamente le cartelle col vecchio dump.
-* Lanciare Compass, andare su Novotic, cancellare l'intero DB e poi chiudere Compass.
-* Scaricare il nuovo dump da qui → https://drive.google.com/drive/folders/1H8gPxUXjoTiyChFAaESglrwUa03_ZXQj
-* Decomprimere lo zip in una cartella (es. Home di Ubuntu)
-* Da bash, cd nella cartella dove lo decomprimiamo e lanciare ```mongorestore dump/```
-* Lanciare Compass (punto B in alto), apparirà il DB *novotic* e lì dentro la collection *test2*
+## 3. PER IMPORTARE IL DUMP DEL DB (SOLO IN CASO DI NUOVI DUMP):
+* TBD
 
 
 ---
