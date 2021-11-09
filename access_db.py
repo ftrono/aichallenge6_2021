@@ -1,12 +1,14 @@
-from utils import mongo_connect, mongo_disconnect
+from utils import db_connect, db_disconnect
 from classes import Combo, Series
 import matplotlib.pyplot as plt
 import numpy as np
 import warnings, statistics
 
-db,client = mongo_connect()
-POSTS=db.test2
-TGTS=db.target_vectors
+#new:
+conn, csr = db_connect()
+#old:
+POSTS = 'collection1'
+TGTS = 'collection2'
 
 #QUERY FUNCTIONS:
 
@@ -306,4 +308,4 @@ def trial():
 
 #trial()
 # MOLTO IMPORTANTE ricordarsi di metterlo ogni volta che si apre una connessione
-mongo_disconnect(client)
+db_disconnect(conn, csr)

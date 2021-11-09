@@ -1,12 +1,37 @@
-import datetime, pymongo, warnings
+import pyodbc, datetime, warnings
 import matplotlib.pyplot as plt
 
-CONNECTION_STRING="mongodb://localhost:27017/" #to executing locally
-#CONNECTION_STRING="mongodb://team6:MLoMuk2b@hitvmiac-06.northeurope.cloudapp.azure.com:27017" #for executing on the Azure VM
-#CONNECTION_STRING="mongodb://team6:MLoMuk2b@localhost:27017" #for executing on the Azure VM
+#COMMON UTILITY FUNCTIONS
 
+#CONNECT TO: True=PRODUCTION; False=LOCALHOST
+production = False
 
-#COMMON UTILITY FUNCTIONS:
+#DB connection parameters:
+driver = '{ODBC Driver 17 for SQL Server}'
+database = 'NovoticAI'
+if production == True:
+    #Novotic DB server address:
+    server = ''
+    username = 'sa' 
+    password = 'AIchallenge6'
+    authstr = ';Authentication=#####' #insert ActiveDirectoryPassword
+else:
+    #localhost:
+    server = '127.0.0.1' 
+    username = 'sa' 
+    password = 'AIchallenge6'
+    authstr = '' #leave empty
+
+#DB utils:
+def db_connect():
+    conn = pyodbc.connect('DRIVER='+driver+';SERVER='+server+';DATABASE='+database+';UID='+username+';PWD='+ password+authstr)
+    csr = conn.cursor()
+    return conn, csr
+
+def db_disconnect(csr, conn):
+    csr.close()
+    conn.close()
+
 
 #CSV name parser:
 def name_parser(name): # take as input the file name
@@ -17,15 +42,6 @@ def name_parser(name): # take as input the file name
     date_time=datetime.datetime(int(name[24:28]), int(name[29:31]), int(name[32:34]),int(name[35:37]),int(name[38:40]),int(name[41:43])) # convert string to date obj
     timestamp=datetime.datetime.timestamp(date_time) # convert date object to timestamp
     return tempcode,id,stazione,timestamp
-
-#Mongo utils:
-def mongo_connect():
-    client = pymongo.MongoClient(CONNECTION_STRING)
-    db = client.novotic
-    return db, client
-
-def mongo_disconnect(client):
-    client.close()
 
 
 #FULL (AFTER EVALUATE): visualize ideal curve, boundaries & current curve:
