@@ -19,25 +19,25 @@ Gli script presenti in questa repository sono stati ideati per essere eseguiti s
 
 # 1) OPERAZIONI RICORRENTI
 
-## 1. (DA BASH) AVVIARE SERVIZIO MSSQL SERVER DA BASH (OGNI VOLTA):
-A) Da Ubuntu:
+## 1. (DA BASH) AVVIARE SERVIZIO MSSQL SERVER (OGNI VOLTA):
+**A) Da Ubuntu:**
 * START: ```sudo service mssql-server start```
 * STOP: ```sudo service mssql-server start```
 * CHECK STATUS: ```systemctl status mssql-server --no-pager```
 
-B) Da WSL:
+**B) Da WSL:**
 * Al posto dei comandi sopra, utilizzare TUTTO questo comando invece (è tutto una sola riga): ```sudo -b -u mssql /opt/mssql/bin/sqlservr -c -d/var/opt/mssql/data/master.mdf -l/var/opt/mssql/data/mastlog.ldf -e/var/opt/mssql/log/errorlog -x >/dev/null```
 
 
 
 
 ## 2. PARAMETRI CONNESSIONE:
-**NOTA**: alla prima connessione è necessario creare un DB vuoto, chiamato "NovoticAI", in cui importeremo i dump. Sequire le istruzioni qui (punto 3) usando GLI STESSI nomi per DB, username e passwords indicati -> https://docs.google.com/document/d/1Hg8LUDYuBbO3p3FYNTM139w2DzV25sPZxpKnWhFTuPc/edit
+**NOTA**: alla prima connessione è necessario creare un DB vuoto, chiamato *NovoticAI*, in cui importeremo i dump. Sequire le istruzioni qui (punto 3) usando **GLI STESSI** nomi per DB, username e passwords indicati -> https://docs.google.com/document/d/1Hg8LUDYuBbO3p3FYNTM139w2DzV25sPZxpKnWhFTuPc/edit
 
 Dopo la prima connessione, i parametri ricorrenti di connessione al DB in localhost sono i seguenti:
-* DA BASH: ```sqlcmd -S 127.0.0.1 -U SA -P AIchallenge6```
-* DA VSCODE: hostname ```127.0.0.1```, username ```SA```, password ```AIchallenge6```. Mettere ```NovoticAI``` sia come nome DB che come nome profilo.
-* DA PYODBC: driver ```{ODBC Driver 17 for SQL Server}```, server ```127.0.0.1```, database ```NovoticAI```, username ```sa```, password ```AIchallenge6```
+* **DA BASH:** ```sqlcmd -S 127.0.0.1 -U SA -P AIchallenge6```
+* **DA VSCODE:** hostname ```127.0.0.1```, username ```SA```, password ```AIchallenge6```. Mettere ```NovoticAI``` sia come nome DB che come nome profilo.
+* **DA PYODBC:** driver ```{ODBC Driver 17 for SQL Server}```, server ```127.0.0.1```, database ```NovoticAI```, username ```sa```, password ```AIchallenge6```
 
 Guida documentazione Pyodbc per utilizzo e query da Python:
 * https://github.com/mkleehammer/pyodbc/wiki
