@@ -1,7 +1,7 @@
-# Documentazione AI Challenge -> Teams 6:  **Novotic**
+# Indice funzioni AI Challenge -> Teams 6:  **Novotic**
  
 
-## <span style="color:yellow"> File 1: access_db.py
+## <span style="color:yellow"> <span>File: access_db.py</span>
 Descrivere che tipo di funzioni sono contenute in questo file (accesso al db)
 
 ---
@@ -28,7 +28,7 @@ _Output:_
 ---
 ---
 ---
-## <span style="color:yellow">File 2: classes.py
+## <span style="color:cyan"> <span>File: classes.py</span>
 Descrivere che tipo di funzioni sono contenute in questo file 
 
 ---
@@ -53,7 +53,7 @@ _Output:_
 ---
 ---
 ---
-## <span style="color:yellow">File 3: demo.py
+## <span style="color:yellow"> <span>File: demo.py</span>
 Descrivere che tipo di funzioni sono contenute in questo file 
 
 ---
@@ -78,7 +78,7 @@ _Output:_
 ---
 ---
 ---
-## <span style="color:yellow">File 4: flag_marker.py
+## <span style="color:cyan"> <span>File: flag_marker.py</span>
 Descrivere che tipo di funzioni sono contenute in questo file 
 
 ---
@@ -103,7 +103,7 @@ _Output:_
 ---
 ---
 ---
-## <span style="color:yellow">File 5: import_csv.py
+## <span style="color:yellow"><span>File: import_csv.py</span>
 Descrivere che tipo di funzioni sono contenute in questo file 
 
 ---
@@ -127,7 +127,7 @@ _Output:_
 
 ---
 
-## <span style="color:yellow"> File 6: stats.py
+## <span style="color:cyan"> <span>File: stats.py</span>
 Descrivere che tipo di funzioni sono contenute in questo file 
 
 ---
@@ -236,7 +236,7 @@ _Output:_
 ---
 ---
 
-## <span style="color:yellow">File 7: target_vectors_generator.py
+## <span style="color:yellow"> <span>File: target_vectors_generator.py</span>
 Descrivere che tipo di funzioni sono contenute in questo file 
 
 ---
@@ -261,7 +261,7 @@ _Output:_
 ---
 ---
 ---
-## <span style="color:yellow">File 8: test_interpolate.py
+## <span style="color:cyan"> <span>File: test_interpolate.py</span>
 Descrivere che tipo di funzioni sono contenute in questo file 
 
 ---
@@ -286,7 +286,7 @@ _Output:_
 ---
 ---
 ---
-## <span style="color:yellow">File 9: utils.py
+## <span style="color:yellow"> <span>File: utils.py</span>
 Descrivere che tipo di funzioni sono contenute in questo file 
 
 ---
