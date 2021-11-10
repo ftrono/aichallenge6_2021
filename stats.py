@@ -115,13 +115,12 @@ def max_targets(max_values, sigma=1):
     return target, dev
 
 
-#BS4: compute target parameters for a combo:
+#BS4: compute target parameters for a combo (note: need to call interpolate_curve() before this!):
 def batch_standardize(batch_forces, batch_mf, sigmac=1, sigmaf=1):
     '''
-    Function that, given as input a list of original force curves and max_forza values (BOTH for 1 combo only!), it first interpolates all curves, then computes the 4 target parameters for the combo.
+    Function that, given as input a list of already interpolated force curves and max_forza values (BOTH for 1 combo only!), it computes the 4 target parameters for the combo.
 
-    It puts together 4 different functions:
-    - interpolate_curve(altezza_combo, altezza, forza)
+    It puts together 3 different functions:
     - ideal_curve(in_curves)
     - stdev_curve(in_curves)
     - max_targets(max_values, sigma)
@@ -129,7 +128,7 @@ def batch_standardize(batch_forces, batch_mf, sigmac=1, sigmaf=1):
     Parameters:
     --------------
     batch_forces: list of lists
-        List containing the original force curves (lists) of each series
+        List containing the already interpolated force curves (lists) of each series
     batch_mf : list of values
         List containing the max force or height applied for each series
     sigmac, sigmaf : int 
@@ -144,14 +143,10 @@ def batch_standardize(batch_forces, batch_mf, sigmac=1, sigmaf=1):
     - std_mf (double)
     
     '''
-    #1) Interpolate all curves:
-    batch_forces_itp = []
-    for c in batch_forces:
-        batch_forces_itp.append(interpolate_curve(c))
 
-    #2) Calculate targets parameters:
-    forza_combo = ideal_curve(batch_forces_itp)
-    std_curve = stdev_curve(batch_forces_itp, sigmac)
+    #Calculate target parameters:
+    forza_combo = ideal_curve(batch_forces)
+    std_curve = stdev_curve(batch_forces, sigmac)
     target_mf, std_mf = max_targets(batch_mf, sigmaf)
 
     return forza_combo, std_curve, target_mf, std_mf
