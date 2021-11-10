@@ -10,135 +10,133 @@ ENDCOLOR = '\033[0m' #reset to white
 
 #STATISTICAL ANALYSIS, TRAINING & EVALUATION FUNCTIONS:
 
-#BS1:
-def ideal_curve(input):
+#BS1: curve of means:
+def ideal_curve(in_curves):
     '''
     Function to compute the ideal curve for a specific combination given by 
     the mean value between its points on the x-axis 
 
     Parameters
-    input : list of list
-        It's the collection of already normalized series of which we want to 
-        compute the ideal behaviour. That said it is critical that each series 
+    in_curves : list of lists
+        It's the collection of already interpolated series of which we want to 
+        compute the ideal force curve. That said it is critical that each series 
         should be of the same size!
 
     Returns
-    out : list
+    out_curve : list
         A list contining the average value of each point in all the series, 
         it's lenght is the same as the one of every series
 
     '''
-    out = []
-    #first cycle for a number of times equal to the numeber of point of each 
+    out_curve = []
+    #first cycle for a number of times equal to the number of point of each 
     #series of pressate
-    for i in range(0,len(input[0])):
+    for i in range(0,len(in_curves[0])):
         temp = []
-        #then cylcle for the number of pressate to be taken into consideration
-        for j in range(0, len(input)):
+        #then cycle for the number of pressate to be taken into consideration
+        for j in range(0, len(in_curves)):
             #in this temporary list we collect all of the pressate values of
             #the same point in time
-            temp.append(input[j][i])
+            temp.append(in_curves[j][i])
         #of this list we compute the average and append it to the final list
         avg = statistics.mean(temp)
-        out.append(avg)
+        out_curve.append(avg)
         #then we repeat the cycle for another set of pressate in the following
         #point in time
-    return out
+    return out_curve
 
 
-#BS2:
-def threshold_variance(input, sigma=1):
+#BS2: stdev of force curve:
+def stdev_curve(in_curves, sigma=1):
     '''
-    Function to compute the average variance value to be used as threshold 
-    when looking if a new sample will be in or out the ideal curve
+    Function to compute the average std_dev to be used as threshold 
+    when looking if a new sample will be in or out the ideal curve boundaries
 
     Parameters
     ----------
-    input : list of list
-        It's the collection of already normalized series of which we want to 
+    in_curves : list of lists
+        It's the collection of already interpolated series of which we want to 
         compute the ideal behaviour. That said it is critical that each series 
         should be of the same size!
     sigma : int 
-        Multiplier to increase avg_var range (default: 1)
+        Multiplier to increase std_curve range (default: 1)
 
     Returns
     -------
-    avg_var : double
-        A list contining the average value of each point in all the series, 
-        it's lenght is the same as the one of every series
+    std_curve : double
+       The value of the average std_devs of all points in the series.
 
     '''
-    var_list = []
-    #like before we cycle for a number of times equal to the numeber of point  
-    #of each series of pressate
-    for i in range(0,len(input[0])):
+    stdev_list = []
+    #we cycle for a number of times equal to the number of points of each series of pressate
+    for i in range(0,len(in_curves[0])):
         temp = []
-        #then cylcle for the number of pressate to be taken into consideration
-        for j in range(0, len(input)):
-            #in this temporary list we collect all of the pressate values of
+        #then we cycle for the number of pressate to be taken into consideration
+        for j in range(0, len(in_curves)):
+            #in this temporary list we collect all the pressate values of
             #the same point in time
-            temp.append(input[j][i])
+            temp.append(in_curves[j][i])
         #of this list we compute the standard deviation and append it to a list
-        var = statistics.stdev(temp)
-        var_list.append(var)
-    #from the list of all the variances we copute the average to be used as 
+        stdev = statistics.stdev(temp)
+        stdev_list.append(stdev)
+    #from the list of all the std_devs we compute the average to be used as 
     #threshold for the ideal curve
-    avg_var = statistics.mean(var_list)
-    avg_var = avg_var*sigma
+    std_curve = statistics.mean(stdev_list)
+    #increase std_dev with given sigma
+    std_curve = std_curve*sigma
 
-    return avg_var
+    return std_curve
 
 
-#BS3:
-def max_force_threshold(max_values, sigma=1):
+#BS3: target value & target stdev of max force or max height:
+def max_targets(max_values, sigma=1):
     '''
-    From a list of max strength values for each series, then finds the average 
+    From a list of max strength or height values for each series, it finds the target value 
     to be used as reference for this configuration. 
-    Moreover it computes a value (the standard deviaion) for accepting or not 
-    a new data 
+    Moreover it computes an acceptable deviation for defining the pressata as acceptable.
     
     Parameters
     ----------
     max_values : list 
-        List containing the max force applied for each series
-    sigma : int 
-        Multiplier to increase threshold range (default: 1)
+        List containing the max force or height applied for each series
+    sigma : int
+        Multiplier to increase acceptable deviation range (default: 1)
 
     Returns
     -------
-    max_force : double 
-        Average force from all the series given as input
-    threshold : double
-        The standard deviation of the list collecting all of the max force for 
-        each series
+    target : double 
+        Target max force or height value (valid for all the series given as input)
+    dev : double
+        The acceptable deviation from this target max value.
 
     '''
     #in this implementation we simply compute the average of the maximum values of 
-    #each sereis and it's variance, but we may change it for better results
-    avg = statistics.mean(max_values)
-    threshold = statistics.stdev(max_values)
-    threshold = threshold*sigma
+    #each series and its std_dev, but we may change it for better results
+    target = statistics.mean(max_values)
+    dev = statistics.stdev(max_values)
+    #increase dev with given sigma
+    dev = dev*sigma
 
-    return avg, threshold
+    return target, dev
 
 
-#BS4:
-def batch_standardize(taglia,idcomp, sigmac=1, sigmaf=1):
+#BS4: compute target parameters for a combo:
+def batch_standardize(taglia, id_comp, sigmac=1, sigmaf=1):
     '''
-    Function that computes the query selecting taglia and idcomp and 
+    Function that computes the query selecting taglia and id_comp and 
     create a variable called combo; then for every series in the combo it appends
-    on the list "batch_forces" -> 'forza' (list of the list) and
+    on the list "batch_forces" -> 'forza_orig' (list of the list) and
     it appends on the list "batch_max" -> 'max_forza'(list). 
 
-    It puts together different functions:
-    - query_bycombo(taglia,idcomp)
-    - ideal_curve(input)
-    - threshold_variance(input)
-    - max_force_threshold(input)
+    It puts together 4 different functions:
+    - query_bycombo(taglia,id_comp)
+    - ideal_curve(in_curves)
+    - stdev_curve(in_curves)
+    - max_targets(max_values, sigma)
 
     Parameters:
     --------------
-    taglia, idcomp : string
+    taglia, id_comp : string
         Strings containing the taglia of "riduttore" and id of the "componente"
     sigmac, sigmaf : int 
         Multipliers to increase threshold range, one for curve and the other for max_forza (default: 1)
@@ -146,62 +144,64 @@ def batch_standardize(taglia,idcomp, sigmac=1, sigmaf=1):
     Returns
     -------------
     Output : 4 parameters
-    - curva_ideale (list)
-    - avg_var (double)
-    - max_force (double)
-    - threshold (oudble)
+    - forza_combo (list)
+    - std_curve (double)
+    - target_mf (double)
+    - std_mf (oudble)
     
     '''
     batch_forces = []
     batch_max = []
     
-    combo = query_bycombo(taglia,idcomp)
+    combo = query_bycombo(taglia,id_comp)
     for series in combo.series:
         batch_forces.append(series.forza)
         batch_max.append(series.max_forza)
     
-    curva_ideale = ideal_curve(batch_forces)
-    avg_var = threshold_variance(batch_forces, sigmac)
-    mf_tgt, mf_threshold = max_force_threshold(batch_max, sigmaf)
+    forza_combo = ideal_curve(batch_forces)
+    std_curve = stdev_curve(batch_forces, sigmac)
+    target_mf, std_mf = max_targets(batch_max, sigmaf)
 
-    return curva_ideale, avg_var, mf_tgt, mf_threshold
+    return forza_combo, std_curve, target_mf, std_mf
 
 
 #EV0: Evaluate function:
-def evaluate(max_forza, forza, curva_ideale, avg_var, mf_tgt, mf_threshold):
+def evaluate(cur_mf, cur_forza, forza_combo, std_curve, target_mf, std_mf):
     '''
-    Function that evaluates if pressata is correctly or not. 
-    If: the value that represents the max force in the process is between max force
-    target +- a threshold, the algorithm makes another comparison with ideal curve: 
-        if all points of the curve (already interpolated and normalized) are within the acceptable variance bound from the ideal curve, then the pressata is considered accepted.
-
+    Function that evaluates if a pressata is correct or not. 
+    It makes 2 checks:
+        A) if the value that represents the max force in the process is between max force
+        target +- a threshold; then, only if ok,
+        B) if all points of the curve (already interpolated and normalized) are within the acceptable std_dev bound from the ideal curve.
+    
+    If both checks are ok, then the pressata is considered acceptable.
     Otherwise, the count of the curve points that are out of bounds is returned.
 
     Parameters:
     -------------------
     input: 
-    - max_forza (double)
-    - forza(list) 
-    - curva_ideale (list)
-    - avg_var (double)
-    - mf_tgt (double)
-    - mf_threshold (double) 
+    - cur_mf (double)
+    - cur_forza (list) 
+    - forza_combo (list)
+    - std_curve (double)
+    - target_mf (double)
+    - std_mf (double) 
     
     output: 
     count_out (list): count of how many points of pressata curve are out of bound.
     '''
     count_out = 0
 
-    if (max_forza >= (mf_tgt-mf_threshold)) and (max_forza <= (mf_tgt+mf_threshold)):
+    if (cur_mf >= (target_mf-std_mf)) and (cur_mf <= (target_mf+std_mf)):
         print(OKGREEN+"Max_forza: accepted."+ENDCOLOR)
-        for i in range(len(forza)):
-            if (forza[i] < (curva_ideale[i]-avg_var)) or (forza[i] > (curva_ideale[i]+avg_var)):
+        for i in range(len(cur_forza)):
+            if (cur_forza[i] < (forza_combo[i]-std_curve)) or (cur_forza[i] > (forza_combo[i]+std_curve)):
                 count_out = count_out + 1
         
         if count_out == 0:
             print(OKGREEN+"Curve: assembly success."+ENDCOLOR)
         else:
-            print(WARNINGCOL+"WARNING: curve out of bounds in "+str(count_out)+" points out of "+str(len(forza))+"! Please check the assembly."+ENDCOLOR)
+            print(WARNINGCOL+"WARNING: curve out of bounds in "+str(count_out)+" points out of "+str(len(cur_forza))+"! Please check the assembly."+ENDCOLOR)
 
     else:
         print("WARNING: max_forza out of acceptable range! Please check the assembly.")

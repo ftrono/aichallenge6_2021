@@ -1,7 +1,7 @@
 from access_db import query_bycombo, query_tgtvectors
 from stats import evaluate
-from utils import normalize, interpolate_curve, plot_curves
-from stats import ideal_curve, threshold_variance, max_force_threshold
+from utils import normalize, interpolate_curve, visualize
+from stats import ideal_curve, stdev_curve, max_targets
 
 sigmac = 3
 sigmaf = 1
@@ -10,9 +10,9 @@ sigmaf = 1
 
 #HELPER FUNCTIONS:
 #normalize and interpolate all curves in combo:
-def nni_combo(combo, tgt_h):
+def nni_combo(combo, altezza_combo):
     for series in combo.series:
-        newh, newf = interpolate_curve(tgt_h, series.altezza, series.forza)
+        newh, newf = interpolate_curve(altezza_combo, series.altezza, series.forza)
         newf = normalize(newf)
         series.altezza = newh
         series.forza = newf
@@ -29,43 +29,43 @@ def bs_demo(combo, sigmac, sigmaf):
         batch_forces.append(series.forza)
         batch_max.append(series.max_forza)
     
-    curva_ideale = ideal_curve(batch_forces)
-    avg_var = threshold_variance(batch_forces, sigmac)
-    max_force, mf_threshold = max_force_threshold(batch_max, sigmaf)
+    forza_combo = ideal_curve(batch_forces)
+    std_curve = stdev_curve(batch_forces, sigmac)
+    max_force, std_mf = max_targets(batch_max, sigmaf)
 
-    return curva_ideale, avg_var, max_force, mf_threshold
+    return forza_combo, std_curve, max_force, std_mf
 
 
 #DEMO:
 
 #LAUNCH DEMO:
-def demo(taglia, idcomp):
+def demo(taglia, id_comp):
     #1) PREPROCESSING:
     print("Phase 1 - Preprocessing...")
     #get orig curves:
-    combo = query_bycombo(taglia,idcomp)
+    combo = query_bycombo(taglia,id_comp)
     #get target vector for the combo:
-    _, _, tgt_h = query_tgtvectors(taglia, idcomp)
+    _, _, altezza_combo = query_tgtvectors(taglia, id_comp)
     #normalize and interpolate curves in all combo:
-    combo = nni_combo(combo, tgt_h)
+    combo = nni_combo(combo, altezza_combo)
     
     #2) TRAIN:
     print("Phase 2 - Training...")
     #get the 4 key Target Parameters:
-    curva_ideale, avg_var, max_force, mf_threshold = bs_demo(combo, sigmac, sigmaf)
-    print("Avg variance for curve: {}". format(avg_var))
+    forza_combo, std_curve, max_force, std_mf = bs_demo(combo, sigmac, sigmaf)
+    print("Avg std_dev for curve: {}". format(std_curve))
 
     #3) EVALUATE:
     print("Phase 3 - Testing...")
     #test on new curve:
     frz = combo.series[0].forza
     mfrz = combo.series[0].max_forza
-    print("Current max_forza: {}, Target max_forza: {}, Acceptable delta: +-{}".format(mfrz, max_force, mf_threshold))
+    print("Current max_forza: {}, Target max_forza: {}, Acceptable delta: +-{}".format(mfrz, max_force, std_mf))
 
-    cnt = evaluate(mfrz, frz, curva_ideale, avg_var, max_force, mf_threshold)
+    cnt = evaluate(mfrz, frz, forza_combo, std_curve, max_force, std_mf)
     
     #VISUALIZE CURVES:
-    plot_curves(curva_ideale, avg_var, tgt_h, frz)
+    visualize(forza_combo, std_curve, altezza_combo, frz)
 
     return cnt
 

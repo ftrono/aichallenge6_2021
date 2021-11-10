@@ -45,16 +45,16 @@ def name_parser(name): # take as input the file name
 
 
 #FULL (AFTER EVALUATE): visualize ideal curve, boundaries & current curve:
-def plot_curves(curva_ideale, avg_var, tgt_h, cur_forza):
+def visualize(forza_combo, std_curve, altezza_combo, cur_forza):
     #calculate upper & lower bound:
-    ci_boundup = [(curva_ideale[i]+avg_var) for i in range(len(curva_ideale))]
-    ci_boundlow = [(curva_ideale[i]-avg_var) for i in range(len(curva_ideale))]
+    ci_boundup = [(forza_combo[i]+std_curve) for i in range(len(forza_combo))]
+    ci_boundlow = [(forza_combo[i]-std_curve) for i in range(len(forza_combo))]
 
     #plot:
-    plt.plot(tgt_h, curva_ideale, color='green', linewidth=4, label="Ideal curve")
-    plt.plot(tgt_h, ci_boundup, color='orange', linestyle='--', linewidth=1, label="Upper boundary")
-    plt.plot(tgt_h, ci_boundlow, color='red', linestyle='--', linewidth=1, label="Lower boundary")
-    plt.plot(tgt_h, cur_forza, color='blue', linewidth=2, label="CURRENT CURVE")
+    plt.plot(altezza_combo, forza_combo, color='green', linewidth=4, label="Ideal curve")
+    plt.plot(altezza_combo, ci_boundup, color='orange', linestyle='--', linewidth=1, label="Upper boundary")
+    plt.plot(altezza_combo, ci_boundlow, color='red', linestyle='--', linewidth=1, label="Lower boundary")
+    plt.plot(altezza_combo, cur_forza, color='blue', linewidth=2, label="CURRENT CURVE")
     plt.xlabel('Altezza (mm)')
     plt.ylabel('Forza (kN)')
     plt.legend(fontsize='x-small', frameon=False)
@@ -65,7 +65,7 @@ def plot_curves(curva_ideale, avg_var, tgt_h, cur_forza):
 
 
 #BASIC: plot a single series:
-def plot_series(id, x, y, **title):
+def plot_single(id, x, y, **title):
     '''
     :param id: label
     :param x: altezza
@@ -104,16 +104,16 @@ def normalize(y_data, plot=False):
 
 #HORIZONTAL INTERPOLATION:
 #interpolate curve based on target altezza vector for the combo:
-def interpolate_curve(tgt_h, altezza, forza):
+def interpolate_curve(altezza_combo, altezza, forza):
     '''
     Aligns horizontally both the forza and altezza vectors on the basis of a "stamp",
-    represented by the target altezza vector for a combo(taglia, idcomp).
+    represented by the target altezza vector for a combo(taglia, id_comp).
     The target altezza vector has a standard number of points based on a predefined sample rate.
 
     NOTE:
-    Function query_tgt_vectors() must be called before this, to get a tgt_h vector to pass here.
+    Function query_tgt_vectors() must be called before this, to get a altezza_combo vector to pass here.
     Example:
-    _, _, tgt_h = query_tgtvectors(taglia, idcomp)
+    _, _, altezza_combo = query_tgtvectors(taglia, id_comp)
 
     params: (list) target vector for a combo(taglia, altezza):,
             (list) orig altezza vector:,
@@ -126,14 +126,14 @@ def interpolate_curve(tgt_h, altezza, forza):
     new_forza = []
     i = 0
     v = 0
-    tgt_len = len(tgt_h)
+    tgt_len = len(altezza_combo)
 
-    if altezza == [] or tgt_h == []:
+    if altezza == [] or altezza_combo == []:
         return warnings.warn("Error: empty list.")
 
     #1) initial padding:
-    if altezza[0] > tgt_h[0]:
-        while tgt_h[i] < altezza[0]:
+    if altezza[0] > altezza_combo[0]:
+        while altezza_combo[i] < altezza[0]:
             #pad:
             new_forza.append(0)
             i = i+1
@@ -142,9 +142,9 @@ def interpolate_curve(tgt_h, altezza, forza):
     for i in range(i, tgt_len):
         #pad check:
         if v < len(altezza):
-            #find closest value of tgt_h[i] in orig altezza list:
-            #the loop will stop at the last index (v) in which the value of altezza is before (or equal to) the value of tgt_h[i]:
-            while (altezza[v] < tgt_h[i]):
+            #find closest value of altezza_combo[i] in orig altezza list:
+            #the loop will stop at the last index (v) in which the value of altezza is before (or equal to) the value of altezza_combo[i]:
+            while (altezza[v] < altezza_combo[i]):
                 #go to next:
                 v = v+1
                 #check end of orig list:
@@ -155,7 +155,7 @@ def interpolate_curve(tgt_h, altezza, forza):
             
             if v < len(altezza):
                 #calculate interpolated value:
-                if altezza[v] == tgt_h[i]:
+                if altezza[v] == altezza_combo[i]:
                     #if equal, save same:
                     new_forza.append(forza[v])
                 else:
@@ -165,7 +165,7 @@ def interpolate_curve(tgt_h, altezza, forza):
                     right = v
 
                     dx = altezza[right]-altezza[left]
-                    xgap = altezza[right]-tgt_h[i]
+                    xgap = altezza[right]-altezza_combo[i]
                     dy = forza[right]-forza[left]
                     #xgap:dx=ygap:dy
                     ygap = (xgap*dy)/dx
@@ -173,11 +173,11 @@ def interpolate_curve(tgt_h, altezza, forza):
                     #calculate:
                     new_forza.append(round((forza[right]-ygap),2))
                     
-                    #print("Altezza: {}, {}, {}".format(altezza[left], altezza[right], tgt_h[i]))
+                    #print("Altezza: {}, {}, {}".format(altezza[left], altezza[right], altezza_combo[i]))
                     #print("Forza: {}, {}, {}".format(forza[left], forza[right], new_forza[i]))
         
         else:
             #3) Ending padding:
             new_forza.append(0)
 
-    return tgt_h, new_forza
+    return altezza_combo, new_forza
