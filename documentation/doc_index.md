@@ -4,26 +4,26 @@
 ___
 
 
-**UTILS.PY**
+**DB_CONNECT.PY**
 
-A) Connessione a DB:
 * Parametri globali di connessione
 * *db_connect()*
-* *db_disconnect(csr, conn)*
+* *db_disconnect(conn, cursor)*
 
-B) CSV name parser:
+___
+
+**UTILS.PY**
+
+A) CSV name parser:
 * *name_parser(name)*
 
-C) Visualizzazione grafica curve:
-* Per visualizzare grafico completo con curva ideale, boundaries e curva corrente:
+B) Visualizzazione grafica curve (grafico completo con curva ideale, boundaries e curva corrente):
   * *visualize(forza_combo, std_curve, altezza_combo, cur_forza)*
-* Per plottare una singola curva:
-  * *plot_single(id, x, y, <span>**</span>title)*
 
-D) Interpolazione e normalizzazione:
-* *normalize(y_data, plot=False)*
+C) Interpolazione:
 * *interpolate_curve(altezza_combo, altezza, forza)*
 
+___
 
 **STATS.PY**
 
@@ -39,6 +39,10 @@ C) Calcolo target max_forza (o max_altezza) e std_MF (o std_MA):
 D) Calcolo parametri per singola combo (taglia, id_comp):
 * *batch_standardize(taglia, id_comp, sigmac=1, sigmaf=1)*
 
-E) Funzione di valutazione nuova curva:
-* *evaluate(cur_mf, cur_forza, forza_combo, std_curve, target_mf, std_mf)*
+___
+
+**EVALUATE.PY**
+
+Funzione di valutazione nuova curva:
+* *evaluate_curve(timestamp, visual)*
 

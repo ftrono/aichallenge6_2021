@@ -24,9 +24,9 @@ else:
 #DB utils:
 def db_connect():
     conn = pyodbc.connect('DRIVER='+driver+';SERVER='+server+';DATABASE='+database+';UID='+username+';PWD='+ password+authstr)
-    csr = conn.cursor()
-    return conn, csr
+    cursor = conn.cursor()
+    return conn, cursor
 
-def db_disconnect(csr, conn):
-    csr.close()
+def db_disconnect(conn, cursor):
+    cursor.close()
     conn.close()
