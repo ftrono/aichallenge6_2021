@@ -143,3 +143,45 @@ class Combo:
         else:
             #Should execute only if match not found:
             print("Riduttore {} not found in Combo.".format(riduttore))
+
+class Target_vector:
+    def __init__(self,id,tgl):
+        self.id = id
+        self.tgl = tgl
+        self.vector = []
+        self.max_h=0
+        self.rate=[]
+
+    def compute_rate(self,vector):
+        diff_vector=np.diff(vector)
+        diff_vector=np.absolute(diff_vector)
+        diff_vector=np.round(diff_vector,2)
+        unique, counts = np.unique(diff_vector, return_counts=True)
+        max_index_col = np.argmax(counts, axis=0)
+        self.rate.append(unique[max_index_col])
+        tmp_max=max(vector)
+        if self.max_h<tmp_max:
+            self.max_h=tmp_max
+
+    def compute_values(self):
+        diff_vector=np.diff(self.vector)
+        diff_vector=np.absolute(diff_vector)
+        diff_vector=np.round(diff_vector,2)
+        unique, counts = np.unique(diff_vector, return_counts=True)
+        max_index_col = np.argmax(counts, axis=0)
+        self.rate=unique[max_index_col]
+        self.generate_vector()
+
+    def generate_vector(self):
+        for value in range(0,self.max_h,self.rate):
+            self.vector.append(value)
+
+    def to_json(self):
+        json={
+            'comp_id': self.id,
+            'taglia' : self.tgl,
+            'max_h' : self.max_h,
+            'rate' : self.rate,
+            'vector' : self.vector
+        }
+        return json
