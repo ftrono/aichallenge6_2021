@@ -1,14 +1,9 @@
 import statistics
 import warnings
-from access_db import query_bycombo
-
-#Color codes for printing to stdout:
-OKGREEN = '\033[92m'
-WARNINGCOL = '\033[93m'
-ENDCOLOR = '\033[0m' #reset to white
+from main.utils import interpolate_curve
 
 
-#STATISTICAL ANALYSIS, TRAINING & EVALUATION FUNCTIONS:
+#STATISTICAL ANALYSIS & TRAINING FUNCTIONS:
 
 #BS1: curve of means:
 def ideal_curve(in_curves):
@@ -121,23 +116,22 @@ def max_targets(max_values, sigma=1):
 
 
 #BS4: compute target parameters for a combo:
-def batch_standardize(taglia, id_comp, sigmac=1, sigmaf=1):
+def batch_standardize(batch_forces, batch_mf, sigmac=1, sigmaf=1):
     '''
-    Function that computes the query selecting taglia and id_comp and 
-    create a variable called combo; then for every series in the combo it appends
-    on the list "batch_forces" -> 'forza_orig' (list of the list) and
-    it appends on the list "batch_max" -> 'max_forza'(list). 
+    Function that, given as input a list of original force curves and max_forza values (BOTH for 1 combo only!), it first interpolates all curves, then computes the 4 target parameters for the combo.
 
     It puts together 4 different functions:
-    - query_bycombo(taglia,id_comp)
+    - interpolate_curve(altezza_combo, altezza, forza)
     - ideal_curve(in_curves)
     - stdev_curve(in_curves)
     - max_targets(max_values, sigma)
 
     Parameters:
     --------------
-    taglia, id_comp : string
-        Strings containing the taglia of "riduttore" and id of the "componente"
+    batch_forces: list of lists
+        List containing the original force curves (lists) of each series
+    batch_mf : list of values
+        List containing the max force or height applied for each series
     sigmac, sigmaf : int 
         Multipliers to increase threshold range, one for curve and the other for max_forza (default: 1)
 
@@ -147,64 +141,18 @@ def batch_standardize(taglia, id_comp, sigmac=1, sigmaf=1):
     - forza_combo (list)
     - std_curve (double)
     - target_mf (double)
-    - std_mf (oudble)
+    - std_mf (double)
     
     '''
-    batch_forces = []
-    batch_max = []
-    
-    combo = query_bycombo(taglia,id_comp)
-    for series in combo.series:
-        batch_forces.append(series.forza)
-        batch_max.append(series.max_forza)
-    
-    forza_combo = ideal_curve(batch_forces)
-    std_curve = stdev_curve(batch_forces, sigmac)
-    target_mf, std_mf = max_targets(batch_max, sigmaf)
+    #1) Interpolate all curves:
+    batch_forces_itp = []
+    for c in batch_forces:
+        batch_forces_itp.append(interpolate_curve(c))
+
+    #2) Calculate targets parameters:
+    forza_combo = ideal_curve(batch_forces_itp)
+    std_curve = stdev_curve(batch_forces_itp, sigmac)
+    target_mf, std_mf = max_targets(batch_mf, sigmaf)
 
     return forza_combo, std_curve, target_mf, std_mf
-
-
-#EV0: Evaluate function:
-def evaluate(cur_mf, cur_forza, forza_combo, std_curve, target_mf, std_mf):
-    '''
-    Function that evaluates if a pressata is correct or not. 
-    It makes 2 checks:
-        A) if the value that represents the max force in the process is between max force
-        target +- a threshold; then, only if ok,
-        B) if all points of the curve (already interpolated and normalized) are within the acceptable std_dev bound from the ideal curve.
-    
-    If both checks are ok, then the pressata is considered acceptable.
-    Otherwise, the count of the curve points that are out of bounds is returned.
-
-    Parameters:
-    -------------------
-    input: 
-    - cur_mf (double)
-    - cur_forza (list) 
-    - forza_combo (list)
-    - std_curve (double)
-    - target_mf (double)
-    - std_mf (double) 
-    
-    output: 
-    count_out (list): count of how many points of pressata curve are out of bound.
-    '''
-    count_out = 0
-
-    if (cur_mf >= (target_mf-std_mf)) and (cur_mf <= (target_mf+std_mf)):
-        print(OKGREEN+"Max_forza: accepted."+ENDCOLOR)
-        for i in range(len(cur_forza)):
-            if (cur_forza[i] < (forza_combo[i]-std_curve)) or (cur_forza[i] > (forza_combo[i]+std_curve)):
-                count_out = count_out + 1
-        
-        if count_out == 0:
-            print(OKGREEN+"Curve: assembly success."+ENDCOLOR)
-        else:
-            print(WARNINGCOL+"WARNING: curve out of bounds in "+str(count_out)+" points out of "+str(len(cur_forza))+"! Please check the assembly."+ENDCOLOR)
-
-    else:
-        print("WARNING: max_forza out of acceptable range! Please check the assembly.")
-    
-    return count_out
 

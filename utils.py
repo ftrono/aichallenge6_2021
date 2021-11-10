@@ -1,37 +1,7 @@
-import pyodbc, datetime, warnings
+import datetime, warnings
 import matplotlib.pyplot as plt
 
 #COMMON UTILITY FUNCTIONS
-
-#CONNECT TO: True=PRODUCTION; False=LOCALHOST
-production = False
-
-#DB connection parameters:
-driver = '{ODBC Driver 17 for SQL Server}'
-database = 'NovoticAI'
-if production == True:
-    #Novotic DB server address:
-    server = ''
-    username = 'sa' 
-    password = 'AIchallenge6'
-    authstr = ';Authentication=#####' #insert ActiveDirectoryPassword
-else:
-    #localhost:
-    server = '127.0.0.1' 
-    username = 'sa' 
-    password = 'AIchallenge6'
-    authstr = '' #leave empty
-
-#DB utils:
-def db_connect():
-    conn = pyodbc.connect('DRIVER='+driver+';SERVER='+server+';DATABASE='+database+';UID='+username+';PWD='+ password+authstr)
-    csr = conn.cursor()
-    return conn, csr
-
-def db_disconnect(csr, conn):
-    csr.close()
-    conn.close()
-
 
 #CSV name parser:
 def name_parser(name): # take as input the file name
@@ -64,44 +34,6 @@ def visualize(forza_combo, std_curve, altezza_combo, cur_forza):
     return 0
 
 
-#BASIC: plot a single series:
-def plot_single(id, x, y, **title):
-    '''
-    :param id: label
-    :param x: altezza
-    :param y: forza
-    :param title: optional
-    :return:
-    '''
-    label = id
-    plt.plot(x, y)
-    plt.xlabel(label)
-    plt.title(title)
-    graph = plt.show()
-    return graph
-
-
-#VERTICAL NORMALIZATION:
-#Push all force curve values bewteen [0, 1]:
-def normalize(y_data, plot=False):
-    '''
-    Takes an array as input, returns the same array with normalized values (to be used only for `forza`).
-    Plotting feature on request.
-    
-    :param array: array of numbers in the form [float1, float2, ... , floatN] or [int1, int2, ... , intN]
-    :return: normalized array & plot of the array if requested
-    '''
-    #Strength data normalization:
-    normie = [round(i/max(y_data), 4) for i in y_data]
-
-    # Plotting (optional)
-    if plot == True:
-        plt.plot(normie)
-        plt.show()
-
-    return normie
-
-
 #HORIZONTAL INTERPOLATION:
 #interpolate curve based on target altezza vector for the combo:
 def interpolate_curve(altezza_combo, altezza, forza):
@@ -110,16 +42,10 @@ def interpolate_curve(altezza_combo, altezza, forza):
     represented by the target altezza vector for a combo(taglia, id_comp).
     The target altezza vector has a standard number of points based on a predefined sample rate.
 
-    NOTE:
-    Function query_tgt_vectors() must be called before this, to get a altezza_combo vector to pass here.
-    Example:
-    _, _, altezza_combo = query_tgtvectors(taglia, id_comp)
-
     params: (list) target vector for a combo(taglia, altezza):,
             (list) orig altezza vector:,
             (list) orig forza vector.
     returns:
-            (list) target altezza vector:,
             (list) interpolated forza vector.
     '''
     #objects:
@@ -180,4 +106,4 @@ def interpolate_curve(altezza_combo, altezza, forza):
             #3) Ending padding:
             new_forza.append(0)
 
-    return altezza_combo, new_forza
+    return new_forza

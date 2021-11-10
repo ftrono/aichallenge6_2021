@@ -1,10 +1,12 @@
 from access_db import query_bycombo, query_tgtvectors
-from stats import evaluate
+from evaluation import evaluate_curve
 from utils import normalize, interpolate_curve, visualize
 from stats import ideal_curve, stdev_curve, max_targets
 
 sigmac = 3
 sigmaf = 1
+
+#TO BE UPDATED.
 
 #LAUNCH ALGORITHM DEMO:
 
@@ -12,9 +14,9 @@ sigmaf = 1
 #normalize and interpolate all curves in combo:
 def nni_combo(combo, altezza_combo):
     for series in combo.series:
-        newh, newf = interpolate_curve(altezza_combo, series.altezza, series.forza)
+        newf = interpolate_curve(altezza_combo, series.altezza, series.forza)
         newf = normalize(newf)
-        series.altezza = newh
+        series.altezza = altezza_combo
         series.forza = newf
     return combo
 
@@ -23,15 +25,15 @@ def nni_combo(combo, altezza_combo):
 def bs_demo(combo, sigmac, sigmaf):
 
     batch_forces = []
-    batch_max = []
+    batch_mf = []
 
     for series in combo.series:
         batch_forces.append(series.forza)
-        batch_max.append(series.max_forza)
+        batch_mf.append(series.max_forza)
     
     forza_combo = ideal_curve(batch_forces)
     std_curve = stdev_curve(batch_forces, sigmac)
-    max_force, std_mf = max_targets(batch_max, sigmaf)
+    max_force, std_mf = max_targets(batch_mf, sigmaf)
 
     return forza_combo, std_curve, max_force, std_mf
 
@@ -62,7 +64,7 @@ def demo(taglia, id_comp):
     mfrz = combo.series[0].max_forza
     print("Current max_forza: {}, Target max_forza: {}, Acceptable delta: +-{}".format(mfrz, max_force, std_mf))
 
-    cnt = evaluate(mfrz, frz, forza_combo, std_curve, max_force, std_mf)
+    cnt = evaluate_curve(mfrz, frz, forza_combo, std_curve, max_force, std_mf)
     
     #VISUALIZE CURVES:
     visualize(forza_combo, std_curve, altezza_combo, frz)
