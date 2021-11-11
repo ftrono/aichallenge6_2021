@@ -35,9 +35,9 @@ Gli script presenti in questa repository sono stati ideati per essere eseguiti s
 **NOTA**: alla prima connessione è necessario creare un DB vuoto, chiamato *NovoticAI*, in cui importeremo i dump. Sequire le istruzioni qui (punto 3) usando **GLI STESSI** nomi per DB, username e passwords indicati -> https://docs.google.com/document/d/1Hg8LUDYuBbO3p3FYNTM139w2DzV25sPZxpKnWhFTuPc/edit
 
 Dopo la prima connessione, i parametri ricorrenti di connessione al DB in localhost sono i seguenti:
-* **DA BASH:** ```sqlcmd -S 127.0.0.1 -U SA -P AIchallenge6```
 * **DA VSCODE:** hostname ```127.0.0.1```, username ```SA```, password ```AIchallenge6```. Mettere ```NovoticAI``` sia come nome DB che come nome profilo.
 * **DA PYODBC:** driver ```{ODBC Driver 17 for SQL Server}```, server ```127.0.0.1```, database ```NovoticAI```, username ```sa```, password ```AIchallenge6```
+* * **DA BASH:** (solo per creare DB la prima volta o per rare eventualità) ```sqlcmd -S 127.0.0.1 -U SA -P AIchallenge6```
 
 Guida documentazione Pyodbc per utilizzo e query da Python:
 * https://github.com/mkleehammer/pyodbc/wiki
@@ -45,6 +45,17 @@ Guida documentazione Pyodbc per utilizzo e query da Python:
 
 ## 3. PER IMPORTARE IL DUMP DEL DB (SOLO IN CASO DI NUOVI DUMP):
 * TBD
+
+
+## 4. PER CHIAMARE LE QUERY:
+* Non useremo classi.
+* Scrivere le query direttamente nella cartella *“queries”* creando **più file *.sql* separati (uno per query)**.
+* **In ogni file Python**: aprire e chiudere le connessioni al DB chiamando le funzioni ```db_connect()``` (all'inizio del file) and ```db_disconnect(conn, cursor)``` (alla fine del file) presenti nel file *db_connect.py*. La ```db_connect()``` ritorna 2 oggetti: una connessione *conn* e un cursore *cursor*.
+* Ogni volta che si chiama una query in Python, vanno lanciati 2 comandi: **1)** ```cursor.execute(query)```, che esegue la query nella RAM; **2)** ```cursor.commit()```, che esegue la query nel DB. **NOTA: LE QUERY NON VENGONO ESEGUITE SENZA CURSOR.COMMIT()!!!
+* **Per chiamare le query nelle funzioni python**: chiamare i file *.sql* dove avete scritto la query di riferimento ed eseguire con:
+    ```with open('./queries/<filename>.sql', mode='r') as query:
+        cursor.execute(query)
+        cursor.commit()```
 
 
 ---
