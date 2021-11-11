@@ -51,7 +51,7 @@ Guida documentazione Pyodbc per utilizzo e query da Python:
 * Non useremo classi.
 * Scrivere le query direttamente nella cartella *“queries”* creando **più file *.sql* separati (uno per query)**.
 * **In ogni file Python**: aprire e chiudere le connessioni al DB chiamando le funzioni ```db_connect()``` (all'inizio del file) and ```db_disconnect(conn, cursor)``` (alla fine del file) presenti nel file *db_connect.py*. La ```db_connect()``` ritorna 2 oggetti: una connessione *conn* e un cursore *cursor*.
-* Ogni volta che si chiama una query in Python, vanno lanciati 2 comandi: **1)** ```cursor.execute(query)```, che esegue la query nella RAM; **2)** ```cursor.commit()```, che esegue la query nel DB. **NOTA: LE QUERY NON VENGONO ESEGUITE SENZA CURSOR.COMMIT()!!!
+* Ogni volta che si chiama una query in Python, vanno lanciati 2 comandi: **1)** ```cursor.execute(query)```, che *prepara* la query; **2)** ```cursor.commit()```, che *aggiorna effettivamente* il DB. **NOTA: LE QUERY NON VENGONO ESEGUITE SENZA CURSOR.COMMIT()!!!**
 * **Per chiamare le query nelle funzioni python**: chiamare i file *.sql* dove avete scritto la query di riferimento ed eseguire con:
     ```
     with open('./queries/<filename>.sql', mode='r') as query:
