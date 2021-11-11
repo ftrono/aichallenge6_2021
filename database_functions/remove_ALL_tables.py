@@ -16,9 +16,9 @@ print("Connected to", server)
 
 cursor = cnxn.cursor()
 
-cursor.execute('DROP TABLE WarningDesc')
-cnxn.commit()
 cursor.execute('DROP TABLE Warnings')
+cnxn.commit()
+cursor.execute('DROP TABLE WarningDesc')
 cnxn.commit()
 cursor.execute('DROP TABLE CombosData')
 cnxn.commit()
@@ -34,9 +34,8 @@ cnxn.commit()
 
 
 
-
-
-
 # close cursor and connection
 cursor.close()
 cnxn.close()
+
+print("All tables removed from database", database)
