@@ -59,7 +59,7 @@ Gli script presenti in questa repository sono stati ideati per essere eseguiti s
 * Ogni volta che si chiama una query in Python, vanno lanciati 2 comandi: **1)** ```cursor.execute(query)```, che prepara la query; **2)** ```cursor.commit()```, che aggiorna effettivamente il DB. 
 * **Per chiamare le query nelle funzioni python**: chiamare i file *.sql* dove avete scritto la query di riferimento ed eseguire con:
     ```
-    with open(os.getcwd()+'/queries/<filename>.sql', mode='r') as query:
+    with open(os.getcwd()+'/database_functions/queries/<filename>.sql', mode='r') as query:
         cursor.execute(query)
         cursor.commit()
     ```
