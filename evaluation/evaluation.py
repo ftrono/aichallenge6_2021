@@ -1,5 +1,5 @@
 import logging
-from main.utils import interpolate_curve, visualize
+from utils import interpolate_curve, visualize
 
 #Color codes for printing to stdout:
 OKGREEN = '\033[92m'

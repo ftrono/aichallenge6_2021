@@ -1,7 +1,5 @@
 import statistics
 import warnings
-from main.utils import interpolate_curve
-
 
 #STATISTICAL ANALYSIS & TRAINING FUNCTIONS:
 
