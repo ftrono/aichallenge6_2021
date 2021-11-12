@@ -1,18 +1,17 @@
 import pyodbc
 
 # use preferred connection method and parameters ---------------------------------
-driver = '{ODBC Driver 17 for SQL Server}'
-server = 'localhost'
+dsn = 'sqlserverdatasource'
+user = 'SA'
+password = 'MainPas012'
 database = 'NovoticAI'
-username = 'sa'
-password = 'AIchallenge6'
+con_string = 'DSN=%s;UID=%s;PWD=%s;DATABASE=%s;' % (dsn, user, password, database)
 
-con_string = 'DRIVER='+driver+';SERVER='+server+';DATABASE='+database+';UID='+username+';PWD='+ password
 #---------------------------------------------------------------------------------
 
 # open connection
 cnxn = pyodbc.connect(con_string)
-print("Connected to", server)
+
 
 cursor = cnxn.cursor()
 
