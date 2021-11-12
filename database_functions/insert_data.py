@@ -1,7 +1,7 @@
-import csv, time, logging, datetime, pyodbc, os
+import csv, time, logging, datetime, os
 from db_connect import db_connect, db_disconnect
 
-#CSV name parser:
+#Herper functions:
 def name_parser(name): # take as input the file name
     # get information from file name
     tempcode=name[0:14]
@@ -22,6 +22,8 @@ def parse_date(cell,name):
     timestamp=datetime.datetime.timestamp(date_time) # convert date object to timestamp
     return timestamp
 
+
+#MAIN:
 logging.basicConfig(level=logging.DEBUG,format='%(asctime)s %(levelname)s %(message)s')
 logging.debug("START")
 
@@ -30,6 +32,21 @@ cnxn, cursor = db_connect()
 logging.debug("Connected to DB")
 
 start_time = time.time()
+
+
+#1) POPULATE WARNING_DESC TABLE::
+desc =  ["'Max_altezza out of bounds'",
+        "'Delta_timestamp out of bounds'",
+        "'Max_forza out of bounds'",
+        "'Force curve out of bounds'"]
+
+for d in range(len(desc)):
+    query = "INSERT INTO WarningDesc ( Description) VALUES ("+desc[d]+")"
+    cursor.execute(query)
+    cursor.commit()
+
+
+#2) DATASET IMPORT:
 comboIDs=[]
 with open(os.getcwd()+"/database_functions/Summary.csv", mode='r') as summary:
     # read csv as dictionary
