@@ -1,5 +1,8 @@
 import logging
-from utils import interpolate_curve, visualize
+import sys
+sys.path.insert(0, './')
+from utils import interpolate_curve, visualize, write_warning
+from extract_params import extract_params
 
 #Color codes for printing to stdout:
 OKGREEN = '\033[92m'
@@ -41,52 +44,46 @@ def evaluate_curve(timestamp, visual=False):
     #logging.basicConfig(filename='./logs/eval_warnings.log', filemode='a', format='%(message)s')
 
     #QUERY:
-    #Sostituire i parametri di input: lasciare solo il timestamp e chiamare qui dentro la query che prenda 
-    #tutti i parametri che servono:
-    cur_mf = 0 #da query
-    cur_ma = 0 #da query
-    cur_forza = [] #da query
-    cur_altezza = [] #da query
-    forza_combo = [] #da query
-    altezza_combo = [] #da query
-    std_curve = 0 #da query
-    target_mf = 0 #da query
-    std_mf = 0 #da query
-    target_ma = 0 #da query
-    std_ma = 0 #da query
+    #call extract_params, which return 2 objects with all needed params 
+    #(one for the current pressata, the other for the target combo):
+    current, target = extract_params(timestamp)
 
-    #INTERPOLATE CURVE:
-    cur_forza = interpolate_curve(altezza_combo, cur_altezza, cur_forza)
+    #INTERPOLATE CURVE (overwrite current.forza into collector object):
+    current.forza = interpolate_curve(target.altezza, current.altezza, current.forza)
 
     #CHECKS:
     #check 1: max_altezza
-    if (cur_ma >= (target_ma-std_ma)) and (cur_ma <= (target_ma+std_ma)):
+    if (current.ma >= (target.ma - target.std_ma)) and (current.ma <= (target.ma + target.std_ma)):
         print(OKGREEN+"Max_altezza: accepted."+ENDCOLOR)    
     else:
-        print(WARNINGCOL+"WARNING! ID #0"+ENDCOLOR)
+        wid = 0
+        print(WARNINGCOL+"WARNING! ID #"+str(wid)+ENDCOLOR)
         #logging
-        logging.warning(str(timestamp)+" - WARNING! ID #0: max_altezza out of acceptable range! Please check the assembly.")
-        #salvare il giusto warning_id nel DB.
+        logging.warning(str(timestamp)+" - WARNING! ID #"+str(wid)+": max_altezza out of acceptable range! Please check the assembly.")
+        #write warning to DB:
+        write_warning(timestamp, wid)
         if visual:
-            visualize(forza_combo, std_curve, altezza_combo, cur_forza)
+            visualize(target.forza, target.std_curve, target.altezza, current.forza)
         return -1
 
     #check 2: max_forza
-    if (cur_mf >= (target_mf-std_mf)) and (cur_mf <= (target_mf+std_mf)):
+    if (current.mf >= (target.mf - target.std_mf)) and (current.mf <= (target.mf + target.std_mf)):
         print(OKGREEN+"Max_forza: accepted."+ENDCOLOR)
     else:
-        print(WARNINGCOL+"WARNING! ID #2"+ENDCOLOR)
+        wid = 2
+        print(WARNINGCOL+"WARNING! ID #"+str(wid)+ENDCOLOR)
         #logging
-        logging.warning(str(timestamp)+" - WARNING! ID #2: max_forza out of acceptable range! Please check the assembly.")
-        #salvare il giusto warning_id nel DB.
+        logging.warning(str(timestamp)+" - WARNING! ID #"+str(wid)+": max_forza out of acceptable range! Please check the assembly.")
+        #write warning to DB:
+        write_warning(timestamp, wid)
         if visual:
-            visualize(forza_combo, std_curve, altezza_combo, cur_forza)
+            visualize(target.forza, target.std_curve, target.altezza, current.forza)
         return -1
     
     #check 3: compare curve
     count_out = 0
-    for i in range(len(cur_forza)):
-        if (cur_forza[i] < (forza_combo[i]-std_curve)) or (cur_forza[i] > (forza_combo[i]+std_curve)):
+    for i in range(len(current.forza)):
+        if (current.forza[i] < (target.forza[i] - target.std_curve)) or (current.forza[i] > (target.forza[i] + target.std_curve)):
             #count points out of bounds:
             count_out = count_out + 1
 
@@ -95,10 +92,16 @@ def evaluate_curve(timestamp, visual=False):
         print(OKGREEN+"Curve: assembly success. No warnings."+ENDCOLOR)
         return 0 #ok
     else:
-        print(WARNINGCOL+"WARNING! ID #3"+ENDCOLOR)
+        wid = 3
+        print(WARNINGCOL+"WARNING! ID #"+str(wid)+ENDCOLOR)
         #logging
-        logging.warning(str(timestamp)+" - WARNING! ID #3: curve out of bounds in "+str(count_out)+" points out of "+str(len(cur_forza))+"! Please check the assembly.")
-        #salvare il giusto warning_id nel DB.
+        logging.warning(str(timestamp)+" - WARNING! ID #"+str(wid)+": curve out of bounds in "+str(count_out)+" points out of "+str(len(current.forza))+"! Please check the assembly.")
+        #write warning to DB:
+        write_warning(timestamp, wid)
         if visual:
-            visualize(forza_combo, std_curve, altezza_combo, cur_forza)
+            visualize(target.forza, target.std_curve, target.altezza, current.forza)
         return -1
+
+
+#MAIN:
+#print(evaluate_curve(1584106169, visual=True))
