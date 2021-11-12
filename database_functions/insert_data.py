@@ -51,53 +51,54 @@ with open(os.getcwd()+"/database_functions/Summary.csv", mode='r') as summary:
     # iterate over rows in summary
     prev_key=""
     for row in summary_reader:
-        if line_count > 0: # skip first row (colum names)
-            if row["Tempcode"]!=prev_key: # check if riduttore has already been saved
-                prev_key=row["Tempcode"]
-                # Store fields
-                RiduttoreID = row["Tempcode"]
-                Master      = row["Master"]
-                Taglia      = row["Taglia"]
-                Cd          = row["CD"]
-                Stadi       = row["Stadi"]
-                Rapporto    = row["Rapporto"]
-                # Insert query
-                query="INSERT INTO Riduttori (RiduttoreID,Master,Taglia,Cd,Stadi,Rapporto) VALUES (" + RiduttoreID + "," + Master + ",'" + Taglia + "'," + Cd + "," + Stadi + "," + Rapporto + ")"
-                cursor.execute(query)
-                #cnxn.commit()
-                logging.debug("Inserted Riduttore "+RiduttoreID)
+        if line_count<1000:
+            if line_count > 0: # skip first row (colum names)
+                if row["Tempcode"]!=prev_key: # check if riduttore has already been saved
+                    prev_key=row["Tempcode"]
+                    # Store fields
+                    RiduttoreID = row["Tempcode"]
+                    Master      = row["Master"]
+                    Taglia      = row["Taglia"]
+                    Cd          = row["CD"]
+                    Stadi       = row["Stadi"]
+                    Rapporto    = row["Rapporto"]
+                    # Insert query
+                    query="INSERT INTO Riduttori (RiduttoreID,Master,Taglia,Cd,Stadi,Rapporto) VALUES (" + RiduttoreID + "," + Master + ",'" + Taglia + "'," + Cd + "," + Stadi + "," + Rapporto + ")"
+                    cursor.execute(query)
+                    #cnxn.commit()
+                    logging.debug("Inserted Riduttore "+RiduttoreID)
 
-            with open(os.getcwd()+"/database_functions/"+row["CSVpath"].replace('\\','/')) as pressata_csv_file: # open pressata csv (need to replace \ with normal /)
-                tmp = csv.reader(pressata_csv_file,delimiter=';') # read csv as csv (each row is an array)
-                t_line_count=0 # initialize secondary row counter
-                header=True
-                for p_row in tmp: # iterate over rows in pressata csv
-                    if t_line_count==0 or t_line_count==1 and header:
-                        try: 
-                            tempcode,IdComp,Stazione,Timestamp=name_parser(row["CSVname"]) # get informations form file name
-                            Timestamp=parse_date(p_row[1],row["CSVname"])
-                            ComboID=IdComp+Taglia
-                            if ComboID not in comboIDs:
-                                cursor.execute("INSERT INTO Combos (ComboID,Taglia,IdComp,TargetMA,TargetMF,StdMA,StdMF,StdCurve) VALUES ('" + ComboID + "','" + Taglia + "','" + IdComp + "',0,0,0,0,0);")    
+                with open(os.getcwd()+"/database_functions/"+row["CSVpath"].replace('\\','/')) as pressata_csv_file: # open pressata csv (need to replace \ with normal /)
+                    tmp = csv.reader(pressata_csv_file,delimiter=';') # read csv as csv (each row is an array)
+                    t_line_count=0 # initialize secondary row counter
+                    header=True
+                    for p_row in tmp: # iterate over rows in pressata csv
+                        if t_line_count==0 or t_line_count==1 and header:
+                            try: 
+                                tempcode,IdComp,Stazione,Timestamp=name_parser(row["CSVname"]) # get informations form file name
+                                Timestamp=parse_date(p_row[1],row["CSVname"])
+                                ComboID=IdComp+Taglia
+                                if ComboID not in comboIDs:
+                                    cursor.execute("INSERT INTO Combos (ComboID,Taglia,IdComp,TargetMA,TargetMF,StdMA,StdMF,StdCurve) VALUES ('" + ComboID + "','" + Taglia + "','" + IdComp + "',0,0,0,0,0);")    
+                                    #cnxn.commit()
+                                    comboIDs.append(ComboID)
+                                cursor.execute("INSERT INTO Pressate (Timestamp,RiduttoreID,ComboID,Stazione,MaxForza,MaxAltezza) VALUES (" + str(Timestamp) + "," + RiduttoreID + ",'" + ComboID + "','" + Stazione + "',0,0);")
                                 #cnxn.commit()
-                                comboIDs.append(ComboID)
-                            cursor.execute("INSERT INTO Pressate (Timestamp,RiduttoreID,ComboID,Stazione,MaxForza,MaxAltezza) VALUES (" + str(Timestamp) + "," + RiduttoreID + ",'" + ComboID + "','" + Stazione + "',0,0);")
-                            #cnxn.commit()
-                            header=False
-                        except:
-                            logging.debug("Wrong first row"+str(t_line_count))
-                    elif t_line_count>2: # skip first 3 rows
-                        try:
-                            Forza   = p_row[3].replace(',','.')
-                            Altezza = p_row[2].replace(',','.')
-                            #try:
-                            cursor.execute("INSERT INTO PressateData (Timestamp,Forza,Altezza) VALUES (" + str(Timestamp) + "," + Forza + "," + Altezza + ");")
-                            #cnxn.commit()
-                            #except:
-                            #    logging.debug("Error in query "+row["CSVpath"]+" line "+str(t_line_count))   
-                        except:
-                            logging.warning("Malformed row in " +row["CSVpath"]+" line "+str(t_line_count))
-                    t_line_count+=1
+                                header=False
+                            except:
+                                logging.debug("Wrong first row"+str(t_line_count))
+                        elif t_line_count>2: # skip first 3 rows
+                            try:
+                                Forza   = p_row[3].replace(',','.')
+                                Altezza = p_row[2].replace(',','.')
+                                #try:
+                                cursor.execute("INSERT INTO PressateData (Timestamp,Forza,Altezza) VALUES (" + str(Timestamp) + "," + Forza + "," + Altezza + ");")
+                                #cnxn.commit()
+                                #except:
+                                #    logging.debug("Error in query "+row["CSVpath"]+" line "+str(t_line_count))   
+                            except:
+                                logging.warning("Malformed row in " +row["CSVpath"]+" line "+str(t_line_count))
+                        t_line_count+=1
         line_count+=1   
         cnxn.commit()
 #close cursors and connection
