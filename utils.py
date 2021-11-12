@@ -1,7 +1,28 @@
 import warnings
 import matplotlib.pyplot as plt
+from database_functions.db_connect import db_connect, db_disconnect
+
 
 #COMMON UTILITY FUNCTIONS
+
+#Write warnings to DB
+def write_warning(timestamp, wid):
+    '''
+    Write a warning for the current pressata to the Warnings table in the DB.
+    
+    (params):
+        - timestamp (long) : timestamp of the pressata under analysis
+        - wid (int): warning_id to write to the table for the pressata [1, 2, 3 or 4]
+    '''
+    # open connection
+    cnxn, cursor = db_connect()
+    cursor.execute("INSERT INTO Warnings (Timestamp, WarningID) VALUES (?, ?)", timestamp, wid)
+    cursor.commit()
+    #close cursor and connection
+    db_disconnect(cnxn, cursor)
+    return 0
+
+write_warning(1584106169, 3)
 
 #FULL (AFTER EVALUATE): visualize ideal curve, boundaries & current curve:
 def visualize(forza_combo, std_curve, altezza_combo, cur_forza):
