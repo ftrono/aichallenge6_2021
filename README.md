@@ -77,8 +77,10 @@ Gli script presenti in questa repository sono stati ideati per essere eseguiti s
 * Se il modulo è nella parent folder, basta il nome del modulo.
 
 
-## 6. IMPORTARE IL DUMP DEL DB (SOLO IN CASO DI NUOVI DUMP):
-* TBD
+## 6. GENERARE LE TABELLE:
+* Se le tabelle erano già state create, lanciare prima *remove_ALL_tables.py*
+* Lanciare *insert_data.py* (nota: è una versione ridotta, si ferma a 1000 pressate per velocità)
+* Lanciare *populate_max.py* per popolare i campi MaxForza e MaxAltezza
 
 ---
 
