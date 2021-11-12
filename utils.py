@@ -5,6 +5,36 @@ from database_functions.db_connect import db_connect, db_disconnect
 
 #COMMON UTILITY FUNCTIONS
 
+# Execute query by filename
+def execute_query_file(filename):
+    '''
+    Runs all the commands (queries) contained into a file.sql
+
+    params: filename: specify name of the file.sql to run
+    '''
+    # Open and read the file as a single buffer
+    fd = open(filename, 'r')
+    sqlFile = fd.read()
+    fd.close()
+
+    # Split sql commands on ';'
+    sqlCommands = sqlFile.split(';')
+
+    # open connection
+    cnxn, cursor = db_connect()
+
+    # Execute every command from the input file
+    for command in sqlCommands:
+        try:
+            cursor.execute(command)
+            cursor.commit()
+        except OperationalError as msg:
+            print("Command skipped: ", msg)
+    
+    # Close cursor and connection 
+    db_disconnect(cnxn, cursor)
+
+
 #Write warnings to DB
 def write_warning(timestamp, wid):
     '''
