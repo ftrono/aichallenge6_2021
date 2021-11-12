@@ -59,9 +59,14 @@ Gli script presenti in questa repository sono stati ideati per essere eseguiti s
 * Ogni volta che si chiama una query in Python, vanno lanciati 2 comandi: **1)** ```cursor.execute(query)```, che prepara la query; **2)** ```cursor.commit()```, che aggiorna effettivamente il DB. 
 * **Per chiamare le query nelle funzioni python**: chiamare i file *.sql* dove avete scritto la query di riferimento ed eseguire con:
     ```
-    with open('./queries/<filename>.sql', mode='r') as query:
-        cursor.execute(query)
+    with open(os.getcwd()+'/database_functions/queries/<filename>.sql', mode='r') as query:
+        cursor.execute(query.read())
         cursor.commit()
+    ```
+* Per loopare sull'output della query lanciare (prima del commit):
+    ```
+    for row in cursor.fetchall():
+        (any command, i.e. print(row))
     ```
 * NOTA: LE QUERY **NON** VENGONO ESEGUITE SENZA CURSOR.COMMIT().
 * [Guida documentazione Pyodbc](https://github.com/mkleehammer/pyodbc/wiki) per utilizzo e query da Python.
