@@ -30,3 +30,7 @@ def db_connect():
 def db_disconnect(conn, cursor):
     cursor.close()
     conn.close()
+
+#Sample use:
+#conn, cursor = db_connect()
+#db_disconnect(conn, cursor)
