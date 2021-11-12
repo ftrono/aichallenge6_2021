@@ -1,15 +1,9 @@
+from db_connect import db_connect, db_disconnect
 import pyodbc
 
-# use preferred connection method and parameters ---------------------------------
-dsn = 'sqlserverdatasource'
-user = 'SA'
-password = 'MainPas012'
-database = 'NovoticAI'
-con_string = 'DSN=%s;UID=%s;PWD=%s;DATABASE=%s;' % (dsn, user, password, database)
-#---------------------------------------------------------------------------------
 
 # open connection
-cnxn = pyodbc.connect(con_string)
+cnxn, cursor = db_connect()
 
 # query strings
 riduttori     = "CREATE TABLE Riduttori(RiduttoreID BIGINT NOT NULL PRIMARY KEY, Master BIT NOT NULL, Taglia CHAR(5) NOT NULL, Cd TINYINT NOT NULL, Stadi BIT NOT NULL, Rapporto TINYINT NOT NULL);"
@@ -20,8 +14,6 @@ pressate_data = "CREATE TABLE PressateData(ID INT NOT NULL IDENTITY PRIMARY KEY,
 warning_desc  = "CREATE TABLE WarningDesc(WarningID INT NOT NULL IDENTITY PRIMARY KEY, Description NTEXT NOT NULL)"
 warnings      = "CREATE TABLE Warnings(ID INT NOT NULL IDENTITY PRIMARY KEY, Timestamp BIGINT NOT NULL FOREIGN KEY REFERENCES Pressate (Timestamp) ON DELETE CASCADE ON UPDATE CASCADE, WarningID INT NOT NULL FOREIGN KEY REFERENCES WarningDesc (WarningID) ON DELETE CASCADE ON UPDATE CASCADE)"
 
-# generate cursor
-cursor = cnxn.cursor() 
 
 # execute queries
 cursor.execute(riduttori)
@@ -39,6 +31,5 @@ cnxn.commit()
 cursor.execute(warnings)
 cnxn.commit()
 
-#close cursors and connection
-cursor.close() 
-cnxn.close() 
+#close cursor and connection
+db_disconnect(cnxn, cursor)

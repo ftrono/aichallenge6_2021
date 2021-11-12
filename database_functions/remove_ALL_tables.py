@@ -1,19 +1,8 @@
 import pyodbc
-
-# use preferred connection method and parameters ---------------------------------
-dsn = 'sqlserverdatasource'
-user = 'SA'
-password = 'MainPas012'
-database = 'NovoticAI'
-con_string = 'DSN=%s;UID=%s;PWD=%s;DATABASE=%s;' % (dsn, user, password, database)
-
-#---------------------------------------------------------------------------------
+from db_connect import db_connect, db_disconnect
 
 # open connection
-cnxn = pyodbc.connect(con_string)
-
-
-cursor = cnxn.cursor()
+cnxn, cursor = db_connect()
 
 cursor.execute('DROP TABLE Warnings')
 cnxn.commit()
@@ -30,11 +19,7 @@ cnxn.commit()
 cursor.execute('DROP TABLE Riduttori')
 cnxn.commit()
 
+#close cursor and connection
+db_disconnect(cnxn, cursor)
 
-
-
-# close cursor and connection
-cursor.close()
-cnxn.close()
-
-print("All tables removed from database", database)
+print("All tables removed from database.")

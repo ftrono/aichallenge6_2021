@@ -1,9 +1,5 @@
-import csv
-import time
-import logging
-import datetime
-import pyodbc
-import os
+import csv, time, logging, datetime, pyodbc, os
+from db_connect import db_connect, db_disconnect
 
 #CSV name parser:
 def name_parser(name): # take as input the file name
@@ -28,17 +24,9 @@ def parse_date(cell,name):
 
 logging.basicConfig(level=logging.DEBUG,format='%(asctime)s %(levelname)s %(message)s')
 logging.debug("START")
-# use preferred connection method and parameters ---------------------------------
-dsn = 'sqlserverdatasource'
-user = 'SA'
-password = 'MainPas012'
-database = 'NovoticAI'
-con_string = 'DSN=%s;UID=%s;PWD=%s;DATABASE=%s;' % (dsn, user, password, database)
-#---------------------------------------------------------------------------------
 
 # open connection
-cnxn = pyodbc.connect(con_string)
-cursor = cnxn.cursor() 
+cnxn, cursor = db_connect()
 logging.debug("Connected to DB")
 
 start_time = time.time()
@@ -101,7 +89,7 @@ with open(os.getcwd()+"/database_functions/Summary.csv", mode='r') as summary:
                         t_line_count+=1
         line_count+=1   
         cnxn.commit()
-#close cursors and connection
-cursor.close() 
-cnxn.close() 
+
+#close cursor and connection
+db_disconnect(cnxn, cursor)
 logging.warning("Process completed in: %s seconds" % (time.time() - start_time))
