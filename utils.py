@@ -22,7 +22,6 @@ def write_warning(timestamp, wid):
     db_disconnect(cnxn, cursor)
     return 0
 
-write_warning(1584106169, 3)
 
 #FULL (AFTER EVALUATE): visualize ideal curve, boundaries & current curve:
 def visualize(forza_combo, std_curve, altezza_combo, cur_forza):
