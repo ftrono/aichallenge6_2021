@@ -73,8 +73,13 @@ Gli script presenti in questa repository sono stati ideati per essere eseguiti s
 
 
 ## 5. IMPORTARE MODULI IN SUBDIRECTORIES:
-* Per importare un modulo, basta fare ```import <subfolder>.<module>``` o ```from <subfolder>.<module> import <function>```.
-* Se il modulo è nella parent folder, basta il nome del modulo.
+* Se il modulo da importare è nella parent folder, basta il nome del modulo.
+* Altrimenti, usare:
+    ```
+    import sys
+    sys.path.insert(0, './')
+    from <subfolder>.<module> import <functions>
+    ```
 
 
 ## 6. GENERARE LE TABELLE:
