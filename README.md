@@ -67,9 +67,13 @@ Gli script presenti in questa repository sono stati ideati per essere eseguiti s
 * [Guida documentazione Pyodbc](https://github.com/mkleehammer/pyodbc/wiki) per utilizzo e query da Python.
 
 
-## 5. IMPORTARE IL DUMP DEL DB (SOLO IN CASO DI NUOVI DUMP):
-* TBD
+## 5. IMPORTARE MODULI IN SUBDIRECTORIES:
+* Per importare un modulo, basta fare ```import <subfolder>.<module>``` o ```from <subfolder>.<module> import <function>```.
+* Se il modulo è nella parent folder, basta il nome del modulo.
 
+
+## 6. IMPORTARE IL DUMP DEL DB (SOLO IN CASO DI NUOVI DUMP):
+* TBD
 
 ---
 
