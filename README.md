@@ -60,13 +60,13 @@ Gli script presenti in questa repository sono stati ideati per essere eseguiti s
 * **Per chiamare le query nelle funzioni python**: chiamare i file *.sql* dove avete scritto la query di riferimento ed eseguire con:
     ```
     with open(os.getcwd()+'/database_functions/queries/<filename>.sql', mode='r') as query:
-        cursor.execute(query)
+        cursor.execute(query.read())
         cursor.commit()
     ```
-* Per visualizzare l'output della query si può lanciare (prima del commit):
+* Per loopare sull'output della query lanciare (prima del commit):
     ```
     for row in cursor.fetchall():
-        print(row)
+        (any command, i.e. print(row))
     ```
 * NOTA: LE QUERY **NON** VENGONO ESEGUITE SENZA CURSOR.COMMIT().
 * [Guida documentazione Pyodbc](https://github.com/mkleehammer/pyodbc/wiki) per utilizzo e query da Python.
