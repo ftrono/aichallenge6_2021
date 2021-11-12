@@ -5,7 +5,7 @@ from database_functions.db_connect import db_connect, db_disconnect
 
 #COMMON UTILITY FUNCTIONS
 
-# Execute query by filename
+# Execute commands by filename
 def execute_query_file(filename):
     '''
     Runs all the commands (queries) contained into a file.sql
