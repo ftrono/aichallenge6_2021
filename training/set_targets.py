@@ -1,7 +1,6 @@
 import sys
 sys.path.insert(0, './')
 from database_functions.db_connect import db_connect, db_disconnect
-import pandas as pd
 
 
 # TODO: sigma thing, using write_warnings(timestamp, wid) da utils, con wid = 1
