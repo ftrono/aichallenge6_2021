@@ -1,8 +1,11 @@
+import sys
+sys.path.insert(0, './')
 from database_functions.db_connect import db_connect, db_disconnect
+
 
 # TODO: sigma thing, using write_warnings(timestamp, wid) da utils, con wid = 1
 
-def warning_flags_marking()
+def set_targets_ma():
     '''
     NOTE: requires 
     1. Retrieves max value of Altezza for each ComboID (FROM: table Pressate)
@@ -17,11 +20,13 @@ def warning_flags_marking()
     # Save query output
     list = cursor.fetchall()
     # Update current values to new values for TargetMA
-    for item in list:
-        for comboID, max_altezza in list:
-            max_altezza = float(max_altezza) # (decimal.Decimal -> float)
-            cursor.execute("UPDATE Combos SET TargetMA = ? WHERE ComboID = ?", max_altezza, comboID) # updates values
-        cursor.commit()
+    for (comboID, max_altezza) in list:
+        max_altezza = float(max_altezza) # (decimal.Decimal -> float)
+        cursor.execute("UPDATE Combos SET TargetMA = ? WHERE ComboID = ?", max_altezza, comboID) # updates values
+    cursor.commit()
 
     # Disconnect
     db_disconnect(conn, cursor)
+
+    return 0
+
