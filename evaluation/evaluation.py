@@ -41,7 +41,7 @@ def evaluate_curve(timestamp, visual=False):
 
     '''
     #LOGGING TO FILE (DA CONFIGURARE):
-    #logging.basicConfig(filename='./logs/eval_warnings.log', filemode='a', format='%(message)s')
+    logging.basicConfig(filename='./logs/eval_warns.log', filemode='a', format='%(asctime)s - %(message)s')
 
     #QUERY:
     #call extract_params, which return 2 objects with all needed params 
