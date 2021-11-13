@@ -83,7 +83,7 @@ Gli script presenti in questa repository sono stati ideati per essere eseguiti s
     
     # QUERY TO DATAFRAME:
     query = "SELECT ........"
-    df = pd.read_sql(query, cnxn)
+    df = pd.read_sql(query, conn)
     # (senza execute e commit)
     
     #TO ACCESS VALUES:
