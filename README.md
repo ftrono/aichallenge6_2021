@@ -42,6 +42,8 @@ Gli script presenti in questa repository sono stati ideati per essere eseguiti s
 ## 3. APRIRE E CHIUDERE LE CONNESSIONI AL DB:
 * Aprire e chiudere le connessioni al DB chiamando:
     ```
+    import sys
+    sys.path.insert(0, './')
     from db_connect import db_connect, db_disconnect
     
     # (all'inizio del file) open connection:
@@ -50,6 +52,12 @@ Gli script presenti in questa repository sono stati ideati per essere eseguiti s
     # (alla fine del file) close cursor and connection:
     db_disconnect(conn, cursor)
     
+    ```
+* Nota: per importare i moduli della repo, usare:
+    ```
+    import sys
+    sys.path.insert(0, './')
+    from <subfolder>.<module> import <functions>
     ```
 
 
@@ -69,20 +77,26 @@ Gli script presenti in questa repository sono stati ideati per essere eseguiti s
         (any command, i.e. print(row))
     ```
 * NOTA: LE QUERY **NON** VENGONO ESEGUITE SENZA CURSOR.COMMIT().
+* **IN ALTERNATIVA**: per i SELECT, per gestire grandi quantità di dati, si possono usare i [Dataframe di Pandas](https://pandas.pydata.org/docs/reference/frame.html). In questo modo, la query viene automaticamente eseguita e convertita in una tabella Dataframe da cui si possono leggere e gestire i dati. Le colonne possono anche essere convertite in liste.
+    ```
+    import pandas as pd
+    
+    # QUERY TO DATAFRAME:
+    query = "SELECT ........"
+    df = pd.read_sql(query, cnxn)
+    # (senza execute e commit)
+    
+    #TO ACCESS VALUES:
+    # i.e. column 'MaxForza', value at row 0, cast to float:
+    mf = float(df['MaxForza'][0])
+    
+    # i.e column 'Forza', extract entire column as list:
+    series_forza = list(df['Forza'].to_numpy())
+    ```
 * [Guida documentazione Pyodbc](https://github.com/mkleehammer/pyodbc/wiki) per utilizzo e query da Python.
 
 
-## 5. IMPORTARE MODULI IN SUBDIRECTORIES:
-* Se il modulo da importare è nella parent folder, basta il nome del modulo.
-* Altrimenti, usare:
-    ```
-    import sys
-    sys.path.insert(0, './')
-    from <subfolder>.<module> import <functions>
-    ```
-
-
-## 6. GENERARE LE TABELLE:
+## 5. GENERARE LE TABELLE:
 * Se le tabelle erano già state create, lanciare prima *remove_ALL_tables.py*
 * Lanciare *insert_data.py* (nota: è una versione ridotta, si ferma a 1000 pressate per velocità)
 * Lanciare *populate_max.py* per popolare i campi MaxForza e MaxAltezza
