@@ -71,11 +71,12 @@ def extract_params(timestamp):
     return current, target 
 
 
-#MAIN:
-timestamp = 1584106169
-current, target = extract_params(1584106169)
+#MAIN (for tests):
+def trial(timestamp):
+    current, target = extract_params(timestamp)
+    print("Current:")
+    print(vars(current).items())
+    print("\nTarget:")
+    print(vars(target).items())
 
-print("Current:")
-print(vars(current).items())
-print("\nTarget:")
-print(vars(target).items())
+#trial(1584106169)
