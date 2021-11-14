@@ -14,20 +14,10 @@ def generate_tables():
     warnings      = "CREATE TABLE Warnings(ID INT NOT NULL IDENTITY PRIMARY KEY, Timestamp BIGINT NOT NULL FOREIGN KEY REFERENCES Pressate (Timestamp) ON DELETE CASCADE ON UPDATE CASCADE, WarningID INT NOT NULL FOREIGN KEY REFERENCES WarningDesc (WarningID) ON DELETE CASCADE ON UPDATE CASCADE)"
 
     # execute queries
-    cursor.execute(riduttori)
-    cnxn.commit()
-    cursor.execute(combos)
-    cnxn.commit() 
-    cursor.execute(combos_data)
-    cnxn.commit()
-    cursor.execute(pressate)
-    cnxn.commit()
-    cursor.execute(pressate_data)
-    cnxn.commit()
-    cursor.execute(warning_desc)
-    cnxn.commit()
-    cursor.execute(warnings)
-    cnxn.commit()
+    queries = [riduttori, combos, combos_data, pressate, pressate_data, warning_desc, warnings]
+    for q in queries:
+        cursor.execute(q)
+        cnxn.commit()
 
     #close cursor and connection
     db_disconnect(cnxn, cursor)
