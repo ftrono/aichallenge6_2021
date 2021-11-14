@@ -1,9 +1,6 @@
-import statistics, warnings
-import sys
-sys.path.insert(0, './')
-from database_functions.db_connect import db_connect, db_disconnect
+import statistics
 
-#STATISTICAL ANALYSIS & TRAINING FUNCTIONS:
+#STATISTICAL ANALYSIS:
 
 #BS1: curve of means:
 def ideal_curve(in_curves):
@@ -83,81 +80,31 @@ def stdev_curve(in_curves, sigma=1):
     return std_curve
 
 
-#BS3: target value & acceptable dev of max force for a ComboID:
-def max_targets(comboid, sigma=1):
+#BS4: compute ideal curve and stdcurve for a combo (note: need to call interpolate_curve() before this!):
+def batch_standardize(batch_forces):
     '''
-    Extracts from the Combos table in the DB the TargetMF and StdMF values for the ComboID received as input.
-    Then, it increases the stdev of a given sigma in order to enlarge the acceptable deviation for the current analysis.
-    
-    Parameters
-    ----------
-    comboid : str 
-        Reference ComboID to look for in the DB
-    sigma : int
-        Multiplier to increase acceptable deviation range (default: 1)
+    Function that, given as input a list of already interpolated force curves (for 1 combo only!), it computes the ideal force curve and its stdev (always for 1 combo).
 
-    Returns
-    -------
-    target : double 
-        Target max force value for the ComboID received as input
-    dev : double
-        The acceptable deviation from this target max value.
-
-    '''
-    # Connect
-    conn, cursor = db_connect()
-    
-    #extract TargetMF, StdMF from Combos table:
-    cursor.execute('SELECT TargetMF, StdMF FROM Combos WHERE ComboID=?', comboid)
-    # Save query output
-    ls = cursor.fetchall()
-    target = float(ls[0][0])
-    std = float(ls[0][1])
-    #increase dev with given sigma
-    dev = std*sigma
-
-    # Disconnect
-    db_disconnect(conn, cursor)
-
-    return target, dev
-
-
-#BS4: compute target parameters for a combo (note: need to call interpolate_curve() before this!):
-def batch_standardize(batch_forces, comboid, sigmac=1, sigmaf=1):
-    '''
-    Function that, given as input a list of already interpolated force curves (for 1 combo only!) and a ComboID, it computes the 4 target parameters for the combo.
-
-    It puts together 3 different functions:
+    It puts together 2 different functions:
     - ideal_curve(in_curves)
     - stdev_curve(in_curves)
-    - max_targets(max_values, sigma)
 
     Parameters:
     --------------
     batch_forces: list of lists
         List containing the already interpolated force curves (lists) of each series
-    comboid : str
-        Reference ComboID to look for in the DB
-    sigmac, sigmaf : int 
-        Multipliers to increase threshold range, one for curve and the other for max_forza (default: 1)
 
     Returns
     -------------
-    Output : 4 parameters
+    Output : 2 parameters
     - forza_combo (list)
     - std_curve (double)
-    - target_mf (double)
-    - dev_mf (double)
     
     '''
 
-    #Calculate target parameters:
+    #Calculate target curve parameters:
     forza_combo = ideal_curve(batch_forces)
-    std_curve = stdev_curve(batch_forces, sigmac)
-    target_mf, dev_mf = max_targets(comboid, sigmaf)
+    std_curve = stdev_curve(batch_forces)
 
-    return forza_combo, std_curve, target_mf, dev_mf
+    return forza_combo, std_curve
 
-
-#MAIN (for tests):
-#print(max_targets('p0004MP080', sigma=3))
