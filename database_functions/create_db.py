@@ -1,7 +1,5 @@
-from drop_all import drop_all
-from generate_tables import generate_tables
+from db_tools import drop_all, generate_tables, populate_max
 from insert_data import insert_data
-from populate_max import populate_max
 import sys
 sys.path.insert(0, './')
 from training.set_targets import set_targets_ma, set_targets_mf

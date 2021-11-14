@@ -1,5 +1,25 @@
 from db_connect import db_connect, db_disconnect
 
+#KEY DB FUNCTIONS:
+# - drop_all()
+# - generate_tables()
+# - populate_max()
+
+#remove ALL tables:
+def drop_all():
+    cnxn, cursor = db_connect()
+
+    tables = ['Warnings', 'WarningDesc', 'CombosData', 'PressateData', 'Pressate', 'Combos', 'Riduttori']
+    for t in tables:
+        cursor.execute('DROP TABLE ?', t)
+        cnxn.commit()
+    
+    db_disconnect(cnxn, cursor)
+    print("All tables removed from database.")
+    return 0
+
+
+#generate tables:
 def generate_tables():
     # open connection
     cnxn, cursor = db_connect()
@@ -23,6 +43,33 @@ def generate_tables():
     db_disconnect(cnxn, cursor)
     return 0
 
+
+#Populate MaxForza and MaxAltezza fields in Pressate table:
+def populate_max():
+    # open connection
+    fields = ['Forza', 'Altezza']
+    cnxn, cursor = db_connect()
+    temp = {}
+
+    for s in fields:
+        #query data:
+        cursor.execute('SELECT Timestamp, MAX('+s+') as Max'+s+' FROM PressateData GROUP BY TIMESTAMP')
+        for row in cursor.fetchall():
+            temp[row[0]] = float(row[1])
+        cursor.commit()
+        #set data:
+        for k in temp.keys():
+            cursor.execute('UPDATE Pressate SET Max'+s+' = ? WHERE Timestamp = ?', temp[k], k)
+            cursor.commit()
+        #reset:
+        temp = {}
+
+    #close cursor and connection
+    db_disconnect(cnxn, cursor)
+    return 0
+
+
 #MAIN:
 if __name__ == '__main__':
     generate_tables()
+    populate_max()
