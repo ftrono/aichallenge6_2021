@@ -6,7 +6,7 @@ from stats import batch_standardize
 
 conn, cursor = db_connect()
 
-def allign_tables(l1, l2):
+def align_tables(l1, l2):
     """
     This function will basically add the elements of Forza and Altezza from table
     PRESSATE_DATA to the element of PRESSATE where the timestamp is the same  
@@ -32,7 +32,7 @@ warn = cursor.fetchall()
 cursor.execute("SELECT Timestamp, Forza, Altezza FROM PressateData")
 pressate_data = cursor.fetchall()
 
-pressate = allign_tables(press, pressate_data)
+pressate = align_tables(press, pressate_data)
 
 """
 This dictionary will have as keys the combo_ID and as element a list of list where the 
@@ -46,11 +46,11 @@ combos = dict()
 #IT MAY BE USELESS!!!!!!!
 correct_timestamp = []
 for pressata in pressate: #iterate over all of the pressate from the table PRESSATE
-"""
-Here pressata[0] is the Timestamp, pressata[1] is the ComboID, 
-pressata[2] is the Max_forza, pressata[3] the Max_altezza,
-pressata[4] and pressata[5] are the original curves of forza and altezza
-"""
+    """
+    Here pressata[0] is the Timestamp, pressata[1] is the ComboID, 
+    pressata[2] is the Max_forza, pressata[3] the Max_altezza,
+    pressata[4] and pressata[5] are the original curves of forza and altezza
+    """
 
     if not(pressata[0] in warn): #check if the timestamp is not on the WARNING table
         correct_timestamp.append(pressata[0])
