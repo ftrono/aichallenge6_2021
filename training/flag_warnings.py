@@ -23,6 +23,18 @@ def delta_timestamp(array):
     return deltas
 
 
+# Delta of elements of ordered list
+def delta_timestamps(array):
+    #asc_array = array.sort()
+    #print(type(asc_array))
+    n = 0
+    deltas = list()
+    while n < (len(array)-1):
+        deltas.append(array[n+1][0] - array[n][0])
+        n += 1
+    return deltas
+
+
 
 
 
@@ -34,14 +46,16 @@ comboIDs = cursor.fetchall()
 for comb_id in comboIDs:
     cursor.execute("SELECT RiduttoreID, COUNT(Timestamp) FROM Pressate WHERE ComboID = ? GROUP BY RiduttoreID", comb_id[0])
     filtered_table = cursor.fetchall()  # list of tuples: (RiduttoreID, TimestampNum)
-
+    #print(f"--------------------------------\n"
+    #      f"ComboID: {comb_id[0]}")
     for rid_id, tmstp_num in filtered_table:
         if tmstp_num > 3:
             cursor.execute("SELECT Timestamp FROM Pressate WHERE ComboID = ? AND RiduttoreID = ?", comb_id[0], rid_id)
             timestamps = cursor.fetchall()
-            # Pairwise Delta
-            deltas = delta_timestamp(timestamps)
-            print(deltas)
+            # Performing Delta
+            deltas = delta_timestamps(timestamps)
+            #print(f"RiduttoreID: {rid_id}")
+            #print(f"Deltas: {deltas}\n")
 
 
 
