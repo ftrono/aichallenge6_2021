@@ -79,5 +79,6 @@ def set_targets_mf():
 
 
 #MAIN:
-#set_targets_ma()
-#set_targets_mf()
+if __name__ == '__main__':
+    set_targets_ma()
+    set_targets_mf()
