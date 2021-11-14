@@ -1,6 +1,7 @@
 import pyodbc
 from db_connect import db_connect, db_disconnect
 
+#remove ALL tables:
 def drop_all():
     # open connection
     cnxn, cursor = db_connect()

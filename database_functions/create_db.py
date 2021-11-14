@@ -9,8 +9,12 @@ from training.set_targets import set_targets_ma, set_targets_mf
 #CREATE DB (DROP & REPOPULATE ALL TABLES):
 def create_db(drop=False):
     if drop == True:
-        drop_all()
+        try:
+            drop_all()
+        except:
+            print("Drop warning: DB already empty.")
 
+    print("Generating new DB...")
     #Generate database:
     generate_tables()
     insert_data()
