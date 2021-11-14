@@ -79,5 +79,5 @@ def set_targets_mf():
 
 
 #MAIN:
-set_targets_ma()
+#set_targets_ma()
 #set_targets_mf()
