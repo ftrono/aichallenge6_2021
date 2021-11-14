@@ -22,4 +22,4 @@ def create_db(drop=False):
     return 0
 
 #MAIN:
-create_db(drop=False)
+create_db(drop=True)
