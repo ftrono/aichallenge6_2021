@@ -1,6 +1,9 @@
 import statistics
 
-#STATISTICAL ANALYSIS:
+#STATISTICAL ANALYSIS FUNCTIONS:
+# - ideal_curve(in_curves)
+# - stdev_curve(in_curves)
+# - batch_standardize(batch_forces)
 
 #BS1: curve of means:
 def ideal_curve(in_curves):
@@ -39,7 +42,7 @@ def ideal_curve(in_curves):
 
 
 #BS2: stdev of force curve:
-def stdev_curve(in_curves, sigma=1):
+def stdev_curve(in_curves):
     '''
     Function to compute the average std_dev to be used as threshold 
     when looking if a new sample will be in or out the ideal curve boundaries
@@ -50,8 +53,6 @@ def stdev_curve(in_curves, sigma=1):
         It's the collection of already interpolated series of which we want to 
         compute the ideal behaviour. That said it is critical that each series 
         should be of the same size!
-    sigma : int 
-        Multiplier to increase std_curve range (default: 1)
 
     Returns
     -------
@@ -74,8 +75,6 @@ def stdev_curve(in_curves, sigma=1):
     #from the list of all the std_devs we compute the average to be used as 
     #threshold for the ideal curve
     std_curve = statistics.mean(stdev_list)
-    #increase std_dev with given sigma
-    std_curve = std_curve*sigma
 
     return std_curve
 

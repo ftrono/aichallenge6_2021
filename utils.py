@@ -2,8 +2,11 @@ import warnings
 import matplotlib.pyplot as plt
 from database_functions.db_connect import db_connect, db_disconnect
 
-
-#COMMON UTILITY FUNCTIONS
+#COMMON UTILITY FUNCTIONS:
+# - execute_query_file(filename)
+# - write_warning(timestamp, wid)
+# - visualize(forza_combo, std_curve, altezza_combo, cur_forza)
+# - interpolate_curve(altezza_combo, altezza, forza)
 
 # Execute commands by filename
 def execute_query_file(filename):

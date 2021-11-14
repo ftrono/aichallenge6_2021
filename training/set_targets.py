@@ -3,6 +3,8 @@ sys.path.insert(0, './')
 from database_functions.db_connect import db_connect, db_disconnect
 
 #SET TARGET_MA/MF & STD_MA/MF TO COMBOS TABLES:
+# - set_targets_ma()
+# - set_targets_mf()
 
 #set target MA: max & std of max_altezza within combo:
 def set_targets_ma():
