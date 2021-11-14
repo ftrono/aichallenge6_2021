@@ -11,7 +11,8 @@ def drop_all():
 
     tables = ['Warnings', 'WarningDesc', 'CombosData', 'PressateData', 'Pressate', 'Combos', 'Riduttori']
     for t in tables:
-        cursor.execute('DROP TABLE ?', t)
+        query = 'DROP TABLE '+ t
+        cursor.execute(query)
         cnxn.commit()
     
     db_disconnect(cnxn, cursor)
@@ -71,5 +72,6 @@ def populate_max():
 
 #MAIN:
 if __name__ == '__main__':
+    #drop_all()
     generate_tables()
     populate_max()
