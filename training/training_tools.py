@@ -1,16 +1,18 @@
-import sys, logging
+import sys, statistics
 sys.path.insert(0, './')
 from database_functions.db_connect import db_connect, db_disconnect
-from evaluation.eval_tools import evaluate_max
-from utils import write_warning
+from utils import interpolate_curve
+import pandas as pd
 
 #TRAINING TOOLS:
-# - set_targets_max(mtype)
-# - flag_ma(sigma_ma)
+# - train_max(mtype)
+# - ideal_curve(batch_forces)
+# - stdev_curve(batch_forces)
+# - train_curves()
 
 
-#set target MA/MF & it std within combo:
-def set_targets_max(mtype):
+#train & set target MA/MF & its std within combo:
+def train_max(mtype):
     '''
     NOTE: requires 
     1. Retrieves max value of Altezza (or average value of Forza) and the Stdev of MA (or MF) for each ComboID (FROM: table Pressate)
@@ -45,49 +47,152 @@ def set_targets_max(mtype):
     return 0
 
 
-#Dataset cleaning: flag warnings for MA:
-def flag_ma(sigma_ma=1):
+#BS1: curve of means:
+def ideal_curve(batch_forces):
     '''
-    Function that checks if MaxAltezza is out if the bounds. 
-    Bounds = Target max altezza + - deviation.
-    deviation = sigma * target max altezza
+    Function to compute the ideal curve for a specific combination given by 
+    the mean value between its points on the x-axis 
 
-    Input:
-    - Sigma: int
+    Parameters
+    batch_forces : list of lists
+        It's the collection of already interpolated series of which we want to 
+        compute the ideal force curve. That said it is critical that each series 
+        should be of the same size!
 
-    Output:
-    - Write on db if there is warning: warning #1
+    Returns
+    out_curve : list
+        A list contining the average value of each point in all the series, 
+        it's lenght is the same as the one of every series
 
-    ''' 
+    '''
+    out_curve = []
+    #first cycle for a number of times equal to the number of point of each 
+    #series of pressate
+    for i in range(0,len(batch_forces[0])):
+        temp = []
+        #then cycle for the number of pressate to be taken into consideration
+        for j in range(0, len(batch_forces)):
+            #in this temporary list we collect all of the pressate values of
+            #the same point in time
+            temp.append(batch_forces[j][i])
+        #of this list we compute the average and append it to the final list
+        avg = statistics.mean(temp)
+        out_curve.append(avg)
+        #then we repeat the cycle for another set of pressate in the following
+        #point in time
+    return out_curve
+
+
+#BS2: stdev of force curve:
+def stdev_curve(batch_forces):
+    '''
+    Function to compute the average std_dev to be used as threshold 
+    when looking if a new sample will be in or out the ideal curve boundaries
+
+    Parameters
+    ----------
+    batch_forces : list of lists
+        It's the collection of already interpolated series of which we want to 
+        compute the ideal behaviour. That said it is critical that each series 
+        should be of the same size!
+
+    Returns
+    -------
+    std_curve : double
+       The value of the average std_devs of all points in the series.
+
+    '''
+    stdev_list = []
+    #we cycle for a number of times equal to the number of points of each series of pressate
+    for i in range(0,len(batch_forces[0])):
+        temp = []
+        #then we cycle for the number of pressate to be taken into consideration
+        for j in range(0, len(batch_forces)):
+            #in this temporary list we collect all the pressate values of
+            #the same point in time
+            temp.append(batch_forces[j][i])
+        #of this list we compute the standard deviation and append it to a list
+        stdev = statistics.stdev(temp)
+        stdev_list.append(stdev)
+    #from the list of all the std_devs we compute the average to be used as 
+    #threshold for the ideal curve
+    std_curve = statistics.mean(stdev_list)
+
+    return std_curve
+
+
+#NEW BS4: train & set curves within combo:
+def train_curves():
+    # Connect
     conn, cursor = db_connect()
+    combos = []
+    timestamps = []
+    batch_forces = []
 
-    #SET LOG TO FILE:
-    logging.basicConfig(level=logging.WARNING, filename='./logs/training.log', filemode='a', format='%(asctime)s %(levelname)s %(message)s')
+    print("Started curves training.")
 
-    #extract data from Pressate and Combos with inner join:
-    cursor.execute("SELECT Pressate.Timestamp, Pressate.MaxAltezza, Pressate.ComboID, Combos.TargetMA, Combos.StdMA FROM Pressate INNER JOIN Combos ON Pressate.ComboID = Combos.ComboID")
-    ls = cursor.fetchall()
-    #print(ls[0])
-    for row in ls:
-        timestamp = row[0]
-        cur_ma = float(row[1])
-        tgt_ma = float(row[3])
-        #dev = std_ma * sigma:
-        dev = float(row[4]) * sigma_ma
-        #evaluate:
-        wid = evaluate_max(cur_ma, tgt_ma, dev, mtype='altezza', sigma=sigma_ma)
-        if wid != 0:
-            #log:
-            logging.warning("Timestamp: {}. ID #{}: max_altezza out of acceptable range.".format(timestamp, wid))
-            #write warning to DB:
-            write_warning(timestamp, wid)
+    #extract list of comboids:
+    cursor.execute("SELECT DISTINCT ComboID FROM Combos")
+    for tup in cursor.fetchall():
+        combos.append(tup[0])
+    
+    #train each comboid:
+    for comboid in combos:
+        #print("Training comboid {}".format(comboid))
+        #1) extract all timestamps with that ComboID and with NO warnings:
+        cursor.execute("SELECT Pressate.Timestamp FROM Pressate WHERE Pressate.ComboID = ? AND NOT EXISTS (SELECT Warnings.Timestamp FROM Warnings WHERE Warnings.Timestamp = Pressate.Timestamp)", comboid)
+        for tup in cursor.fetchall():
+            timestamps.append(tup[0])
+
+        #2) for each timestamp:
+        for t in timestamps:
+            #extract original curves (forza and altezza):
+            query = "SELECT Altezza, Forza FROM PressateData WHERE Timestamp="+str(t)
+            #store to Pandas dataframe
+            df = pd.read_sql(query, conn)
+            #extract data:
+            cur_altezza = list(df['Altezza'].to_numpy())
+            cur_forza = list(df['Forza'].to_numpy())
+            print(cur_forza)
+
+            #extract stamp vector (altezza_combo):
+            query = "SELECT Altezza FROM CombosData WHERE ComboID='"+str(comboid)+"'"
+            #store to Pandas dataframe
+            df = pd.read_sql(query, conn)
+            #extract data:
+            combo_altezza = list(df['Altezza'].to_numpy())
+
+            #interpolate force curve:
+            itp_forza = interpolate_curve(combo_altezza, cur_altezza, cur_forza)
+
+            #store to batch list for the current ComboID:
+            batch_forces.append(itp_forza)
+            
+        print(len(batch_forces))
+        #3) get target curve parameters for the combo (batch_standardize):
+        forza_combo = ideal_curve(batch_forces)
+        std_curve = stdev_curve(batch_forces)
+
+        #4) store target curve parameters to DB (Combos & CombosData tables):
+        cursor.execute("UPDATE CombosData SET Forza = ? WHERE ComboID = '?'", forza_combo, comboid)
+        cursor.commit()
+        cursor.execute("UPDATE Combos SET StdCurve = ? WHERE ComboID = '?'", std_curve, comboid)
+        cursor.commit()
+
+        #5) reset:
+        timestamps = []
+        batch_forces = []
+
+    print("Training complete!")
 
     # Disconnect
     db_disconnect(conn, cursor)
 
+    return 0
+
 
 #MAIN:
 if __name__ == '__main__':
-    set_targets_max(mtype='altezza')
-    set_targets_max(mtype='forza')
-    flag_ma(sigma_ma=1)
+    train_max(mtype='altezza')
+    train_max(mtype='forza')
+    train_curves()

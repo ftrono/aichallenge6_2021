@@ -1,10 +1,58 @@
 import logging
 import sys
 sys.path.insert(0, './')
-from utils import write_warning
 from database_functions.db_connect import db_connect, db_disconnect
+from evaluation.eval_tools import evaluate_max
+from utils import write_warning
 
-# Pairwise Delta
+#FLAG WARNINGS (FOR DATASET CLEANING):
+# - flag_ma(sigma_ma)
+# - pairwise_delta(array)
+# - flag_dtimes()
+
+
+#FLAG1: flag warnings for MA:
+def flag_ma(sigma_ma=1):
+    '''
+    Function that checks if MaxAltezza is out if the bounds. 
+    Bounds = Target max altezza + - deviation.
+    deviation = sigma * target max altezza
+
+    Input:
+    - Sigma: int
+
+    Output:
+    - Write on db if there is warning: warning #1
+
+    ''' 
+    conn, cursor = db_connect()
+
+    #SET LOG TO FILE:
+    logging.basicConfig(level=logging.WARNING, filename='./logs/training.log', filemode='a', format='%(asctime)s %(levelname)s %(message)s')
+
+    #extract data from Pressate and Combos with inner join:
+    cursor.execute("SELECT Pressate.Timestamp, Pressate.MaxAltezza, Pressate.ComboID, Combos.TargetMA, Combos.StdMA FROM Pressate INNER JOIN Combos ON Pressate.ComboID = Combos.ComboID")
+    ls = cursor.fetchall()
+    #print(ls[0])
+    for row in ls:
+        timestamp = row[0]
+        cur_ma = float(row[1])
+        tgt_ma = float(row[3])
+        #dev = std_ma * sigma:
+        dev = float(row[4]) * sigma_ma
+        #evaluate:
+        wid = evaluate_max(cur_ma, tgt_ma, dev, mtype='altezza', sigma=sigma_ma)
+        if wid != 0:
+            #log:
+            logging.warning("Timestamp: {}. ID #{}: max_altezza out of acceptable range.".format(timestamp, wid))
+            #write warning to DB:
+            write_warning(timestamp, wid)
+
+    # Disconnect
+    db_disconnect(conn, cursor)
+
+
+# Helper: pairwise delta
 def pairwise_delta(array):
     '''
     Performs pairwise delta of the elements contained into a list
@@ -21,8 +69,8 @@ def pairwise_delta(array):
     return deltas
 
 
-#Extract delta timestamps:
-def get_dtimes():
+#FLAG2: extract delta timestamps:
+def flag_dtimes():
     # Connect
     conn, cursor = db_connect()
     
@@ -52,4 +100,8 @@ def get_dtimes():
         
     return 0
 
-get_dtimes()
+
+#MAIN:
+if __name__ == '__main__':
+    flag_ma(sigma_ma=1)
+    flag_dtimes()
