@@ -9,11 +9,6 @@ import pandas as pd
 # - evaluate_curve(cur_forza, tgt_forza, std_curve, sigma=1)
 
 
-#Color codes for printing to stdout:
-OKGREEN = '\033[92m'
-WARNINGCOL = '\033[93m'
-ENDCOLOR = '\033[0m' #reset to white
-
 #container class:
 class Collector:
     def __init__(self, id):
@@ -54,10 +49,8 @@ def evaluate_max(cur, tgt, std, mtype, sigma=1):
     #eval:
     dev = std * sigma
     if (cur >= (tgt - dev)) and (cur <= (tgt + dev)):
-        print(OKGREEN+"Max_"+mtype+": accepted."+ENDCOLOR)
-        return 0
+        return 0 #ok
     else:
-        print(WARNINGCOL+"WARNING! ID #"+str(wid)+ENDCOLOR)
         return wid
 
 
@@ -87,11 +80,9 @@ def evaluate_curve(cur_forza, tgt_forza, std_curve, sigma=1):
 
     #final check on curve:
     if count_out == 0:
-        wid = 0
-        print(OKGREEN+"Curve: assembly success. No warnings."+ENDCOLOR)
+        wid = 0 #ok
     else:
         wid = 4
-        print(WARNINGCOL+"WARNING! ID #"+str(wid)+ENDCOLOR)
     return count_out, wid
 
 

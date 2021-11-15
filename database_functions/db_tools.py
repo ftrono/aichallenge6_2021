@@ -1,9 +1,20 @@
 from db_connect import db_connect, db_disconnect
 
 #KEY DB FUNCTIONS:
+# - reset_warnings()
 # - drop_all()
 # - generate_tables()
 # - populate_max()
+
+#reset Warnings table:
+def reset_warnings():
+    cnxn, cursor = db_connect()
+    cursor.execute("TRUNCATE TABLE Warnings")
+    cnxn.commit()
+    db_disconnect(cnxn, cursor)
+    print("Table Warnings successfully reset.")
+    return 0
+
 
 #remove ALL tables:
 def drop_all():
@@ -73,5 +84,6 @@ def populate_max():
 #MAIN:
 if __name__ == '__main__':
     #drop_all()
-    generate_tables()
-    populate_max()
+    #generate_tables()
+    #populate_max()
+    reset_warnings()

@@ -1,19 +1,20 @@
-import sys
+import sys, logging
 sys.path.insert(0, './')
 from database_functions.db_connect import db_connect, db_disconnect
+from evaluation.eval_tools import evaluate_max
 from utils import write_warning
 
 #TRAINING TOOLS:
 # - set_targets_max(mtype)
-# - flag_ma(sigma)
+# - flag_ma(sigma_ma)
+
 
 #set target MA/MF & it std within combo:
 def set_targets_max(mtype):
     '''
     NOTE: requires 
-    1. Retrieves max value of Altezza or average value of Forza for each ComboID (FROM: table Pressate)
-    2. Saves that value as TargetMA or TargetMF for the correspondent ComboID (TO: table Combos)
-    3. Repeats the process for the Stdev of MA or MF
+    1. Retrieves max value of Altezza (or average value of Forza) and the Stdev of MA (or MF) for each ComboID (FROM: table Pressate)
+    2. Saves the values as TargetMA (or TargetMF) and StdMA (or StdMF) for the correspondent ComboID (TO: table Combos)
     '''
     #arg check: 
     if mtype == 'altezza':
@@ -44,7 +45,49 @@ def set_targets_max(mtype):
     return 0
 
 
+#Dataset cleaning: flag warnings for MA:
+def flag_ma(sigma_ma=1):
+    '''
+    Function that checks if MaxAltezza is out if the bounds. 
+    Bounds = Target max altezza + - deviation.
+    deviation = sigma * target max altezza
+
+    Input:
+    - Sigma: int
+
+    Output:
+    - Write on db if there is warning: warning #1
+
+    ''' 
+    conn, cursor = db_connect()
+
+    #SET LOG TO FILE:
+    logging.basicConfig(level=logging.WARNING, filename='./logs/training.log', filemode='a', format='%(asctime)s %(levelname)s %(message)s')
+
+    #extract data from Pressate and Combos with inner join:
+    cursor.execute("SELECT Pressate.Timestamp, Pressate.MaxAltezza, Pressate.ComboID, Combos.TargetMA, Combos.StdMA FROM Pressate INNER JOIN Combos ON Pressate.ComboID = Combos.ComboID")
+    ls = cursor.fetchall()
+    #print(ls[0])
+    for row in ls:
+        timestamp = row[0]
+        cur_ma = float(row[1])
+        tgt_ma = float(row[3])
+        #dev = std_ma * sigma:
+        dev = float(row[4]) * sigma_ma
+        #evaluate:
+        wid = evaluate_max(cur_ma, tgt_ma, dev, mtype='altezza', sigma=sigma_ma)
+        if wid != 0:
+            #log:
+            logging.warning("Timestamp: {}. ID #{}: max_altezza out of acceptable range.".format(timestamp, wid))
+            #write warning to DB:
+            write_warning(timestamp, wid)
+
+    # Disconnect
+    db_disconnect(conn, cursor)
+
+
 #MAIN:
 if __name__ == '__main__':
     set_targets_max(mtype='altezza')
     set_targets_max(mtype='forza')
+    flag_ma(sigma_ma=1)
