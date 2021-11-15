@@ -2,27 +2,19 @@ import logging
 import sys
 sys.path.insert(0, './')
 from utils import interpolate_curve, visualize, write_warning
-from extract_params import extract_params
-
-#Color codes for printing to stdout:
-OKGREEN = '\033[92m'
-WARNINGCOL = '\033[93m'
-ENDCOLOR = '\033[0m' #reset to white
+from eval_tools import extract_params, evaluate_max, evaluate_curve
 
 
 #PART III) EVALUATE
 
-#EV0: Evaluate a new curve:
-def evaluate_curve(timestamp, visual=False):
+def evaluate(timestamp, visual=False, sigma_ma=1, sigma_mf=1, sigma_curve=1):
     '''
     Function that evaluates if a pressata is correct or not. 
     It queries for the parameters of the pressata's combo, interpolates the curve and 
-    then makes 3 checks:
-        1) if the value that represents the max force in the process is between max force
-        target +- a threshold;
-        2) if the value that represents the max altezza in the process is between max altezza
-        target +- a threshold;
-        3) if all points of the curve (already interpolated and normalized) are within the acceptable std_dev bound from the ideal curve.
+    then makes 3 checks through the following functions:
+    1) evaluate_max, with mtype = 'altezza';
+    2) evaluate_max, with mtype = 'forza';
+    3) evaluate_curve, which scans the curve point by point;
     
     If one check fails, the function is immediately interrupted: the warning is saved to the DB
     and no further checks are made. A logging message is printed to a log file. (Return: -1)
@@ -34,6 +26,7 @@ def evaluate_curve(timestamp, visual=False):
     input:
     - timestamp (int) -> current pressata
     - visual (bool) -> calls curve visualization function
+    - sigma values (int) for: MA, MF and curve std (will increase the dev in the DB)
     
     output: 
     - 0 if pressata is accepted
@@ -53,12 +46,9 @@ def evaluate_curve(timestamp, visual=False):
 
     #CHECKS:
     #check 1: max_altezza
-    if (current.ma >= (target.ma - target.std_ma)) and (current.ma <= (target.ma + target.std_ma)):
-        print(OKGREEN+"Max_altezza: accepted."+ENDCOLOR)    
-    else:
-        wid = 0
-        print(WARNINGCOL+"WARNING! ID #"+str(wid)+ENDCOLOR)
-        #logging
+    wid = evaluate_max(current.ma, target.ma, target.std_ma, mtype='altezza', sigma=sigma_ma) 
+    if wid != 0:
+        #log:
         logging.warning(str(timestamp)+" ID #"+str(wid)+": max_altezza out of acceptable range! Please check the assembly.")
         #write warning to DB:
         write_warning(timestamp, wid)
@@ -67,12 +57,9 @@ def evaluate_curve(timestamp, visual=False):
         return -1
 
     #check 2: max_forza
-    if (current.mf >= (target.mf - target.std_mf)) and (current.mf <= (target.mf + target.std_mf)):
-        print(OKGREEN+"Max_forza: accepted."+ENDCOLOR)
-    else:
-        wid = 2
-        print(WARNINGCOL+"WARNING! ID #"+str(wid)+ENDCOLOR)
-        #logging
+    wid = evaluate_max(current.mf, target.mf, target.std_mf, mtype='forza', sigma=sigma_mf)
+    if wid != 0:
+        #log:
         logging.warning(str(timestamp)+" - ID #"+str(wid)+": max_forza out of acceptable range! Please check the assembly.")
         #write warning to DB:
         write_warning(timestamp, wid)
@@ -81,26 +68,17 @@ def evaluate_curve(timestamp, visual=False):
         return -1
     
     #check 3: compare curve
-    count_out = 0
-    for i in range(len(current.forza)):
-        if (current.forza[i] < (target.forza[i] - target.std_curve)) or (current.forza[i] > (target.forza[i] + target.std_curve)):
-            #count points out of bounds:
-            count_out = count_out + 1
-
-    #final check on curve:
-    if count_out == 0:
-        print(OKGREEN+"Curve: assembly success. No warnings."+ENDCOLOR)
-        return 0 #ok
-    else:
-        wid = 3
-        print(WARNINGCOL+"WARNING! ID #"+str(wid)+ENDCOLOR)
-        #logging
+    count_out, wid = evaluate_curve(current.forza, target.forza, target.std_curve, sigma=sigma_curve)
+    if count_out != 0:
+        #log:
         logging.warning(str(timestamp)+" - ID #"+str(wid)+": curve out of bounds in "+str(count_out)+" points out of "+str(len(current.forza))+"! Please check the assembly.")
         #write warning to DB:
         write_warning(timestamp, wid)
         if visual:
             visualize(target.forza, target.std_curve, target.altezza, current.forza)
         return -1
+    else:
+        return 0
 
 
 #MAIN:
