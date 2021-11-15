@@ -40,8 +40,8 @@ def evaluate_curve(timestamp, visual=False):
     - -1 if warnings found.
 
     '''
-    #LOGGING TO FILE (DA CONFIGURARE):
-    logging.basicConfig(filename='./logs/eval_warns.log', filemode='a', format='%(asctime)s - %(message)s')
+    #SET LOG TO FILE:
+    logging.basicConfig(level=logging.WARNING, filename='./logs/eval_warns.log', filemode='a', format='%(asctime)s %(levelname)s %(message)s')
 
     #QUERY:
     #call extract_params, which return 2 objects with all needed params 
@@ -59,7 +59,7 @@ def evaluate_curve(timestamp, visual=False):
         wid = 0
         print(WARNINGCOL+"WARNING! ID #"+str(wid)+ENDCOLOR)
         #logging
-        logging.warning(str(timestamp)+" - WARNING! ID #"+str(wid)+": max_altezza out of acceptable range! Please check the assembly.")
+        logging.warning(str(timestamp)+" ID #"+str(wid)+": max_altezza out of acceptable range! Please check the assembly.")
         #write warning to DB:
         write_warning(timestamp, wid)
         if visual:
@@ -73,7 +73,7 @@ def evaluate_curve(timestamp, visual=False):
         wid = 2
         print(WARNINGCOL+"WARNING! ID #"+str(wid)+ENDCOLOR)
         #logging
-        logging.warning(str(timestamp)+" - WARNING! ID #"+str(wid)+": max_forza out of acceptable range! Please check the assembly.")
+        logging.warning(str(timestamp)+" - ID #"+str(wid)+": max_forza out of acceptable range! Please check the assembly.")
         #write warning to DB:
         write_warning(timestamp, wid)
         if visual:
@@ -95,7 +95,7 @@ def evaluate_curve(timestamp, visual=False):
         wid = 3
         print(WARNINGCOL+"WARNING! ID #"+str(wid)+ENDCOLOR)
         #logging
-        logging.warning(str(timestamp)+" - WARNING! ID #"+str(wid)+": curve out of bounds in "+str(count_out)+" points out of "+str(len(current.forza))+"! Please check the assembly.")
+        logging.warning(str(timestamp)+" - ID #"+str(wid)+": curve out of bounds in "+str(count_out)+" points out of "+str(len(current.forza))+"! Please check the assembly.")
         #write warning to DB:
         write_warning(timestamp, wid)
         if visual:
