@@ -1,4 +1,4 @@
-# AI challenge - Team 6
+# AI challenge - Team 6 :octocat:
 # Premessa:
 Gli script presenti in questa repository sono stati ideati per essere eseguiti su un sistema operativo **linux** e sono testati su Ubuntu 18.04 LTS  
 ### Prerequisiti:  
