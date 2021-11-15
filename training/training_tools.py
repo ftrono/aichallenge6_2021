@@ -1,9 +1,11 @@
 import sys
 sys.path.insert(0, './')
 from database_functions.db_connect import db_connect, db_disconnect
+from utils import write_warning
 
 #TRAINING TOOLS:
 # - set_targets_max(mtype)
+# - flag_ma(sigma)
 
 #set target MA/MF & it std within combo:
 def set_targets_max(mtype):
@@ -28,30 +30,17 @@ def set_targets_max(mtype):
 
     # Connect
     conn, cursor = db_connect()
-
-    #1) TARGET VALUE OF MAX_ALTEZZA FOR COMBOS:
-    cursor.execute("SELECT ComboID, "+mt+" FROM Pressate GROUP BY ComboID")
-    # Save query output
+    # Extract info for Pressate
+    cursor.execute("SELECT ComboID, "+mt+", "+st+" FROM Pressate GROUP BY ComboID")
     list = cursor.fetchall()
-    # Update current values to new values for TargetMA or TargetMF
-    for (comboID, max_v) in list:
+    # Update Combos values to TargetMA/MF and StdMA/MF
+    for (comboID, max_v, std_v) in list:
         # updates values (decimal.Decimal -> float)
-        cursor.execute("UPDATE Combos SET TargetM"+v+" = ? WHERE ComboID = ?", float(max_v), comboID)
-    cursor.commit()
-
-    #2) STDEV OF MAX_ALTEZZA FOR COMBOS:
-    cursor.execute("SELECT ComboID, "+st+" FROM Pressate GROUP BY ComboID")
-    #Save query output
-    list = cursor.fetchall()
-    #Update current values to new values for StdMA
-    for (comboID, std_v) in list:
-        # updates values
-        cursor.execute("UPDATE Combos SET StdM"+v+" = ? WHERE ComboID = ?", float(std_v), comboID) 
+        cursor.execute("UPDATE Combos SET TargetM"+v+" = ?, StdM"+v+" = ? WHERE ComboID = ?", float(max_v), float(std_v), comboID)
     cursor.commit()
 
     # Disconnect
     db_disconnect(conn, cursor)
-
     return 0
 
 
