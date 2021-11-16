@@ -11,7 +11,7 @@ from evaluation.evaluation import evaluate
 # - train(epochs, sigma_ma, sigma_mf, sigma_curve, verbose)
 
 
-#1) Preprocessing: learn target parameters and populate Combos table:
+#1) Preprocessing: learn TargetMA and StdMA, exclude wrong pressate by MA and dt, calculate target h vectors:
 def preprocessing(sigma_ma=1, sigma_dt=1):
     print("Preprocessing started.")
 
@@ -32,7 +32,7 @@ def preprocessing(sigma_ma=1, sigma_dt=1):
     return 0
 
 
-#2) Training: loop evaluate all timestamps in the DB
+#2) Training: learn target parameters for Combos and loop evaluate all timestamps in the DB:
 def train(epochs=1, sigma_ma=1, sigma_mf=1, sigma_curve=1, verbose=True):
     # Connect
     conn, cursor = db_connect()
