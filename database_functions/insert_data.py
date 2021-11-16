@@ -1,4 +1,5 @@
 import csv, time, logging, datetime, os
+from systemd import journal
 from db_connect import db_connect, db_disconnect
 
 #Herper functions:
@@ -45,18 +46,24 @@ def insert_data():
         cursor.execute(query)
         cursor.commit()
 
+    with open(os.getcwd()+"/database_functions/Summary.csv", mode='r') as summary:
+        # read csv as dictionary
+        summary_reader = csv.DictReader(summary,delimiter=',') 
+        line_count = 0 # initialize line counter
+        rows = list(summary_reader)
+        totalrows = len(rows)
 
     #2) DATASET IMPORT:
+    status=open(os.getcwd()+'/status.log', "r+")
     comboIDs=[]
     with open(os.getcwd()+"/database_functions/Summary.csv", mode='r') as summary:
         # read csv as dictionary
         summary_reader = csv.DictReader(summary,delimiter=',') 
         line_count = 0 # initialize line counter
-
         # iterate over rows in summary
         prev_key=""
         for row in summary_reader:
-            if line_count<1000:
+            if line_count<0:
                 if line_count > 0: # skip first row (colum names)
                     if row["Tempcode"]!=prev_key: # check if riduttore has already been saved
                         prev_key=row["Tempcode"]
@@ -85,10 +92,8 @@ def insert_data():
                                     ComboID=IdComp+Taglia
                                     if ComboID not in comboIDs:
                                         cursor.execute("INSERT INTO Combos (ComboID,Taglia,IdComp,TargetMA,TargetMF,StdMA,StdMF,StdCurve) VALUES ('" + ComboID + "','" + Taglia + "','" + IdComp + "',0,0,0,0,0);")    
-                                        #cnxn.commit()
                                         comboIDs.append(ComboID)
                                     cursor.execute("INSERT INTO Pressate (Timestamp,RiduttoreID,ComboID,Stazione,MaxForza,MaxAltezza) VALUES (" + str(Timestamp) + "," + RiduttoreID + ",'" + ComboID + "','" + Stazione + "',0,0);")
-                                    #cnxn.commit()
                                     header=False
                                 except:
                                     logging.debug("Wrong first row"+str(t_line_count))
@@ -96,17 +101,17 @@ def insert_data():
                                 try:
                                     Forza   = p_row[3].replace(',','.')
                                     Altezza = p_row[2].replace(',','.')
-                                    #try:
-                                    cursor.execute("INSERT INTO PressateData (Timestamp,Forza,Altezza) VALUES (" + str(Timestamp) + "," + Forza + "," + Altezza + ");")
-                                    #cnxn.commit()
-                                    #except:
-                                    #    logging.debug("Error in query "+row["CSVpath"]+" line "+str(t_line_count))   
+                                    try:
+                                        cursor.execute("INSERT INTO PressateData (Timestamp,Forza,Altezza) VALUES (" + str(Timestamp) + "," + Forza + "," + Altezza + ");")
+                                    except:
+                                        logging.warning("Unable to insert "+row["CSVpath"]+" line "+str(t_line_count))   
                                 except:
                                     logging.warning("Malformed row in " +row["CSVpath"]+" line "+str(t_line_count))
                             t_line_count+=1
-            line_count+=1   
             cnxn.commit()
-
+            line_count+=1
+            journal.write("[Import CSV] Inserted %s\%s pressate"%(str(line_count),str(totalrows)))
+            
     #close cursor and connection
     db_disconnect(cnxn, cursor)
     logging.warning("Process completed in: %s seconds" % (time.time() - start_time))

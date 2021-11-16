@@ -1,0 +1,11 @@
+[Unit]
+Description= import database service
+After=multi-user.target
+
+[Service]
+Type=simple
+Restart=always
+ExecStart=/usr/bin/python3 /home/azureadmin/main/database_functions/insert_data.py
+
+[Install]
+WantedBy=multi-user.target
