@@ -7,7 +7,7 @@ from eval_tools import extract_params, evaluate_max, evaluate_curve
 
 #PART III) EVALUATE
 
-def evaluate(timestamp, visual=False, sigma_ma=1, sigma_mf=1, sigma_curve=1):
+def evaluate(timestamp, visual=False, printout=True, sigma_ma=1, sigma_mf=1, sigma_curve=1):
     '''
     Function that evaluates if a pressata is correct or not. 
     It queries for the parameters of the pressata's combo, interpolates the curve and 
@@ -48,9 +48,11 @@ def evaluate(timestamp, visual=False, sigma_ma=1, sigma_mf=1, sigma_curve=1):
     #check 1: max_altezza
     wid = evaluate_max(current.ma, target.ma, target.std_ma, mtype='altezza', sigma=sigma_ma) 
     if wid == 0:
-        print("Timestamp: {}. Max_altezza: accepted.".format(timestamp))
+        if printout==True:
+            print("Timestamp: {}. Max_altezza: accepted.".format(timestamp))
     else:
-        print("Timestamp: {}. WARNING! ID #{}: max_altezza out of acceptable range! Please check the assembly.".format(timestamp, wid))
+        if printout==True:
+            print("Timestamp: {}. WARNING! ID #{}: max_altezza out of acceptable range! Please check the assembly.".format(timestamp, wid))
         logging.warning("Timestamp: {}. ID #{}: max_altezza out of acceptable range! Please check the assembly.".format(timestamp, wid))
         #write warning to DB:
         write_warning(timestamp, wid)
@@ -61,9 +63,11 @@ def evaluate(timestamp, visual=False, sigma_ma=1, sigma_mf=1, sigma_curve=1):
     #check 2: max_forza
     wid = evaluate_max(current.mf, target.mf, target.std_mf, mtype='forza', sigma=sigma_mf)
     if wid == 0:
-        print("Timestamp: {}. Max_forza: accepted.".format(timestamp))
+        if printout==True:
+            print("Timestamp: {}. Max_forza: accepted.".format(timestamp))
     else:
-        print("Timestamp: {}. WARNING! ID #{}: max_forza out of acceptable range! Please check the assembly.".format(timestamp, wid))
+        if printout==True:
+            print("Timestamp: {}. WARNING! ID #{}: max_forza out of acceptable range! Please check the assembly.".format(timestamp, wid))
         logging.warning("Timestamp: {}. ID #{}: max_forza out of acceptable range! Please check the assembly.".format(timestamp, wid))
         #write warning to DB:
         write_warning(timestamp, wid)
@@ -74,10 +78,12 @@ def evaluate(timestamp, visual=False, sigma_ma=1, sigma_mf=1, sigma_curve=1):
     #check 3: compare curve
     count_out, wid = evaluate_curve(current.forza, target.forza, target.std_curve, sigma=sigma_curve)
     if wid == 0:
-        print("Timestamp: {timestamp}. Curve: assembly success. No warnings.")
+        if printout==True:
+            print("Timestamp: {timestamp}. Curve: assembly success. No warnings.")
         return 0
     else:
-        print("Timestamp: {}. WARNING! ID #{}: curve out of bounds in {} points out of {}! Please check the assembly.".format(timestamp, wid, count_out, len(current.forza)))
+        if printout==True:
+            print("Timestamp: {}. WARNING! ID #{}: curve out of bounds in {} points out of {}! Please check the assembly.".format(timestamp, wid, count_out, len(current.forza)))
         logging.warning("Timestamp: {}. ID #{}: curve out of bounds in {} points out of {}! Please check the assembly.".format(timestamp, wid, count_out, len(current.forza)))
         #write warning to DB:
         write_warning(timestamp, wid)

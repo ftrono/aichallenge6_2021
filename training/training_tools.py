@@ -153,7 +153,6 @@ def train_curves():
             #extract data:
             cur_altezza = list(df['Altezza'].to_numpy())
             cur_forza = list(df['Forza'].to_numpy())
-            print(cur_forza)
 
             #extract stamp vector (altezza_combo):
             query = "SELECT Altezza FROM CombosData WHERE ComboID='"+str(comboid)+"'"
@@ -168,7 +167,6 @@ def train_curves():
             #store to batch list for the current ComboID:
             batch_forces.append(itp_forza)
             
-        print(len(batch_forces))
         #3) get target curve parameters for the combo (batch_standardize):
         forza_combo = ideal_curve(batch_forces)
         std_curve = stdev_curve(batch_forces)
