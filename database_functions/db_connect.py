@@ -11,12 +11,16 @@ def db_connect():
     db = config['DB']
 
     #build conn string:
-    if db.get('dsn') == '':
+    if db.get('auth') != '':
+        # use azure AD
+        con_string = 'DRIVER=%s;SERVER=%s;DATABASE=%s;UID=%s;PWD=%s;Authentication=%s' % (db.get('driver'), db.get('server'), db.get('database'), db.get('user'), db.get('password'),db.get('auth'))
+    elif db.get('dsn') != '':
+        #use dsn:
+        con_string = 'DSN=%s;UID=%s;PWD=%s;DATABASE=%s;' % (db.get('dsn'), db.get('user'), db.get('password'), db.get('database')) 
+    else:
         #no dsn: use driver & server:
         con_string = 'DRIVER=%s;SERVER=%s;DATABASE=%s;UID=%s;PWD=%s;' % (db.get('driver'), db.get('server'), db.get('database'), db.get('user'), db.get('password'))
-    else:
-        #use dsn:
-        con_string = 'DSN=%s;UID=%s;PWD=%s;DATABASE=%s;' % (db.get('dsn'), db.get('user'), db.get('password'), db.get('database'))
+        
 
     #open connection:
     conn = pyodbc.connect(con_string)
