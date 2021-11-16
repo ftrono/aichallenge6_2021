@@ -30,23 +30,32 @@ def flag_ma(sigma_ma=1):
     #SET LOG TO FILE:
     logging.basicConfig(level=logging.WARNING, filename='./logs/training.log', filemode='a', format='%(asctime)s %(levelname)s %(message)s')
 
-    #extract data from Pressate and Combos with inner join:
-    cursor.execute("SELECT Pressate.Timestamp, Pressate.MaxAltezza, Pressate.ComboID, Combos.TargetMA, Combos.StdMA FROM Pressate INNER JOIN Combos ON Pressate.ComboID = Combos.ComboID")
-    ls = cursor.fetchall()
-    #print(ls[0])
-    for row in ls:
-        timestamp = row[0]
-        cur_ma = float(row[1])
-        tgt_ma = float(row[3])
-        #dev = std_ma * sigma:
-        dev = float(row[4]) * sigma_ma
-        #evaluate:
-        wid = evaluate_max(cur_ma, tgt_ma, dev, mtype='altezza', sigma=sigma_ma)
-        if wid != 0:
-            #log:
-            logging.warning("Timestamp: {}. ID #{}: max_altezza out of acceptable range.".format(timestamp, wid))
-            #write warning to DB:
-            write_warning(timestamp, wid)
+    #extract Timestamp, ComboID and MaxAltezza from Table Pressate and save in a list
+    get_data = 'SELECT ComboID, Timestamp, MaxAltezza FROM Pressate'
+    cursor.execute(get_data)
+    list_press = cursor.fetchall()
+
+    #extract ComboID, Target Max altezza and standard deviation max Altezza from Table Combos and save in a list (list_target)
+    get_target = 'SELECT ComboID, TargetMA, StdMA FROM Combos'
+    cursor.execute(get_target)
+    list_target = cursor.fetchall()
+
+    cursor.commit()
+
+    #CHECK id Max Altezza is out of the bounds
+    for p in list_press:
+        for t in list_target:
+            if p[0] == t[0]: #same comboid
+                cur_ma = float(p[2])
+                tgt_ma = float(t[1])
+                dev = float(t[2])*sigma_ma
+                #evaluate:
+                wid = evaluate_max(cur_ma, tgt_ma, dev, mtype='altezza', sigma=sigma_ma)
+                if wid != 0:
+                    #log:
+                    logging.warning("Timestamp: {}. ID #{}: max_altezza out of acceptable range.".format(p[1], wid))
+                    #write warning to DB:
+                    write_warning(p[1], wid)
 
     # Disconnect
     db_disconnect(conn, cursor)
@@ -104,4 +113,4 @@ def flag_dtimes():
 #MAIN:
 if __name__ == '__main__':
     flag_ma(sigma_ma=1)
-    flag_dtimes()
+    #flag_dtimes()
