@@ -12,7 +12,7 @@ def name_parser(name): # take as input the file name
     timestamp=datetime.datetime.timestamp(date_time) # convert date object to timestamp
     return tempcode,id,stazione,timestamp
 
-def parse_date(cell,name):
+def parse_date(cell):
     anno=int("20"+cell[6:8])
     mese=int(cell[3:5])
     giorno=int(cell[0:2])
@@ -25,7 +25,8 @@ def parse_date(cell,name):
 
 #INSERT DATA:
 def insert_data():
-    logging.basicConfig(level=logging.DEBUG,format='%(asctime)s %(levelname)s %(message)s')
+    print("Started insert data.")
+    logging.basicConfig(level=logging.DEBUG, filename='./logs/insert.log', filemode='w', format='%(asctime)s %(levelname)s %(message)s')
     logging.debug("START")
 
     # open connection
@@ -54,7 +55,6 @@ def insert_data():
         totalrows = len(rows)
 
     #2) DATASET IMPORT:
-    status=open(os.getcwd()+'/status.log', "r+")
     comboIDs=[]
     with open(os.getcwd()+"/database_functions/Summary.csv", mode='r') as summary:
         # read csv as dictionary
@@ -63,7 +63,7 @@ def insert_data():
         # iterate over rows in summary
         prev_key=""
         for row in summary_reader:
-            if line_count<0:
+            if line_count<1000:
                 if line_count > 0: # skip first row (colum names)
                     if row["Tempcode"]!=prev_key: # check if riduttore has already been saved
                         prev_key=row["Tempcode"]
@@ -88,7 +88,7 @@ def insert_data():
                             if t_line_count==0 or t_line_count==1 and header:
                                 try: 
                                     tempcode,IdComp,Stazione,Timestamp=name_parser(row["CSVname"]) # get informations form file name
-                                    Timestamp=parse_date(p_row[1],row["CSVname"])
+                                    Timestamp=parse_date(p_row[1])
                                     ComboID=IdComp+Taglia
                                     if ComboID not in comboIDs:
                                         cursor.execute("INSERT INTO Combos (ComboID,Taglia,IdComp,TargetMA,TargetMF,StdMA,StdMF,StdCurve) VALUES ('" + ComboID + "','" + Taglia + "','" + IdComp + "',0,0,0,0,0);")    
@@ -97,6 +97,7 @@ def insert_data():
                                     header=False
                                 except:
                                     logging.debug("Wrong first row"+str(t_line_count))
+                                logging.debug("Timestamp: {}, {}".format(Timestamp, row["CSVpath"]))
                             elif t_line_count>2: # skip first 3 rows
                                 try:
                                     Forza   = p_row[3].replace(',','.')
@@ -110,11 +111,12 @@ def insert_data():
                             t_line_count+=1
             cnxn.commit()
             line_count+=1
-            journal.write("[Import CSV] Inserted %s\%s pressate"%(str(line_count),str(totalrows)))
+            #journal.write("[Import CSV] Inserted %s\%s pressate"%(str(line_count),str(totalrows)))
             
     #close cursor and connection
     db_disconnect(cnxn, cursor)
     logging.warning("Process completed in: %s seconds" % (time.time() - start_time))
+    print("Process completed in: %s seconds" % (time.time() - start_time))
     return 0
 
 #MAIN:
