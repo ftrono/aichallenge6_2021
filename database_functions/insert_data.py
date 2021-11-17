@@ -68,7 +68,7 @@ def insert_data(cnxn,cursor,logging):
         # iterate over rows in summary
         prev_key=""
         for row in summary_reader:
-            if line_count<1000:
+            if line_count<1000000:
                 if line_count > 0: # skip first row (colum names)
                     if row["Tempcode"]!=prev_key: # check if riduttore has already been saved
                         
@@ -143,7 +143,7 @@ def insert_data(cnxn,cursor,logging):
                                             logging.warning(str(row["CSVname"])+"Unable to append values at line "+str(t_line_count)) 
                                     except:
                                         e_pres_data+=1
-                                        logging.warning(str(row["CSVname"]) + "Malformed line " + str(t_line_count))
+                                        logging.warning(str(row["CSVname"]) + " Malformed row " + str(t_line_count))
                             t_line_count+=1
                         if not header:
                             try:
