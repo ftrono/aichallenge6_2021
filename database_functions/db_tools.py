@@ -57,22 +57,15 @@ def generate_tables(cnxn,cursor,logging):
 
 #Populate MaxForza and MaxAltezza fields in Pressate table:
 def populate_max(cnxn,cursor,logging):
-    # open connection
-    fields = ['Forza', 'Altezza']
-    temp = {}
+    n=175494
+    ins=0
     logging.info("Start max values population in table Pressate")
-    for s in fields:
-        #query data:
-        cursor.execute('SELECT Timestamp, MAX('+s+') as Max'+s+' FROM PressateData GROUP BY TIMESTAMP')
-        for row in cursor.fetchall():
-            temp[row[0]] = float(row[1])
-        cursor.commit()
-        #set data:
-        for k in temp.keys():
-            cursor.execute('UPDATE Pressate SET Max'+s+' = ? WHERE Timestamp = ?', temp[k], k)
-            cursor.commit()
-        #reset:
-        temp = {}
+    cursor.execute('SELECT Timestamp, MAX(Forza) as MaxF, MAX(Altezza) as MaxA FROM PressateData GROUP BY TIMESTAMP')
+    for row in cursor.fetchall():
+        cursor.execute('UPDATE Pressate SET MaxForza = ? , MaxAltezza =? WHERE Timestamp = ?',row[1],row[2],row[0])
+        ins+=1
+        logging.debug("Update: %s/%s"%(str(ins),str(n)))        
+    cursor.commit()
     logging.info("Max values populated")
     return 0
 
