@@ -1,19 +1,29 @@
 #KEY DB FUNCTIONS:
-# - reset_warnings()
+# - reset_table()
 # - drop_all()
 # - generate_tables()
 # - populate_max()
 
-#reset Warnings table:
-def reset_warnings(cnxn, cursor):
-    cursor.execute("TRUNCATE TABLE Warnings")
-    cnxn.commit()
-    print("Table Warnings successfully reset.")
+#reset a specific table:
+def reset_table(dbt, tablename):
+    cursor = dbt['cursor']
+    cnxn = dbt['cnxn']
+    logging = dbt['logging']
+    try:
+        query = "TRUNCATE TABLE "+tablename
+        cursor.execute(query)
+        cnxn.commit()
+        print("Table "+tablename+" successfully reset.")
+    except:
+        logging.error("Unable to reset "+tablename+" table.")
     return 0
 
 
 #remove ALL tables:
-def drop_all(cnxn,cursor,logging):
+def drop_all(dbt):
+    cursor = dbt['cursor']
+    cnxn = dbt['cnxn']
+    logging = dbt['logging']
     error=False
     tables = ['Warnings', 'WarningDesc', 'CombosData', 'PressateData', 'Pressate', 'Combos', 'Riduttori']
     for t in tables:
@@ -30,7 +40,10 @@ def drop_all(cnxn,cursor,logging):
 
 
 #generate tables:
-def generate_tables(cnxn,cursor,logging):
+def generate_tables(dbt):
+    cursor = dbt['cursor']
+    cnxn = dbt['cnxn']
+    logging = dbt['logging']
     # query strings
     riduttori     = "CREATE TABLE Riduttori(RiduttoreID BIGINT NOT NULL PRIMARY KEY, Master BIT NOT NULL, Taglia CHAR(5) NOT NULL, Cd TINYINT NOT NULL, Stadi BIT NOT NULL, Rapporto TINYINT NOT NULL);"
     combos        = "CREATE TABLE Combos(ComboID CHAR(10) NOT NULL PRIMARY KEY, Taglia CHAR(5) NOT NULL, IdComp CHAR(5) NOT NULL, TargetMA DECIMAL(5, 2) NOT NULL, TargetMF DECIMAL(5,2) NOT NULL, StdMA DECIMAL(5,2) NOT NULL, StdMF DECIMAL(5, 2) NOT NULL, StdCurve DECIMAL(5,2) NOT NULL)"
@@ -56,7 +69,10 @@ def generate_tables(cnxn,cursor,logging):
 
 
 #Populate MaxForza and MaxAltezza fields in Pressate table:
-def populate_max(cnxn,cursor,logging):
+def populate_max(dbt):
+    cursor = dbt['cursor']
+    cnxn = dbt['cnxn']
+    logging = dbt['logging']
     n=175494
     ins=0
     logging.info("Start max values population in table Pressate")
@@ -68,11 +84,3 @@ def populate_max(cnxn,cursor,logging):
     cursor.commit()
     logging.info("Max values populated")
     return 0
-
-
-#MAIN:
-if __name__ == '__main__':
-    #drop_all()
-    #generate_tables()
-    #populate_max()
-    reset_warnings()

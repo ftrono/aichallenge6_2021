@@ -1,18 +1,17 @@
-import logging
-import sys
+import sys, logging
 sys.path.insert(0, './')
 from database_functions.db_connect import db_connect, db_disconnect
 from evaluation.eval_tools import evaluate_max
 from utils import write_warning
 
 #FLAG WARNINGS (FOR DATASET CLEANING):
-# - flag_ma(sigma_ma)
-# - pairwise_delta(array)
+# - flag_ma()
+# - (helper) pairwise_delta()
 # - flag_dtimes()
 
 
 #FLAG1: flag warnings for MA:
-def flag_ma(sigma_ma=1):
+def flag_ma(dbt, sigma_ma=1):
     '''
     Function that checks if MaxAltezza is out if the bounds. 
     Bounds = Target max altezza + - deviation.
@@ -24,14 +23,13 @@ def flag_ma(sigma_ma=1):
     Output:
     - Write on db if there is warning: warning #1
 
-    ''' 
-    conn, cursor = db_connect()
-
-    #SET LOG TO FILE:
-    logging.basicConfig(level=logging.WARNING, filename='./logs/training.log', filemode='a', format='%(asctime)s %(levelname)s %(message)s')
+    '''
+    cursor = dbt['cursor']
+    cnxn = dbt['cnxn']
+    logging = dbt['logging']
 
     #extract Timestamp, ComboID and MaxAltezza from Table Pressate and save in a list
-    get_data = 'SELECT ComboID, Timestamp, MaxAltezza FROM Pressate'
+    get_data = 'SELECT ComboID, Timestamp, MaxAltezza, RiduttoreID FROM Pressate'
     cursor.execute(get_data)
     list_press = cursor.fetchall()
 
@@ -40,25 +38,18 @@ def flag_ma(sigma_ma=1):
     cursor.execute(get_target)
     list_target = cursor.fetchall()
 
-    cursor.commit()
-
     #CHECK id Max Altezza is out of the bounds
     for p in list_press:
         for t in list_target:
             if p[0] == t[0]: #same comboid
+                riduttore = p[3]
+                timestamp = p[1]
                 cur_ma = float(p[2])
                 tgt_ma = float(t[1])
-                dev = float(t[2])*sigma_ma
-                #evaluate:
-                wid = evaluate_max(cur_ma, tgt_ma, dev, mtype='altezza', sigma=sigma_ma)
-                if wid != 0:
-                    #log:
-                    logging.warning("Timestamp: {}. ID #{}: max_altezza out of acceptable range.".format(p[1], wid))
-                    #write warning to DB:
-                    write_warning(p[1], wid)
-
-    # Disconnect
-    db_disconnect(conn, cursor)
+                std_ma = float(t[2])
+                #evaluate and flag:
+                evaluate_max(dbt, riduttore, timestamp, cur_ma, tgt_ma, std_ma, mtype='altezza', sigma=sigma_ma)
+    return 0
 
 
 # Helper: pairwise delta
@@ -79,9 +70,9 @@ def pairwise_delta(array):
 
 
 #FLAG2: extract delta timestamps:
-def flag_dtimes():
+def flag_dtimes(sigma=1):
     # Connect
-    conn, cursor = db_connect()
+    cnxn, cursor = db_connect()
     
     #Set log to file:
     logging.basicConfig(level=logging.DEBUG, filename='./logs/log_dtimes.log', filemode='w', format='%(message)s')
@@ -105,12 +96,6 @@ def flag_dtimes():
                 logging.debug(f"Deltas: {deltas}\n")
 
     # Disconnect
-    db_disconnect(conn, cursor)
+    db_disconnect(cnxn, cursor)
         
     return 0
-
-
-#MAIN:
-if __name__ == '__main__':
-    flag_ma(sigma_ma=1)
-    #flag_dtimes()

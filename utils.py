@@ -1,12 +1,14 @@
-import warnings
+import sys, warnings, pyodbc
 import matplotlib.pyplot as plt
+sys.path.insert(0, './')
 from database_functions.db_connect import db_connect, db_disconnect
 
 #COMMON UTILITY FUNCTIONS:
-# - execute_query_file(filename)
-# - write_warning(timestamp, wid)
-# - visualize(forza_combo, std_curve, altezza_combo, cur_forza)
-# - interpolate_curve(altezza_combo, altezza, forza)
+# - execute_query_file()
+# - write_warning()
+# - visualize()
+# - interpolate_curve()
+
 
 # Execute commands by filename
 def execute_query_file(filename):
@@ -31,7 +33,7 @@ def execute_query_file(filename):
         try:
             cursor.execute(command)
             cursor.commit()
-        except OperationalError as msg:
+        except pyodbc.OperationalError as msg:
             print("Command skipped: ", msg)
     
     # Close cursor and connection 
@@ -39,20 +41,17 @@ def execute_query_file(filename):
 
 
 #Write warnings to DB
-def write_warning(timestamp, wid):
+def write_warning(dbt, riduttore, wid, timestamp=None):
     '''
-    Write a warning for the current pressata to the Warnings table in the DB.
+    Write a warning for the current pressata / riduttore to the Warnings table in the DB.
     
     (params):
-        - timestamp (long) : timestamp of the pressata under analysis
+        - riduttore (int) : id of the riduttore under analysis
         - wid (int): warning_id to write to the table for the pressata [1, 2, 3 or 4]
+        - timestamp (long, optional) : timestamp of the pressata under analysis, if known.
     '''
-    # open connection
-    cnxn, cursor = db_connect()
-    cursor.execute("INSERT INTO Warnings (Timestamp, WarningID) VALUES (?, ?)", timestamp, wid)
-    cursor.commit()
-    #close cursor and connection
-    db_disconnect(cnxn, cursor)
+    dbt['cursor'].execute("INSERT INTO Warnings (RiduttoreID, Timestamp, WarningID) VALUES (?, ?, ?)", riduttore, timestamp, wid)
+    dbt['cursor'].commit()
     return 0
 
 

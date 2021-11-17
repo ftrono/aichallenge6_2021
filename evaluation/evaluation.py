@@ -1,95 +1,41 @@
-import logging
-import sys
+import sys, logging
 sys.path.insert(0, './')
-from utils import interpolate_curve, visualize, write_warning
-from eval_tools import extract_params, evaluate_max, evaluate_curve
+from database_functions.db_connect import db_connect, db_disconnect
+from database_functions.extract_data import extract_data
+from evaluation.eval_tools import evaluate_full
 
 
 #PART III) EVALUATE
 
-def evaluate(timestamp, visual=False, printout=True, sigma_ma=1, sigma_mf=1, sigma_curve=1):
-    '''
-    Function that evaluates if a pressata is correct or not. 
-    It queries for the parameters of the pressata's combo, interpolates the curve and 
-    then makes 3 checks through the following functions:
-    1) evaluate_max, with mtype = 'altezza';
-    2) evaluate_max, with mtype = 'forza';
-    3) evaluate_curve, which scans the curve point by point;
-    
-    If one check fails, the function is immediately interrupted: the warning is saved to the DB
-    and no further checks are made. A logging message is printed to a log file. (Return: -1)
+#CALLER:
+def call_evaluate(timestamp, sigma_ma=1, sigma_mf=1, sigma_curve=1):
+    # Connect
+    cnxn, cursor = db_connect()
+    #logging.basicConfig(level=logging.INFO, filename='./logs/evaluate.log', filemode='a', format='%(asctime)s %(levelname)s %(message)s')
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 
-    If all 3 checks are ok, then the pressata is considered acceptable. (Return: 0)
+    #DB tools:
+    dbt = {'cnxn': cnxn, 'cursor': cursor, 'logging': logging}
 
-    Parameters:
-    -------------------
-    input:
-    - timestamp (int) -> current pressata
-    - visual (bool) -> calls curve visualization function
-    - sigma values (int) for: MA, MF and curve std (will increase the dev in the DB)
-    
-    output: 
-    - 0 if pressata is accepted
-    - -1 if warnings found.
-
-    '''
-    #SET LOG TO FILE:
-    logging.basicConfig(level=logging.WARNING, filename='./logs/evaluate.log', filemode='a', format='%(asctime)s %(levelname)s %(message)s')
+    #sigmas:
+    sigmas = {'sigma_ma': sigma_ma, 'sigma_mf': sigma_mf, 'sigma_curve': sigma_curve}
 
     #QUERY:
     #call extract_params, which return 2 objects with all needed params 
     #(one for the current pressata, the other for the target combo):
-    current, target = extract_params(timestamp)
+    current = extract_data(dbt, stype='current', timestamp=timestamp)
+    target = extract_data(dbt, stype='target', comboid=current.comboid)
 
-    #INTERPOLATE CURVE (overwrite current.forza into collector object):
-    current.forza = interpolate_curve(target.altezza, current.altezza, current.forza)
+    #Call:
+    evaluate_full(dbt, current, target, sigmas, visual=False, preprocessed=False)
 
-    #CHECKS:
-    #check 1: max_altezza
-    wid = evaluate_max(current.ma, target.ma, target.std_ma, mtype='altezza', sigma=sigma_ma) 
-    if wid == 0:
-        if printout==True:
-            print("Timestamp: {}. Max_altezza: accepted.".format(timestamp))
-    else:
-        if printout==True:
-            print("Timestamp: {}. WARNING! ID #{}: max_altezza out of acceptable range! Please check the assembly.".format(timestamp, wid))
-        logging.warning("Timestamp: {}. ID #{}: max_altezza out of acceptable range! Please check the assembly.".format(timestamp, wid))
-        #write warning to DB:
-        write_warning(timestamp, wid)
-        if visual:
-            visualize(target.forza, target.std_curve, target.altezza, current.forza)
-        return -1
+    # Disconnect
+    db_disconnect(cnxn, cursor)
+    return 0
 
-    #check 2: max_forza
-    wid = evaluate_max(current.mf, target.mf, target.std_mf, mtype='forza', sigma=sigma_mf)
-    if wid == 0:
-        if printout==True:
-            print("Timestamp: {}. Max_forza: accepted.".format(timestamp))
-    else:
-        if printout==True:
-            print("Timestamp: {}. WARNING! ID #{}: max_forza out of acceptable range! Please check the assembly.".format(timestamp, wid))
-        logging.warning("Timestamp: {}. ID #{}: max_forza out of acceptable range! Please check the assembly.".format(timestamp, wid))
-        #write warning to DB:
-        write_warning(timestamp, wid)
-        if visual:
-            visualize(target.forza, target.std_curve, target.altezza, current.forza)
-        return -1
-    
-    #check 3: compare curve
-    count_out, wid = evaluate_curve(current.forza, target.forza, target.std_curve, sigma=sigma_curve)
-    if wid == 0:
-        if printout==True:
-            print("Timestamp: {timestamp}. Curve: assembly success. No warnings.")
-        return 0
-    else:
-        if printout==True:
-            print("Timestamp: {}. WARNING! ID #{}: curve out of bounds in {} points out of {}! Please check the assembly.".format(timestamp, wid, count_out, len(current.forza)))
-        logging.warning("Timestamp: {}. ID #{}: curve out of bounds in {} points out of {}! Please check the assembly.".format(timestamp, wid, count_out, len(current.forza)))
-        #write warning to DB:
-        write_warning(timestamp, wid)
-        if visual:
-            visualize(target.forza, target.std_curve, target.altezza, current.forza)
-        return -1
 
 #MAIN:
-#print(evaluate_curve(1584106169, visual=True))
+if __name__ == '__main__':
+    #Sample timestamp: 1584106169
+    timestamp = input("Insert timestamp here: ")
+    call_evaluate(timestamp, sigma_ma=1, sigma_mf=1, sigma_curve=1)
