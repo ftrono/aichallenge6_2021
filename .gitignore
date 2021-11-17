@@ -1,1 +1,3 @@
 database_functions/db_credentials.ini
+logs
+__pycache__
