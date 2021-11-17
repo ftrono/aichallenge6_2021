@@ -1,5 +1,3 @@
-from db_connect import db_connect, db_disconnect
-
 #KEY DB FUNCTIONS:
 # - reset_warnings()
 # - drop_all()
@@ -7,35 +5,32 @@ from db_connect import db_connect, db_disconnect
 # - populate_max()
 
 #reset Warnings table:
-def reset_warnings():
-    cnxn, cursor = db_connect()
+def reset_warnings(cnxn, cursor):
     cursor.execute("TRUNCATE TABLE Warnings")
     cnxn.commit()
-    db_disconnect(cnxn, cursor)
     print("Table Warnings successfully reset.")
     return 0
 
 
 #remove ALL tables:
-def drop_all():
-    cnxn, cursor = db_connect()
-
+def drop_all(cnxn,cursor,logging):
+    error=False
     tables = ['Warnings', 'WarningDesc', 'CombosData', 'PressateData', 'Pressate', 'Combos', 'Riduttori']
     for t in tables:
-        query = 'DROP TABLE '+ t
-        cursor.execute(query)
-        cnxn.commit()
-    
-    db_disconnect(cnxn, cursor)
-    print("All tables removed from database.")
+        try:
+            query = 'DROP TABLE '+ t
+            cursor.execute(query)
+            cnxn.commit()
+        except:
+            logging.error("Unable to drop table "+t)
+            error=True
+    if not error:
+        logging.info("Dropped all tables")
     return 0
 
 
 #generate tables:
-def generate_tables():
-    # open connection
-    cnxn, cursor = db_connect()
-
+def generate_tables(cnxn,cursor,logging):
     # query strings
     riduttori     = "CREATE TABLE Riduttori(RiduttoreID BIGINT NOT NULL PRIMARY KEY, Master BIT NOT NULL, Taglia CHAR(5) NOT NULL, Cd TINYINT NOT NULL, Stadi BIT NOT NULL, Rapporto TINYINT NOT NULL);"
     combos        = "CREATE TABLE Combos(ComboID CHAR(10) NOT NULL PRIMARY KEY, Taglia CHAR(5) NOT NULL, IdComp CHAR(5) NOT NULL, TargetMA DECIMAL(5, 2) NOT NULL, TargetMF DECIMAL(5,2) NOT NULL, StdMA DECIMAL(5,2) NOT NULL, StdMF DECIMAL(5, 2) NOT NULL, StdCurve DECIMAL(5,2) NOT NULL)"
@@ -47,22 +42,25 @@ def generate_tables():
 
     # execute queries
     queries = [riduttori, combos, combos_data, pressate, pressate_data, warning_desc, warnings]
+    error=False
     for q in queries:
-        cursor.execute(q)
-        cnxn.commit()
-
-    #close cursor and connection
-    db_disconnect(cnxn, cursor)
+        try:
+            cursor.execute(q)
+            cnxn.commit()
+        except:
+            logging.error("IN "+q)
+            error=True
+    if not error:
+        logging.info("Created all tables")
     return 0
 
 
 #Populate MaxForza and MaxAltezza fields in Pressate table:
-def populate_max():
+def populate_max(cnxn,cursor,logging):
     # open connection
     fields = ['Forza', 'Altezza']
-    cnxn, cursor = db_connect()
     temp = {}
-
+    logging.info("Start max values population in table Pressate")
     for s in fields:
         #query data:
         cursor.execute('SELECT Timestamp, MAX('+s+') as Max'+s+' FROM PressateData GROUP BY TIMESTAMP')
@@ -75,9 +73,7 @@ def populate_max():
             cursor.commit()
         #reset:
         temp = {}
-
-    #close cursor and connection
-    db_disconnect(cnxn, cursor)
+    logging.info("Max values populated")
     return 0
 
 
