@@ -11,13 +11,13 @@ def create_db(drop=False):
     logging.info("DB connection OPENED")
     cnxn, cursor = db_connect()
     
-    # if drop == True:
-    #     drop_all(cnxn,cursor,logging)
+    if drop == True:
+        drop_all(cnxn,cursor,logging)
 
-    # #Generate database:
-    # generate_tables(cnxn,cursor,logging)
+    #Generate database:
+    generate_tables(cnxn,cursor,logging)
 
-    # insert_data(cnxn,cursor,logging)
+    insert_data(cnxn,cursor,logging)
 
     populate_max(cnxn,cursor,logging)
 
