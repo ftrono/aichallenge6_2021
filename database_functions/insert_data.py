@@ -1,4 +1,6 @@
 import csv, time, datetime, os, logging
+import telegram_send
+
 
 #Herper functions:
 def name_parser(name): # take as input the file name
@@ -64,7 +66,7 @@ def insert_data(dbt,limit=1000000):
     #2) DATASET IMPORT:
     comboIDs=[]
     with open(os.getcwd()+"/database_functions/Summary.csv", mode='r') as summary:
-        general_log.debug("Opened summary.csv")
+        general_log.debug(summary)
         # read csv as dictionary
         summary_reader = csv.DictReader(summary,delimiter=',') 
         line_count = 0 # initialize line counter
@@ -112,7 +114,7 @@ def insert_data(dbt,limit=1000000):
                                             if ComboID not in comboIDs:
                                                 try:
                                                     n_combo+=1
-                                                    cursor.execute("INSERT INTO Combos (ComboID,Taglia,IdComp,TargetMA,TargetMF,StdMA,StdMF,StdCurve) VALUES ('" + ComboID + "','" + Taglia + "','" + IdComp + "',0,0,0,0,0);")    
+                                                    cursor.execute("INSERT INTO Combos (ComboID,Taglia,IdComp,TargetMA,TargetMF,StdMA,StdMF,StdCurveAvg) VALUES ('" + ComboID + "','" + Taglia + "','" + IdComp + "',0,0,0,0,0);")    
                                                     comboIDs.append(ComboID)
                                                     general_log.debug("Inserted Combo "+ComboID)
                                                 except:
@@ -166,6 +168,7 @@ def insert_data(dbt,limit=1000000):
     #when you're done
     report = open(os.getcwd()+"/logs/insert_report.txt", 'w')
     report.write("IMPORT CSV REPORT\n\nProcess started at: %s\nProcess completed at: %s\nElapsed time: %s seconds\nInserted riduttori: %s/%s\nInserted combos: %s/%s\nInserted pressate: %s/%s\nInserted data from pressate: %s/%s"%(str(time.ctime(int(start_time))),str(time.ctime(int(time.time()))),str(time.time()-start_time),str(n_rid-e_rid),str(n_rid),str(n_combo-e_combo),str(n_combo),str(n_pres-e_pres),str(n_pres),str(n_pres_data-e_pres_data),str(n_pres_data)))
+    telegram_send.send(messages=["Import completed! in %s seconds"%(time.time() - start_time)])
     return 0
 
 #MAIN:

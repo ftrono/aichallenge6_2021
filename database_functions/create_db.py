@@ -1,7 +1,7 @@
 from db_tools import drop_all, generate_tables, populate_max
 from db_connect import db_connect, db_disconnect
 from insert_data import insert_data
-import logging
+import logging,telegram_send
 
 
 
@@ -12,12 +12,10 @@ def create_db(drop=False,limit=1000000):
     hdlr1=logging.FileHandler('status.log',mode='w')
     hdlr2=logging.FileHandler('./logs/insert.log',mode='w')
     hdlr2.setFormatter(logging.Formatter('%(asctime)s %(levelname)s %(message)s'))
-    general_log.setLevel(logging.INFO)
+    general_log.setLevel(logging.DEBUG)
     status_log.setLevel(logging.INFO)
     status_log.addHandler(hdlr1)
     general_log.addHandler(hdlr2)
-    #logging.basicConfig(level=logging.INFO, filename='./logs/insert.log', filemode='w', format='%(asctime)s %(levelname)s %(message)s')
-    #logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s %(message)s')
     general_log.info("DB connection OPENED")
     cnxn, cursor = db_connect()
 
@@ -29,13 +27,17 @@ def create_db(drop=False,limit=1000000):
 
     #Generate database:
     generate_tables(dbt)
+    telegram_send.send(messages=["Import process started"])
     insert_data(dbt,limit)
+    telegram_send.send(messages=["Started populating max"])
     populate_max(dbt)
-
+    telegram_send.send(messages=["Completed db population"])
     db_disconnect(cnxn, cursor)
     general_log.info("DB connection CLOSED")
     general_log.info("PROCESS COMPLETED!")
+    telegram_send.send(messages=["Process stopped"])
     return 0
 
 #MAIN:
-create_db(drop=True,limit=1000000)
+if __name__ == '__main__':
+    create_db(drop=True,limit=1000000)
