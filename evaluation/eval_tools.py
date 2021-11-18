@@ -31,7 +31,7 @@ def evaluate_max(dbt, riduttore, timestamp, cur, tgt, std, mtype, sigma=1):
         wid = 3
     else:
         print("ERROR: mtype must by either 'altezza' or 'forza'.")
-        return -1
+        raise
 
     logging = dbt['logging']
     #evaluate current MA/MF if within StdMA/StdMF +- sigma:
@@ -46,7 +46,7 @@ def evaluate_max(dbt, riduttore, timestamp, cur, tgt, std, mtype, sigma=1):
 
 
 #Eval curve (point by point):
-def evaluate_curve(dbt, current, target, sigma=1):
+def evaluate_curve(dbt, current, target, sigma=1, use_avg=False, minpoints=0):
     '''
     Function that evaluates if all points of the curve (already interpolated) are within the acceptable std_dev bound 
     from the ideal curve, increased by a sigma.
@@ -54,7 +54,7 @@ def evaluate_curve(dbt, current, target, sigma=1):
     Parameters:
     -------------------
     input:
-    - cur_forza, tgt_forza, std_curve (list, list, float) -> current targets for the combo
+    - cur_forza, tgt_forza, std_curve_avg (list, list, float) -> current targets for the combo
     - sigma value (int) -> will increase the std_dev in the DB (acceptable boundary)
     
     output:
@@ -62,28 +62,35 @@ def evaluate_curve(dbt, current, target, sigma=1):
     - wid (warning id) -> if warning found, else 0.
     '''
     logging = dbt['logging']
-    count_out = 0
-    dev = target.std_curve * sigma
+    count_out = 0    
     
     #count points out of bounds:
-    for i in range(len(current.forza)):
-        if (current.forza[i] < (target.forza[i] - dev)) or (current.forza[i] > (target.forza[i] + dev)):
-            count_out = count_out + 1
+    if use_avg == True:
+        #use: average deviation:
+        dev = target.std_curve_avg * sigma
+        for i in range(len(current.forza)):
+            if (current.forza[i] < (target.forza[i] - dev)) or (current.forza[i] > (target.forza[i] + dev)):
+                count_out = count_out + 1
+    else:
+        #use deviation vector:
+        for i in range(len(current.forza)):
+            if (current.forza[i] < (target.forza[i] - (target.std[i]*sigma))) or (current.forza[i] > (target.forza[i] + (target.std[i]*sigma))):
+                count_out = count_out + 1
 
     #final check on curve:
-    if count_out == 0: #ok
+    if count_out <= minpoints: #ok
         logging.info("Timestamp {}: assembly success. No warnings.".format(current.timestamp))
-        return 0
+        return count_out, 0
     else:
         wid = 4
         logging.warning("Timestamp {}: flagged with WID #{}. Curve out of bounds in {} points out of {}! Please check the assembly.".format(current.timestamp, wid, count_out, len(current.forza)))
         #write warning to DB:
         write_warning(dbt, current.riduttoreid, wid, current.timestamp)
-    return count_out
+    return count_out, wid
 
 
 #CENTRAL EVALUATE FUNCTION:
-def evaluate_full(dbt, current, target, sigmas, visual=False, preprocessed=False):
+def evaluate_full(dbt, current, target, sigmas, minpoints=0, use_avg=False, preprocessed=False, visual=False, save=False):
     '''
     Function that evaluates if a pressata is correct or not. 
     It queries for the parameters of the pressata's combo, interpolates the curve and 
@@ -110,33 +117,35 @@ def evaluate_full(dbt, current, target, sigmas, visual=False, preprocessed=False
 
     '''
     #sigmas:
-    sigma_ma = sigmas['sigma_ma']
     sigma_mf = sigmas['sigma_mf']
     sigma_curve = sigmas['sigma_curve']
+    comboid = current.comboid
+    timestamp = current.timestamp
 
     #INTERPOLATE CURVE (overwrite current.forza into collector object):
     current.forza = interpolate_curve(target.altezza, current.altezza, current.forza)
 
     if preprocessed == False:
         #check 1: max_altezza
+        sigma_ma = sigmas['sigma_ma']
         wid = evaluate_max(dbt, current.riduttoreid, current.timestamp, current.ma, target.ma, target.std_ma, mtype='altezza', sigma=sigma_ma)
-        if visual:
-            visualize(target.forza, target.std_curve, target.altezza, current.forza)
         if wid != 0:
+            if visual == True or save == True:
+                visualize(current, target, use_avg=use_avg, wid=wid, count_out=0, save=save)
             return -1
 
     #check 2: max_forza
     wid = evaluate_max(dbt, current.riduttoreid, current.timestamp, current.mf, target.mf, target.std_mf, mtype='forza', sigma=sigma_mf)
-    if visual:
-        visualize(target.forza, target.std_curve, target.altezza, current.forza)
     if wid != 0:
+        if visual == True or save == True:
+            visualize(current, target, use_avg=use_avg, wid=wid, count_out=0, save=save)
         return -1
     
     #check 3: compare curve
-    count_out = evaluate_curve(current.forza, target.forza, target.std_curve, sigma=sigma_curve)
-    if visual:
-        visualize(target.forza, target.std_curve, target.altezza, current.forza)
-    if count_out == 0:
+    count_out, wid = evaluate_curve(dbt, current, target, sigma=sigma_curve, use_avg=use_avg, minpoints=minpoints)
+    if visual == True or save == True:
+        visualize(current, target, use_avg=use_avg, wid=wid, count_out=count_out, save=save)
+    if wid == 0:
         return 0
     else:
         return -1

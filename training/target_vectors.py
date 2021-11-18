@@ -1,5 +1,7 @@
 from datetime import time
 import numpy as np
+import pandas as pd
+import statistics
 from training_tools import train_curve
 
 #GENERATE TARGET HEIGHT VECTORS FOR COMBOS:
@@ -24,7 +26,6 @@ def generate_hvector(dbt, timestamps, target_ma):
     cursor = dbt['cursor']
     cnxn = dbt['cnxn']
     logging = dbt['logging']
-    timestamps = []
     rates = []
 
     #2) for each timestamp:
@@ -58,25 +59,51 @@ def train_vectors(dbt, comboid, target_ma, timestamps):
     cursor = dbt['cursor']
     cnxn = dbt['cnxn']
     logging = dbt['logging']
-    
-    #1) Target height vector:
-    altezza_combo = generate_hvector(dbt, timestamps, target_ma)
-    logging.debug("Target Altezza vector calculated for ComboID {}".format(comboid))
 
-    #2) Target Forza curve and Std_curve:
-    forza_combo, std_curve = train_curve(dbt, comboid, timestamps)
-    logging.debug("Target Forza curve and std_curve generated for ComboID {}".format(comboid))
+    if len(timestamps) == 0:
+        logging.error("ComboId {} is empty.")
+        raise
+    elif len(timestamps) == 1:
+        logging.warning("ComboId {} only has 1 Pressata: its original curves will be now saved as targets.")
+         #extract original curves (forza and altezza):
+        query = "SELECT Altezza, Forza FROM PressateData WHERE Timestamp="+str(timestamps[0])
+        #store to Pandas dataframe
+        df = pd.read_sql(query, cnxn)
+        #extract data:
+        altezza_combo = list(df['Altezza'].to_numpy())
+        forza_combo = list(df['Forza'].to_numpy())
+        std_list = [0 for i in forza_combo] #empty std_list vector
+        std_curve_avg = statistics.stdev(forza_combo)
+    else:
+        #1) Target height vector:
+        altezza_combo = generate_hvector(dbt, timestamps, target_ma)
+        logging.debug("Target Altezza vector calculated for ComboID {}".format(comboid))
+
+        #2) Target Forza curve and Std_curve:
+        forza_combo, std_list = train_curve(dbt, comboid, timestamps, altezza_combo)
+        std_curve_avg = statistics.mean(std_list)
+        logging.debug("Target Forza curve and std_curve generated for ComboID {}".format(comboid))
 
     #3) Store target curve parameters to DB (Combos & CombosData tables):
     dataList = []
     for ind in range(len(forza_combo)):
-        dataList.append("("+str(comboid)+","+str(altezza_combo[ind])+","+str(forza_combo[ind])+")")
+        dataList.append("('"+str(comboid)+"',"+str(altezza_combo[ind])+","+str(forza_combo[ind])+","+str(std_list[ind])+")")
     #accumulate queries:
     try:
-        cursor.execute("UPDATE Combos SET StdCurve = ? WHERE ComboID = ?", std_curve, str(comboid))
-        cursor.execute("INSERT INTO CombosData (ComboID, Altezza, Forza) VALUES "+','.join(dataList))
+        cursor.execute("UPDATE Combos SET StdCurveAvg = ? WHERE ComboID = ?", std_curve_avg, str(comboid))
+        #batch_insert:
+        pr_i = 0
+        if len(dataList) < 1000:
+            new_i = len(dataList)
+        else:
+            new_i = 1000
+        while new_i <= len(dataList):
+            cursor.execute("INSERT INTO CombosData (ComboID, Altezza, Forza, Std) VALUES "+','.join(dataList[pr_i:new_i]))
+            pr_i = new_i
+            new_i = new_i+1000
     except:
         logging.warning("Insert error for targets of ComboID {}".format(comboid))
+        raise
 
     #4) commit accumulated queries to DB:
     cnxn.commit()

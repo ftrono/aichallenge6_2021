@@ -1,4 +1,5 @@
 database_functions/db_credentials.ini
 logs/**
+output/**
 __pycache__
 database_functions/queries/restore_db.sql

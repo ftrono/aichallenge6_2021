@@ -28,7 +28,7 @@ def set_target_max(dbt, mtype):
         v = 'F'
     else:
         print("ERROR: mtype must by either 'altezza' or 'forza'.")
-        return -1
+        raise
 
     # Extract info for Pressate
     cursor = dbt['cursor']
@@ -96,7 +96,7 @@ def stdev_curve(batch_forces):
 
     Returns
     -------
-    std_curve : double
+    std_curve_avg : double
        The value of the average std_devs of all points in the series.
 
     '''
@@ -112,18 +112,14 @@ def stdev_curve(batch_forces):
         #of this list we compute the standard deviation and append it to a list
         stdev = statistics.stdev(temp)
         stdev_list.append(stdev)
-    #from the list of all the std_devs we compute the average to be used as 
-    #threshold for the ideal curve
-    std_curve = statistics.mean(stdev_list)
-    return std_curve
+    return stdev_list
 
 
 #NEW BS4: train & set curves for a comboid:
-def train_curve(dbt, comboid, timestamps):
+def train_curve(dbt, comboid, timestamps, altezza_combo):
     cursor = dbt['cursor']
     cnxn = dbt['cnxn']
     logging = dbt['logging']
-    timestamps = []
     batch_forces = []
     logging.debug("Started modeling ComboID {}".format(comboid))
 
@@ -138,15 +134,8 @@ def train_curve(dbt, comboid, timestamps):
         cur_altezza = list(df['Altezza'].to_numpy())
         cur_forza = list(df['Forza'].to_numpy())
 
-        #extract stamp vector (altezza_combo):
-        query = "SELECT Altezza FROM CombosData WHERE ComboID='"+str(comboid)+"'"
-        #store to Pandas dataframe
-        df = pd.read_sql(query, cnxn)
-        #extract data:
-        combo_altezza = list(df['Altezza'].to_numpy())
-
         #interpolate force curve:
-        itp_forza = interpolate_curve(combo_altezza, cur_altezza, cur_forza)
+        itp_forza = interpolate_curve(altezza_combo, cur_altezza, cur_forza)
 
         #store to batch list for the current ComboID:
         batch_forces.append(itp_forza)
@@ -154,6 +143,6 @@ def train_curve(dbt, comboid, timestamps):
     #3) get target curve parameters for the combo (batch_standardize):
     logging.debug("Training final curve parameters for ComboID {}".format(comboid))
     forza_combo = ideal_curve(batch_forces)
-    std_curve = stdev_curve(batch_forces)
+    std_list = stdev_curve(batch_forces)
     logging.debug("Successfully modeled ComboID {}".format(comboid))
-    return forza_combo, std_curve
+    return forza_combo, std_list

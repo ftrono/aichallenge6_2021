@@ -17,109 +17,140 @@ from evaluation.eval_tools import evaluate_full
 def preprocessing(sigma_ma=1, sigma_dt=1):
     # Connect
     cnxn, cursor = db_connect()
-    #logging.basicConfig(level=logging.INFO, filename='./logs/preprocess.log', filemode='w', format='%(asctime)s %(levelname)s %(message)s')
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
-    logging.info("Preprocessing STARTED.")
+
+    # Set logger:
+    log=logging.getLogger('preprocessing')
+    hdl=logging.FileHandler('./logs/preprocessing.log',mode='w')
+    hdl.setFormatter(logging.Formatter('%(asctime)s %(levelname)s %(message)s'))
+    log.setLevel(logging.INFO)
+    log.addHandler(hdl)
+
+    #logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
+    log.info("Preprocessing STARTED.")
+    print("Preprocessing STARTED.")
 
     #DB tools:
-    dbt = {'cnxn': cnxn, 'cursor': cursor, 'logging': logging}
+    dbt = {'cnxn': cnxn, 'cursor': cursor, 'logging': log}
 
     #0) reset Warnings table:
     reset_table(dbt, tablename="Warnings")
-    logging.info("Warnings table reset.")
+    log.info("Warnings table reset.")
 
     #1) set TargetMA and StdMA for all combos:
     set_target_max(dbt, mtype='altezza')
-    logging.info("Trained TargetMA and StdMA for all combos.")
+    log.info("Trained TargetMA and StdMA for all combos.")
 
     #2) Dataset cleaning: flag wrong curves by MA:
     flag_ma(dbt, sigma_ma)
-    logging.info("Flagged all Pressate not reaching TargetMA for their combo, with sigma = {}.".format(sigma_ma))
+    log.info("Flagged all Pressate not reaching TargetMA for their combo, with sigma = {}.".format(sigma_ma))
     #flag_dtimes(dbt, sigma_dt)
-    #logging.info("Flagged all Riduttori with incorrect number of pressate, with sigma = {}.".format(sigma_dt))
+    #log.info("Flagged all Riduttori with incorrect number of pressate, with sigma = {}.".format(sigma_dt))
 
     # Disconnect
     db_disconnect(cnxn, cursor)
-    logging.info("Preprocessing COMPLETE!")
+    log.info("Preprocessing COMPLETE!")
+    print("Preprocessing COMPLETE!")
     return 0
 
 
 #2) Training: learn target parameters for Combos and loop evaluate all timestamps in the DB:
-def train(epochs=1, sigma_mf=1, sigma_curve=1):
+def train(epochs=1, sigma_mf=1, sigma_curve=1, use_avg=False, minpressate=2, minpoints=0, savepng=False):
     # Connect
     cnxn, cursor = db_connect()
-    #logging.basicConfig(level=logging.INFO, filename='./logs/training.log', filemode='w', format='%(asctime)s %(levelname)s %(message)s')
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
-    logging.info("Training STARTED")
+    
+    # Set logger:
+    log=logging.getLogger('training')
+    hdl=logging.FileHandler('./logs/training.log',mode='w')
+    hdl.setFormatter(logging.Formatter('%(asctime)s %(levelname)s %(message)s'))
+    log.setLevel(logging.INFO)
+    log.addHandler(hdl)
+    
+    #logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
+    log.info("Training STARTED")
+    print("Training STARTED")
 
     #DB tools:
-    dbt = {'cnxn': cnxn, 'cursor': cursor, 'logging': logging}
+    dbt = {'cnxn': cnxn, 'cursor': cursor, 'logging': log}
     #vars:
     sigmas = {'sigma_mf': sigma_mf, 'sigma_curve': sigma_curve}
     combos = {}
 
     #1) Reset CombosData table:
     reset_table(dbt, tablename="CombosData")
-    logging.info("CombosData table reset")
+    log.info("CombosData table reset")
 
     #2) Extract all comboids:
     cursor.execute("SELECT ComboID, TargetMA FROM Combos")
     for tup in cursor.fetchall():
         #format: combos_ma[comboid] = target_ma (store for later)
         combos[tup[0]] = float(tup[1])
+    log.info("Total number of Combos in DB: {}".format(len(combos)))
+    print("Total number of Combos in DB: {}".format(len(combos)))
 
     #3) EPOCHS: parameters training:
     for e in range(epochs):
-        logging.info("STARTED epoch #{}".format(e+1))
+        print("STARTED epoch #{}".format(e+1))
+        log.info("STARTED epoch #{}".format(e+1))
 
         #1) Set TargetMF and StdMF (for all combos):
         set_target_max(dbt, mtype='forza')
-        logging.info("Epoch #{}: trained TargetMF and StdMF for all combos".format(e+1))
+        log.info("Epoch #{}: trained TargetMF and StdMF for all combos".format(e+1))
 
         #2) Train target Forza curves and Std_curve for all combos:
         for comboid in combos:
             cnt = 0
             timestamps = []
             target_ma = combos[comboid]
-            logging.info("Epoch #{}: training ComboID {}".format((e+1), comboid))
 
             #1) extract all timestamps with that ComboID and with NO warnings:
             cursor.execute("SELECT Pressate.Timestamp FROM Pressate WHERE Pressate.ComboID = ? AND NOT EXISTS (SELECT Warnings.Timestamp FROM Warnings WHERE Warnings.Timestamp = Pressate.Timestamp)", comboid)
             for tup in cursor.fetchall():
                 timestamps.append(tup[0])
-
-            #2) learn the current Combo vectors:
-            logging.info("Epoch #{}: learning the target Altezza and Forza vectors for ComboID {}".format((e+1), comboid))
-            train_vectors(dbt, comboid, target_ma, timestamps)
-
-            #3) extract all learnt data for target ComboID:
-            logging.info("Epoch #{}: extracting all learned parameters for ComboID {}".format((e+1), comboid))
-            target = extract_data(dbt, stype='target', comboid=comboid)
-
-            #4) evaluate all the timestamps extracted for the ComboID:
-            logging.info("Epoch #{}: evaluating all Pressate for ComboID {}".format((e+1), comboid))
-            for timestamp in timestamps:
-                #extract data for current Pressata:
-                current = extract_data(dbt, stype='current', timestamp=timestamp)
-                #Evaluate current Pressata:
-                ret = evaluate_full(dbt, current, target, sigmas, visual=False, preprocessed=True)
-                #if flag:
-                if ret == -1:
-                    cnt = cnt+1
-                else:
-                    logging.debug("Evaluated Pressata timestamp {} as correct. Evaluation result: {}".format(timestamp, ret))
             
-        #epoch completed for the current ComboID
-        logging.info("COMPLETED EPOCH #{}: evaluated all Pressate for ComboID {}. Flagged {} new Pressate, with sigmas: MF {}, curve {}".format((e+1), comboid, cnt, sigma_mf, sigma_curve))
+            if len(timestamps) < minpressate:
+                log.info("Epoch #{}: ComboID skipped {}, number of Pressate lower than {}".format((e+1), comboid, len(timestamps)))
+            else:
+                #train
+                log.info("Epoch #{}: training {} Pressate for ComboID {}".format((e+1), len(timestamps), comboid))
 
-        #Need stop mechanism.
+                #2) learn the current Combo vectors:
+                log.info("Epoch #{}: learning the target Altezza, Forza & Stdev vectors for ComboID {}".format((e+1), comboid))
+                train_vectors(dbt, comboid, target_ma, timestamps)
+
+                #3) extract all learnt data for target ComboID:
+                log.info("Epoch #{}: extracting all learned parameters for ComboID {}".format((e+1), comboid))
+                target = extract_data(dbt, stype='target', comboid=comboid)
+
+                #4) evaluate all the timestamps extracted for the ComboID:
+                log.info("Epoch #{}: evaluating {} Pressate for ComboID {}".format((e+1), len(timestamps), comboid))
+                print("Epoch #{}: evaluating {} Pressate for ComboID {}".format((e+1), len(timestamps), comboid))
+                for i in range(len(timestamps)):
+                    #status update:
+                    pstr = "Epoch #"+str(e+1)+", ComboID "+str(comboid)+": evaluating Pressata "+str(i+1)+"/"+str(len(timestamps))
+                    print(pstr, end = "               \r")
+                    #extract data for current Pressata:
+                    current = extract_data(dbt, stype='current', timestamp=timestamps[i])
+                    #Evaluate current Pressata:
+                    ret = evaluate_full(dbt, current, target, sigmas, minpoints=minpoints, use_avg=use_avg, preprocessed=True, visual=False, save=savepng)
+                    #if flag:
+                    if ret == -1:
+                        cnt = cnt+1
+                    else:
+                        log.debug("Evaluated Pressata timestamp {} as correct. Evaluation result: {}".format(timestamps[i], ret))
+                
+            #epoch completed for the current ComboID
+            log.info("COMPLETED EPOCH #{}: evaluated all Pressate for ComboID {}. Flagged {} new Pressate, with sigmas: MF {}, curve {}".format((e+1), comboid, cnt, sigma_mf, sigma_curve))
+
+            #Need stop mechanism.
     
-    logging.info("Training COMPLETE!")
+    log.info("Training COMPLETE!")
+    print("\nTraining COMPLETE!")
     # Disconnect
     db_disconnect(cnxn, cursor)
     return 0
 
 
 #MAIN:
-preprocessing(sigma_ma=1, sigma_dt=1)
-train(epochs=1, sigma_mf=1, sigma_curve=1)
+if __name__ == '__main__':
+    preprocessing(sigma_ma=1, sigma_dt=1)
+    train(epochs=1, sigma_mf=2, sigma_curve=2, use_avg=False, minpressate=2, minpoints=5, savepng=True)

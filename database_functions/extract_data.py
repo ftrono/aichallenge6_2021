@@ -18,9 +18,10 @@ class Collector:
         self.mf = 0
         self.std_ma = 0
         self.std_mf = 0
-        self.std_curve = 0
+        self.std_curve_avg = 0
         self.altezza = []
         self.forza = []
+        self.std = []
 
 
 #Extract data from DB:
@@ -44,7 +45,7 @@ def extract_data(dbt, stype='current', timestamp=None, comboid=None):
     #args check:
     if (stype != 'current') and (stype != 'target'):
         print("ERROR: stype must be either 'current' or 'target'!")
-        return -1
+        raise
 
     #a) extract key data for current Pressata:
     elif stype == 'current':
@@ -90,21 +91,22 @@ def extract_data(dbt, stype='current', timestamp=None, comboid=None):
         logging.debug("Extracting target data for ComboID {}".format(comboid))
 
         #EXTRACT TARGET COMBO DATA:
-        query = "SELECT TargetMA, TargetMF, StdMA, StdMF, StdCurve FROM Combos WHERE ComboID='"+str(comboid)+"'"
+        query = "SELECT TargetMA, TargetMF, StdMA, StdMF, StdCurveAvg FROM Combos WHERE ComboID='"+str(comboid)+"'"
         df = pd.read_sql(query, cnxn)
         #extract data:
         target.ma = float(df['TargetMA'][0])
         target.mf = float(df['TargetMF'][0])
         target.std_ma = float(df['StdMA'][0])
         target.std_mf = float(df['StdMF'][0])
-        target.std_curve = float(df['StdCurve'][0])
+        target.std_curve_avg = float(df['StdCurveAvg'][0])
 
         #EXTRACT TARGET CURVES FOR THE COMBO:
-        query = "SELECT Forza, Altezza FROM CombosData WHERE ComboID='"+str(comboid)+"'"
+        query = "SELECT Forza, Altezza, Std FROM CombosData WHERE ComboID='"+str(comboid)+"'"
         #store to Pandas dataframe
         df = pd.read_sql(query, cnxn)
         #extract data:
         target.forza = list(df['Forza'].to_numpy())
         target.altezza = list(df['Altezza'].to_numpy())
+        target.std = list(df['Std'].to_numpy())
         logging.debug("Extraction complete")
         return target 
