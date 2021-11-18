@@ -6,8 +6,8 @@ import logging
 
 #CREATE DB (DROP & REPOPULATE ALL TABLES):
 def create_db(drop=False):
-    #logging.basicConfig(level=logging.INFO, filename='./logs/insert.log', filemode='w', format='%(asctime)s %(levelname)s %(message)s')
-    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s %(message)s')
+    logging.basicConfig(level=logging.INFO, filename='./logs/insert.log', filemode='w', format='%(asctime)s %(levelname)s %(message)s')
+    #logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s %(message)s')
     logging.info("DB connection OPENED")
     cnxn, cursor = db_connect()
 
@@ -28,4 +28,4 @@ def create_db(drop=False):
     return 0
 
 #MAIN:
-create_db(drop=False)
+create_db(drop=True)
