@@ -1,3 +1,4 @@
+import logging
 #KEY DB FUNCTIONS:
 # - reset_table()
 # - drop_all()
@@ -8,14 +9,14 @@
 def reset_table(dbt, tablename):
     cursor = dbt['cursor']
     cnxn = dbt['cnxn']
-    logging = dbt['logging']
+    logger=logging.getLogger('general')
     try:
         query = "TRUNCATE TABLE "+tablename
         cursor.execute(query)
         cnxn.commit()
         print("Table "+tablename+" successfully reset.")
     except:
-        logging.error("Unable to reset "+tablename+" table.")
+        logger.error("Unable to reset "+tablename+" table.")
     return 0
 
 
@@ -23,7 +24,7 @@ def reset_table(dbt, tablename):
 def drop_all(dbt):
     cursor = dbt['cursor']
     cnxn = dbt['cnxn']
-    logging = dbt['logging']
+    logger=logging.getLogger('general')
     error=False
     tables = ['Warnings', 'WarningDesc', 'CombosData', 'PressateData', 'Pressate', 'Combos', 'Riduttori']
     for t in tables:
@@ -32,10 +33,10 @@ def drop_all(dbt):
             cursor.execute(query)
             cnxn.commit()
         except:
-            logging.error("Unable to drop table "+t)
+            logger.error("Unable to drop table "+t)
             error=True
     if not error:
-        logging.info("Dropped all tables")
+        logger.info("Dropped all tables")
     return 0
 
 
@@ -43,7 +44,7 @@ def drop_all(dbt):
 def generate_tables(dbt):
     cursor = dbt['cursor']
     cnxn = dbt['cnxn']
-    logging = dbt['logging']
+    logger=logging.getLogger('general')
     # query strings
     riduttori     = "CREATE TABLE Riduttori(RiduttoreID BIGINT NOT NULL PRIMARY KEY, Master BIT NOT NULL, Taglia CHAR(5) NOT NULL, Cd TINYINT NOT NULL, Stadi BIT NOT NULL, Rapporto TINYINT NOT NULL);"
     combos        = "CREATE TABLE Combos(ComboID CHAR(10) NOT NULL PRIMARY KEY, Taglia CHAR(5) NOT NULL, IdComp CHAR(5) NOT NULL, TargetMA DECIMAL(5, 2) NOT NULL, TargetMF DECIMAL(5,2) NOT NULL, StdMA DECIMAL(5,2) NOT NULL, StdMF DECIMAL(5, 2) NOT NULL, StdCurve DECIMAL(5,2) NOT NULL)"
@@ -61,10 +62,10 @@ def generate_tables(dbt):
             cursor.execute(q)
             cnxn.commit()
         except:
-            logging.error("IN "+q)
+            logger.error("IN "+q)
             error=True
     if not error:
-        logging.info("Created all tables")
+        logger.info("Created all tables")
     return 0
 
 
@@ -72,15 +73,15 @@ def generate_tables(dbt):
 def populate_max(dbt):
     cursor = dbt['cursor']
     cnxn = dbt['cnxn']
-    logging = dbt['logging']
+    logger=logging.getLogger('general')
     n=175494
     ins=0
-    logging.info("Start max values population in table Pressate")
+    logger.info("Start max values population in table Pressate")
     cursor.execute('SELECT Timestamp, MAX(Forza) as MaxF, MAX(Altezza) as MaxA FROM PressateData GROUP BY TIMESTAMP')
     for row in cursor.fetchall():
         cursor.execute('UPDATE Pressate SET MaxForza = ? , MaxAltezza =? WHERE Timestamp = ?',row[1],row[2],row[0])
         ins+=1
-        logging.debug("Update: %s/%s"%(str(ins),str(n)))        
+        logger.debug("Update: %s/%s"%(str(ins),str(n)))        
     cursor.commit()
-    logging.info("Max values populated")
+    logger.info("Max values populated")
     return 0

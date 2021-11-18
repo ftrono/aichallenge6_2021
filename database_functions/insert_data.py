@@ -1,4 +1,4 @@
-import csv, time, datetime, os
+import csv, time, datetime, os, logging
 
 #Herper functions:
 def name_parser(name): # take as input the file name
@@ -24,10 +24,9 @@ def parse_date(cell):
 
 
 #INSERT DATA:
-def insert_data(dbt):
+def insert_data(dbt,limit=1000000):
     cursor = dbt['cursor']
     cnxn = dbt['cnxn']
-    logging = dbt['logging']
     n_rid=0
     n_pres=0
     n_combo=0
@@ -36,9 +35,10 @@ def insert_data(dbt):
     e_pres=0
     e_combo=0
     e_pres_data=0
-    fp = open('status.txt', 'w')
+    status_log=logging.getLogger('status')
+    general_log=logging.getLogger('general')
     
-    logging.info("STARTED DATA INSERT")
+    general_log.info("STARTED DATA INSERT")
 
     start_time = time.time()
 
@@ -52,7 +52,7 @@ def insert_data(dbt):
         query = "INSERT INTO WarningDesc ( Description) VALUES ("+desc[d]+")"
         cursor.execute(query)
         cursor.commit()
-    logging.info("WarningDesc populated")
+    general_log.info("WarningDesc populated")
 
     with open(os.getcwd()+"/database_functions/Summary.csv", mode='r') as summary:
         # read csv as dictionary
@@ -64,14 +64,14 @@ def insert_data(dbt):
     #2) DATASET IMPORT:
     comboIDs=[]
     with open(os.getcwd()+"/database_functions/Summary.csv", mode='r') as summary:
-        logging.debug("Opened summary.csv")
+        general_log.debug("Opened summary.csv")
         # read csv as dictionary
         summary_reader = csv.DictReader(summary,delimiter=',') 
         line_count = 0 # initialize line counter
         # iterate over rows in summary
         prev_key=""
         for row in summary_reader:
-            if line_count<1000000:
+            if line_count<limit:
                 if line_count > 0: # skip first row (colum names)
                     if row["Tempcode"]!=prev_key: # check if riduttore has already been saved
                         
@@ -90,9 +90,9 @@ def insert_data(dbt):
                             n_rid+=1
                             query="INSERT INTO Riduttori (RiduttoreID,Master,Taglia,Cd,Stadi,Rapporto) VALUES (" + RiduttoreID + "," + Master + ",'" + Taglia + "'," + Cd + "," + Stadi + "," + Rapporto + ")"
                             cursor.execute(query)
-                            logging.debug("Inserted Riduttore "+RiduttoreID)
+                            general_log.debug("Inserted Riduttore "+RiduttoreID)
                         except:
-                            logging.error("Unable to insert riduttore " + RiduttoreID + " duplicate key")
+                            general_log.error("Unable to insert riduttore " + RiduttoreID + " duplicate key")
                             e_rid+=1
 
                     with open(os.getcwd()+"/database_functions/"+row["CSVpath"].replace('\\','/')) as pressata_csv_file: # open pressata csv (need to replace \ with normal /)
@@ -114,26 +114,26 @@ def insert_data(dbt):
                                                     n_combo+=1
                                                     cursor.execute("INSERT INTO Combos (ComboID,Taglia,IdComp,TargetMA,TargetMF,StdMA,StdMF,StdCurve) VALUES ('" + ComboID + "','" + Taglia + "','" + IdComp + "',0,0,0,0,0);")    
                                                     comboIDs.append(ComboID)
-                                                    logging.debug("Inserted Combo "+ComboID)
+                                                    general_log.debug("Inserted Combo "+ComboID)
                                                 except:
-                                                    logging.error("Unable to insert Combo "+ComboID)
+                                                    general_log.error("Unable to insert Combo "+ComboID)
                                                     e_combo+=1
                                             try: 
                                                 header=False
                                                 n_pres+=1      
                                                 cursor.execute("INSERT INTO Pressate (Timestamp,RiduttoreID,ComboID,Stazione,MaxForza,MaxAltezza) VALUES (" + str(Timestamp) + "," + RiduttoreID + ",'" + ComboID + "','" + Stazione + "',0,0);")
-                                                logging.debug("Inserted pressata " + str(row["CSVname"]))
+                                                general_log.debug("Inserted pressata " + str(row["CSVname"]))
                                             except:
                                                 e_pres+=1
-                                                logging.error("Unable to add pressata " + str(row["CSVname"]) + " duplicate timestamp")
+                                                general_log.error("Unable to add pressata " + str(row["CSVname"]) + " duplicate timestamp")
                                         except:
-                                            logging.error("Unknown error at "+str(row["CSVname"]))
+                                            general_log.error("Unknown error at "+str(row["CSVname"]))
                                 except:
-                                    logging.warning(str(row["CSVname"])+" Wrong (header) date cell "+str(Timestamp)+" at line "+str(t_line_count))
-                                #logging.debug("Timestamp: {}, {}".format(Timestamp, row["CSVpath"]))
+                                    general_log.warning(str(row["CSVname"])+" Wrong (header) date cell "+str(Timestamp)+" at line "+str(t_line_count))
+                                #general_log.debug("Timestamp: {}, {}".format(Timestamp, row["CSVpath"]))
                             elif t_line_count>2: # skip first 3 rows
                                 if header:
-                                    logging.warning("Pressata %s not inserted but data are available"%(row["CSVname"])) 
+                                    general_log.warning("Pressata %s not inserted but data are available"%(row["CSVname"])) 
                                 else: 
                                     try:
                                         n_pres_data+=1
@@ -143,27 +143,27 @@ def insert_data(dbt):
                                             dataList.append("(" + str(Timestamp) + "," + str(Forza) + "," + str(Altezza) + ")")
                                         except:
                                             e_pres_data+=1
-                                            logging.warning(str(row["CSVname"])+"Unable to append values at line "+str(t_line_count)) 
+                                            general_log.warning(str(row["CSVname"])+"Unable to append values at line "+str(t_line_count)) 
                                     except:
                                         e_pres_data+=1
-                                        logging.warning(str(row["CSVname"]) + " Malformed row " + str(t_line_count))
+                                        general_log.warning(str(row["CSVname"]) + " Malformed row " + str(t_line_count))
                             t_line_count+=1
                         if not header:
                             try:
                                 cursor.execute("INSERT INTO PressateData (Timestamp,Forza,Altezza) VALUES "+','.join(dataList))
-                                logging.debug("Inserted data for pressata " + str(row["CSVname"]))
+                                general_log.debug("Inserted data for pressata " + str(row["CSVname"]))
                             except:
-                                logging.error("Unable to insert data from pressata:"+str(row["CSVname"]))
+                                general_log.error("Unable to insert data from pressata:"+str(row["CSVname"]))
             cnxn.commit()
             line_count+=1
             #whenever you want to write
-            fp.seek(0)
-            fp.write("[Import CSV] Inserted %s\%s pressate"%(str(line_count),str(totalrows)))
-            fp.flush()
+            #fp.seek(0)
+            status_log.info("[Import CSV] Inserted %s\%s pressate"%(str(line_count),str(totalrows)))
+            #fp.write("[Import CSV] Inserted %s\%s pressate\n"%(str(line_count),str(totalrows)))
+            #fp.flush()
             #journal.write("[Import CSV] Inserted %s\%s pressate"%(str(line_count),str(totalrows)))
-    logging.info("INSERT COMPLETED IN: %s seconds" % (time.time() - start_time))
+    general_log.info("INSERT COMPLETED IN: %s seconds" % (time.time() - start_time))
     #when you're done
-    fp.close()
     report = open(os.getcwd()+"/logs/insert_report.txt", 'w')
     report.write("IMPORT CSV REPORT\n\nProcess started at: %s\nProcess completed at: %s\nElapsed time: %s seconds\nInserted riduttori: %s/%s\nInserted combos: %s/%s\nInserted pressate: %s/%s\nInserted data from pressate: %s/%s"%(str(time.ctime(int(start_time))),str(time.ctime(int(time.time()))),str(time.time()-start_time),str(n_rid-e_rid),str(n_rid),str(n_combo-e_combo),str(n_combo),str(n_pres-e_pres),str(n_pres),str(n_pres_data-e_pres_data),str(n_pres_data)))
     return 0

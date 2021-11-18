@@ -4,8 +4,9 @@ After=multi-user.target
 
 [Service]
 Type=simple
-Restart=always
-ExecStart=/usr/bin/python3 /home/azureadmin/main/database_functions/insert_data.py
+WorkingDirectory=/home/azureadmin/main
+User=azureadmin
+ExecStart=/usr/bin/python3 /home/azureadmin/main/database_functions/create_db.py
 
 [Install]
 WantedBy=multi-user.target

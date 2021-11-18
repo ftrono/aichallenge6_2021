@@ -4,28 +4,38 @@ from insert_data import insert_data
 import logging
 
 
+
 #CREATE DB (DROP & REPOPULATE ALL TABLES):
-def create_db(drop=False):
-    logging.basicConfig(level=logging.INFO, filename='./logs/insert.log', filemode='w', format='%(asctime)s %(levelname)s %(message)s')
+def create_db(drop=False,limit=1000000):
+    status_log=logging.getLogger('status')
+    general_log=logging.getLogger('general')
+    hdlr1=logging.FileHandler('status.log',mode='w')
+    hdlr2=logging.FileHandler('./logs/insert.log',mode='w')
+    hdlr2.setFormatter(logging.Formatter('%(asctime)s %(levelname)s %(message)s'))
+    general_log.setLevel(logging.INFO)
+    status_log.setLevel(logging.INFO)
+    status_log.addHandler(hdlr1)
+    general_log.addHandler(hdlr2)
+    #logging.basicConfig(level=logging.INFO, filename='./logs/insert.log', filemode='w', format='%(asctime)s %(levelname)s %(message)s')
     #logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s %(message)s')
-    logging.info("DB connection OPENED")
+    general_log.info("DB connection OPENED")
     cnxn, cursor = db_connect()
 
     #DB tools:
-    dbt = {'cnxn': cnxn, 'cursor': cursor, 'logging': logging}
+    dbt = {'cnxn': cnxn, 'cursor': cursor}
     
     if drop == True:
         drop_all(dbt)
 
     #Generate database:
     generate_tables(dbt)
-    insert_data(dbt)
+    insert_data(dbt,limit)
     populate_max(dbt)
 
     db_disconnect(cnxn, cursor)
-    logging.info("DB connection CLOSED")
-    logging.info("PROCESS COMPLETED!")
+    general_log.info("DB connection CLOSED")
+    general_log.info("PROCESS COMPLETED!")
     return 0
 
 #MAIN:
-create_db(drop=True)
+create_db(drop=True,limit=1000000)
