@@ -24,7 +24,10 @@ def parse_date(cell):
 
 
 #INSERT DATA:
-def insert_data(cnxn,cursor,logging):
+def insert_data(dbt):
+    cursor = dbt['cursor']
+    cnxn = dbt['cnxn']
+    logging = dbt['logging']
     n_rid=0
     n_pres=0
     n_combo=0

@@ -10,16 +10,17 @@ def create_db(drop=False):
     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s %(message)s')
     logging.info("DB connection OPENED")
     cnxn, cursor = db_connect()
+
+    #DB tools:
+    dbt = {'cnxn': cnxn, 'cursor': cursor, 'logging': logging}
     
     if drop == True:
-        drop_all(cnxn,cursor,logging)
+        drop_all(dbt)
 
     #Generate database:
-    generate_tables(cnxn,cursor,logging)
-
-    insert_data(cnxn,cursor,logging)
-
-    populate_max(cnxn,cursor,logging)
+    generate_tables(dbt)
+    insert_data(dbt)
+    populate_max(dbt)
 
     db_disconnect(cnxn, cursor)
     logging.info("DB connection CLOSED")
@@ -27,4 +28,4 @@ def create_db(drop=False):
     return 0
 
 #MAIN:
-create_db(drop=True)
+create_db(drop=False)
