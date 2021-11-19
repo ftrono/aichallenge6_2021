@@ -10,12 +10,20 @@ from database_functions.db_connect import db_connect, db_disconnect
 from evaluation.eval_tools import evaluate_full
 
 #TRAINING FUNCTIONS:
+#Populate Combos, CombosData, Warnings tables.
 # - preprocessing()
 # - train()
 
 
-#1) Preprocessing: learn TargetMA and StdMA, exclude wrong pressate by MA and dt, calculate target h vectors:
+#PART 1) Preprocessing:
 def preprocessing():
+    '''
+    1) Preprocessing part:
+    - resets Warnings table
+    - learn TargetMA and StdMA for all Combos
+    - exclude wrong pressate by MA
+    - flag riduttori if incorrect number of pressate of same id_comps
+    '''
     # Connect
     cnxn, cursor = db_connect()
 
@@ -54,8 +62,19 @@ def preprocessing():
     return 0
 
 
-#2) Training: learn target parameters for Combos and loop evaluate all timestamps in the DB:
+#PART 2) Training:
 def train():
+    '''
+    2) Training part:
+    - resets CombosData table (curves learnt previously)
+    - for each epoch:
+        - learn TargetMF and StdMF for all Combos
+        - for each ComboID:
+            - get list of Pressate with no warnings
+            - train target vectors for the Combo (target height vector, ideal force curve and points stdev vector)
+            - store Combos target parameters
+            - evaluate all Pressate in the combo and flag the warnings found
+    '''
     # Connect
     cnxn, cursor = db_connect()
     

@@ -8,7 +8,7 @@ from evaluation.eval_tools import evaluate_max
 #FLAG WARNINGS (FOR DATASET CLEANING):
 # - flag_ma()
 # - (helper) pairwise_delta()
-# - flag_dtimes()
+# - flag_rid()
 
 
 #FLAG1: flag warnings for MA:
@@ -16,10 +16,10 @@ def flag_ma(dbt):
     '''
     Function that checks if MaxAltezza is out if the bounds. 
     Bounds = Target max altezza + - deviation.
-    deviation = sigma * target max altezza
+    deviation = sigma (global) * target max altezza
 
     Input:
-    - Sigma: int
+    - dbt (dict) -> dict with cnxn, cursor and logging objects
 
     Output:
     - Write on db if there is warning: warning #1
@@ -56,6 +56,7 @@ def flag_ma(dbt):
 # Helper: pairwise delta
 def pairwise_delta(array):
     '''
+    Helper function.
     Performs pairwise delta of the elements contained into a list
     param: array: list of tuples in the form (RiduttoreID, Timestamp).
     return: list of pairwise deltas
@@ -72,6 +73,9 @@ def pairwise_delta(array):
 
 #FLAG2: extract delta timestamps:
 def flag_rid():
+    '''
+    WIP
+    '''
     # Connect
     cnxn, cursor = db_connect()
     

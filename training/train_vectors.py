@@ -8,12 +8,25 @@ from training.training_tools import compute_rate, ideal_curve, stdev_curve
 
 #GENERATE TARGET VECTORS FOR A COMBOID:
 # - generate_hvec() #for height
-# - generate_hcur() #for force
+# - generate_fcur() #for force
 # - train_vectors() 
 
 
 #generate target height vector for a comboid:
 def generate_hvec(dbt, timestamps, target_ma):
+    '''
+    Generate target height vector for a Combo.
+
+    Parameters:
+    -------------------
+    input:
+    - dbt (dict) -> dict with cnxn, cursor and logging objects
+    - timestamps (list) -> list of timestamps to analyze
+    - target_ma (float) -> TargetMA for the Combo.
+
+    returns:
+    - altezza_combo (list) -> target height vector for the Combo.
+    '''
     cursor = dbt['cursor']
     cnxn = dbt['cnxn']
     logging = dbt['logging']
@@ -47,7 +60,22 @@ def generate_hvec(dbt, timestamps, target_ma):
 
 
 #generate ideal force curve for a comboid:
-def generate_hcur(dbt, comboid, timestamps, altezza_combo):
+def generate_fcur(dbt, comboid, timestamps, altezza_combo):
+    '''
+    Generate ideal force curve for a Combo.
+
+    Parameters:
+    -------------------
+    input:
+    - dbt (dict) -> dict with cnxn, cursor and logging objects
+    - comboid (str) -> current ComboID
+    - timestamps (list) -> list of timestamps to analyze
+    - altezza_combo (float) -> target height vector for the Combo.
+
+    returns:
+    - forza_combo (list) -> ideal force curve for the Combo
+    - std_list (list) -> vector with the std_dev for all points in the series.
+    '''
     cursor = dbt['cursor']
     cnxn = dbt['cnxn']
     logging = dbt['logging']
@@ -81,6 +109,22 @@ def generate_hcur(dbt, comboid, timestamps, altezza_combo):
 
 #JOINT: generate target height vector & ideal force curve for a ComboID:
 def train_vectors(dbt, comboid, target_ma, timestamps):
+    '''
+    MAIN VECTOR TRAINER FUNCTION.
+
+    It calls 2 functions:
+    - generate_hvec() for altezza_combo
+    - generate_fcur() for forza_combo
+    Then, it updates the DB with the learned vectors and data.
+
+    Parameters:
+    -------------------
+    input:
+    - dbt (dict) -> dict with cnxn, cursor and logging objects
+    - comboid (str) -> current ComboID
+    - target_ma (float) -> TargetMA for the Combo.
+    - timestamps (list) -> list of timestamps to analyze
+    '''
     cursor = dbt['cursor']
     cnxn = dbt['cnxn']
     logging = dbt['logging']
@@ -105,7 +149,7 @@ def train_vectors(dbt, comboid, target_ma, timestamps):
         logging.debug("Target Altezza vector calculated for ComboID {}".format(comboid))
 
         #2) Target Forza curve and Std_curve:
-        forza_combo, std_list = generate_hcur(dbt, comboid, timestamps, altezza_combo)
+        forza_combo, std_list = generate_fcur(dbt, comboid, timestamps, altezza_combo)
         std_curve_avg = statistics.mean(std_list)
         logging.debug("Target Forza curve and std_curve generated for ComboID {}".format(comboid))
 

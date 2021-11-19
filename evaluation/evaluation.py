@@ -10,6 +10,19 @@ from evaluation.eval_tools import evaluate_full
 
 #CALLER:
 def call_evaluate(timestamp, visual=WINDOW, save=SAVE_PNG):
+    '''
+    Standalone evaluation function caller. It:
+    - initializes DB connection and logger
+    - extracts the data for the current Pressata (current) and the target ComboID (target), both as Collector objects
+    - calls the evaluate function (evaluate_full())
+
+    Parameters:
+    -------------------
+    input:
+    - timestamp (int) -> timestamp of the Pressata to analyze
+    - visual (bool) -> visualize the curves plot in a window
+    - save (bool) -> saves the curves plot as png file
+    '''
     # Connect
     cnxn, cursor = db_connect()
 
@@ -41,6 +54,6 @@ def call_evaluate(timestamp, visual=WINDOW, save=SAVE_PNG):
 
 #MAIN:
 if __name__ == '__main__':
-    #Sample timestamp: 1584106142, 1584348510, 1584348501, 1584349549
+    #Sample timestamps: 1584106142, 1584348510, 1584348501, 1584349549
     timestamp = input("Evaluate: insert timestamp here -> ")
     call_evaluate(timestamp, visual=True, save=False)

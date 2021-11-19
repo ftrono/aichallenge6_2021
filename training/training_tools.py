@@ -14,18 +14,24 @@ import numpy as np
 #set target MA/MF & its std within combo:
 def set_target_max(dbt, mtype):
     '''
-    NOTE: requires 
-    1. Retrieves max value of Altezza (or average value of Forza) and the Stdev of MA (or MF) for each ComboID (FROM: table Pressate)
+    Train MA/MF and StdMA/MF for a Combo.
+    1. Retrieves target value of Altezza (or Forza) and the Stdev of MA (or MF) for each ComboID (FROM: table Pressate)
     2. Saves the values as TargetMA (or TargetMF) and StdMA (or StdMF) for the correspondent ComboID (TO: table Combos)
+
+    Parameters:
+    -------------------
+    input:
+    - dbt (dict) -> dict with cnxn, cursor and logging objects
+    - mtype (str) -> must be either 'altezza' or 'forza'
     '''
     #arg check: 
     if mtype == 'altezza':
-        mt = 'AVG(MaxAltezza)'
-        st = 'STDEV(MaxAltezza)'
+        mt = 'AVG(Pressate.MaxAltezza)'
+        st = 'STDEV(Pressate.MaxAltezza)'
         v = 'A'
     elif mtype == 'forza':
-        mt = 'AVG(MaxForza)'
-        st = 'STDEV(MaxForza)'
+        mt = 'AVG(Pressate.MaxForza)'
+        st = 'STDEV(Pressate.MaxForza)'
         v = 'F'
     else:
         print("ERROR: mtype must by either 'altezza' or 'forza'.")
@@ -35,7 +41,7 @@ def set_target_max(dbt, mtype):
     cursor = dbt['cursor']
     cnxn = dbt['cnxn']
     logging = dbt['logging']
-    cursor.execute("SELECT ComboID, "+mt+", "+st+" FROM Pressate GROUP BY ComboID")
+    cursor.execute("SELECT Pressate.ComboID, "+mt+", "+st+" FROM Pressate WHERE NOT EXISTS (SELECT Warnings.Timestamp FROM Warnings WHERE Warnings.Timestamp = Pressate.Timestamp) GROUP BY ComboID")
     list = cursor.fetchall()
     # Update Combos values to TargetMA/MF and StdMA/MF
     for (comboID, max_v, std_v) in list:
@@ -50,6 +56,15 @@ def set_target_max(dbt, mtype):
 
 #helper: compute sample_rate for a pressata (for height vector):
 def compute_rate(orig_altezza):
+    '''
+    Helper function: computes the sample rate for a Pressata for target height vector calculation.
+
+    input:
+    - orig_altezza (list) for a Pressata
+    
+    returns:
+    - sample_rate (float)
+    '''
     #get vector of differences:
     diff_vector=np.diff(orig_altezza)
     diff_vector=np.absolute(diff_vector)
@@ -76,7 +91,7 @@ def ideal_curve(batch_forces):
     Returns
     out_curve : list
         A list contining the average value of each point in all the series, 
-        it's lenght is the same as the one of every series
+        its lenght is the same as the one of every series
 
     '''
     out_curve = []
@@ -112,8 +127,8 @@ def stdev_curve(batch_forces):
 
     Returns
     -------
-    std_curve_avg : double
-       The value of the average std_devs of all points in the series.
+    std_list : list
+       Vector with the std_dev for all points in the series.
 
     '''
     stdev_list = []

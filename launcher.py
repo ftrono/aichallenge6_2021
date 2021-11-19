@@ -17,7 +17,7 @@ preprocessing()
 train()
 
 #3) Evaluate:
-#Sample timestamp: 1584106142
-#timestamp = input("Evaluate: insert timestamp here -> ")
-#call_evaluate(timestamp, visual=True, save=True)
+#Sample timestamps: 1584106142, 1584348510, 1584348501, 1584349549
+timestamp = input("Evaluate: insert timestamp here -> ")
+call_evaluate(timestamp, visual=True, save=True)
 

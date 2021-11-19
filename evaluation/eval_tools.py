@@ -6,7 +6,7 @@ from utils import interpolate_curve, visualize, write_warning
 
 #EVALUATION TOOLS:
 # - evaluate_max()
-# - evaluate_curve()
+# - evaluate_points()
 # - evaluate_full()
 
 
@@ -18,12 +18,12 @@ def evaluate_max(dbt, riduttore, timestamp, cur, tgt, std, mtype):
     Parameters:
     -------------------
     input:
+    - dbt (dict) -> dict with cnxn, cursor and logging objects
     - cur, tgt, std (floats) -> current targets for the combo
     - mtype -> must be either 'altezza' or 'forza'
-    - sigma value (int) -> will increase the std_dev in the DB (acceptable boundary)
     
     output:
-    - wid (warning id) -> if warning found, else 0 (if success) or -1 (if arg error).
+    - wid (warning id) -> if warning found, else 0
     '''
     #arg check: 
     if mtype == 'altezza':
@@ -50,8 +50,8 @@ def evaluate_max(dbt, riduttore, timestamp, cur, tgt, std, mtype):
         return wid
 
 
-#Eval curve (point by point):
-def evaluate_curve(dbt, current, target):
+#Eval point by point the interpolated curve:
+def evaluate_points(dbt, current, target):
     '''
     Function that evaluates if all points of the curve (already interpolated) are within the acceptable std_dev bound 
     from the ideal curve, increased by a sigma.
@@ -59,8 +59,9 @@ def evaluate_curve(dbt, current, target):
     Parameters:
     -------------------
     input:
-    - cur_forza, tgt_forza, std_curve_avg (list, list, float) -> current targets for the combo
-    - sigma value (int) -> will increase the std_dev in the DB (acceptable boundary)
+    - dbt (dict) -> dict with cnxn, cursor and logging objects
+    - current -> Collector object with the data for the current Pressata
+    - target -> Collector object with the targets for the combo
     
     output:
     - count_out (int) -> count of points out of bounds
@@ -102,7 +103,7 @@ def evaluate_full(dbt, current, target, preprocessed=False, visual=WINDOW, save=
     then makes 3 checks through the following functions:
     1) evaluate_max, with mtype = 'altezza';
     2) evaluate_max, with mtype = 'forza';
-    3) evaluate_curve, which scans the curve point by point;
+    3) evaluate_points, which scans the curve point by point;
     
     If one check fails, the function is immediately interrupted: the warning is saved to the DB
     and no further checks are made. A logging message is printed to a log file. (Return: -1)
@@ -112,19 +113,19 @@ def evaluate_full(dbt, current, target, preprocessed=False, visual=WINDOW, save=
     Parameters:
     -------------------
     input:
-    - timestamp (int) -> current pressata
-    - visual (bool) -> calls curve visualization function
-    - sigma values (int) for: MA, MF and curve std (will increase the dev in the DB)
+    - dbt (dict) -> dict with cnxn, cursor and logging objects
+    - current -> Collector object with the data for the current Pressata
+    - target -> Collector object with the targets for the combo
+    - preprocessed (bool) -> indicates if the evaluation is done in the training context (after preprocessing, so: True) or as standalone full evaluation (so: False)
+    - visual (bool) -> call curve visualization function in a window
+    - save (bool) -> save curves plot (done by visualization function) as png file
+    - verbose (bool) -> prints evaluation output also to stdout
     
     output: 
     - 0 if pressata is accepted
-    - -1 if warnings found.
+    - -1 if warnings flagged
 
     '''
-    #sigmas:
-    comboid = current.comboid
-    timestamp = current.timestamp
-
     #INTERPOLATE CURVE (overwrite current.forza into collector object):
     current.forza = interpolate_curve(target.altezza, current.altezza, current.forza)
 
@@ -133,20 +134,20 @@ def evaluate_full(dbt, current, target, preprocessed=False, visual=WINDOW, save=
         wid = evaluate_max(dbt, current.riduttoreid, current.timestamp, current.ma, target.ma, target.std_ma, mtype='altezza')
         if wid != 0:
             if verbose == True:
-                print("Timestamp {}: flagged with WID #{}. Max_altezza out of acceptable range! Please check the assembly.".format(timestamp, wid))
+                print("Timestamp {}: flagged with WID #{}. Max_altezza out of acceptable range! Please check the assembly.".format(current.timestamp, wid))
             return -1
 
     #check 2: max_forza
     wid = evaluate_max(dbt, current.riduttoreid, current.timestamp, current.mf, target.mf, target.std_mf, mtype='forza')
     if wid != 0:
         if verbose == True:
-            print("Timestamp {}: flagged with WID #{}. Max_forza out of acceptable range! Please check the assembly.".format(timestamp, wid))
+            print("Timestamp {}: flagged with WID #{}. Max_forza out of acceptable range! Please check the assembly.".format(current.timestamp, wid))
         if (visual == True) or (save == True):
             visualize(current, target, wid=wid, count_out=0, window=visual, save=save)
         return -1
     
     #check 3: compare curve
-    count_out, wid = evaluate_curve(dbt, current, target)
+    count_out, wid = evaluate_points(dbt, current, target)
     if wid == 0:
         if verbose == True:
             print("Timestamp {}: assembly success. No warnings.".format(current.timestamp))

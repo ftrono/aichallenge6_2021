@@ -29,11 +29,13 @@ def extract_data(dbt, stype='current', timestamp=None, comboid=None):
     Parameters:
     -------------------
     input:
-    - timestamp (int) -> timestamp of the pressata under analysis
+    - dbt (dict) -> dict with cnxn, cursor and logging objects
+    - stype (str) -> must be either 'current' (to extract data for the current Pressata) or 'target' (to extract target data for a ComboID)
+    - timestamp (int - needed if stype="current") -> timestamp of the pressata under analysis
+    - comboid (str - needed if stype="target") -> ComboID of the Combo under analysis
     
     output:
-    - count_out (int) -> count of points out of bounds
-    - current, target (Collector) -> 2 Collector objects storing provisionally all the parameters and values needed: one for the current pressata under analysis, the other for the target reference combo.
+    - current or target (Collector) -> 1 of 2 Collector objects (depending on "stype") storing provisionally all the parameters and values needed: one for the current pressata under analysis, the other for the target reference combo.
     '''
     cursor = dbt['cursor']
     cnxn = dbt['cnxn']
