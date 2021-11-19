@@ -163,7 +163,7 @@ def train():
             #Need stop mechanism.
     
     log.info("Training COMPLETE!")
-    print("\nTraining COMPLETE!")
+    print("\nTraining COMPLETE!\n")
     # Disconnect
     db_disconnect(cnxn, cursor)
     return 0

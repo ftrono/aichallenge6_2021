@@ -1,6 +1,6 @@
-import sys, warnings, pyodbc
+import sys, os, warnings, pyodbc
 import matplotlib.pyplot as plt
-sys.path.insert(0, './')
+sys.path.insert(0, os.getcwd())
 from globals import *
 from database_functions.db_connect import db_connect, db_disconnect
 

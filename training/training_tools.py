@@ -26,7 +26,7 @@ def set_target_max(dbt, mtype):
     '''
     #arg check: 
     if mtype == 'altezza':
-        mt = 'AVG(Pressate.MaxAltezza)'
+        mt = 'MAX(Pressate.MaxAltezza)'
         st = 'STDEV(Pressate.MaxAltezza)'
         v = 'A'
     elif mtype == 'forza':
@@ -46,7 +46,7 @@ def set_target_max(dbt, mtype):
     # Update Combos values to TargetMA/MF and StdMA/MF
     for (comboID, max_v, std_v) in list:
         # updates values (decimal.Decimal -> float)
-        if std_v<1:
+        if (std_v == None) or (float(std_v) < 1):
             std_v=1
         cursor.execute("UPDATE Combos SET TargetM"+v+" = ?, StdM"+v+" = ? WHERE ComboID = ?", float(max_v), float(std_v), comboID)
         logging.debug("Setting TargetM{} and StdM{} for ComboID = {}".format(v, v, comboID))
