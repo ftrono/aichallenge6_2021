@@ -4,7 +4,6 @@ from insert_data import insert_data
 import logging #,telegram_send
 
 
-
 #CREATE DB (DROP & REPOPULATE ALL TABLES):
 def create_db(drop=False,limit=1000000):
     status_log=logging.getLogger('status')

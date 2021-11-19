@@ -1,9 +1,11 @@
 import logging
+
 #KEY DB FUNCTIONS:
 # - reset_table()
 # - drop_all()
 # - generate_tables()
 # - populate_max()
+
 
 #reset a specific table:
 def reset_table(dbt, tablename):

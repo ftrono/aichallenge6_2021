@@ -45,10 +45,10 @@ def insert_data(dbt,limit=1000000):
     start_time = time.time()
 
     #1) POPULATE WARNING_DESC TABLE::
-    desc =  ["'Max_altezza out of bounds'",
-            "'Delta_timestamp out of bounds'",
-            "'Max_forza out of bounds'",
-            "'Force curve out of bounds'"]
+    desc =  ["'Pressata: max_altezza out of bounds'",
+            "'Riduttore: incorrect number of pressate'",
+            "'Pressata: max_forza out of bounds'",
+            "'Pressata: force curve out of bounds'"]
 
     for d in range(len(desc)):
         query = "INSERT INTO WarningDesc ( Description) VALUES ("+desc[d]+")"

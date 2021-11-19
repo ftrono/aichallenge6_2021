@@ -2,6 +2,7 @@ import pyodbc, os, configparser
 
 #CONNECTION / DISCONNECTION FUNCTIONS TO DB
 
+
 #open connection:
 def db_connect():
     config = configparser.ConfigParser()
