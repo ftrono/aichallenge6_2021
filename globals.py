@@ -10,9 +10,9 @@
 EPOCHS = 1
 
 #sigmas:
-SIGMA_MA = 1
-SIGMA_MF = 1
-SIGMA_CURVE = 1
+SIGMA_MA = 2
+SIGMA_MF = 3
+SIGMA_CURVE = 3
 SIGMA_RID = 1
 
 #thresholds:
@@ -22,5 +22,5 @@ USE_AVG = False
 
 #visual output:
 WINDOW = False
-SAVE_PNG = True
+SAVE_PNG = False
 PNG_PATH = "./output"

@@ -1,11 +1,11 @@
-import sys, logging
-sys.path.insert(0, './')
+import sys, logging,os
+sys.path.insert(0, os.getcwd())
 from globals import *
 from database_functions.db_tools import reset_table
 from database_functions.extract_data import extract_data
-from flag_warnings import flag_rid, flag_ma
-from train_vectors import train_vectors
-from training_tools import set_target_max
+from training.flag_warnings import flag_rid, flag_ma
+from training.train_vectors import train_vectors
+from training.training_tools import set_target_max
 from database_functions.db_connect import db_connect, db_disconnect
 from evaluation.eval_tools import evaluate_full
 

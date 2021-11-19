@@ -1,5 +1,6 @@
-import sys, statistics
-sys.path.insert(0, './')
+import sys, statistics,os
+sys.path.insert(0, os.getcwd())
+#sys.path.insert(0, './')
 from globals import *
 import numpy as np
 
@@ -19,7 +20,7 @@ def set_target_max(dbt, mtype):
     '''
     #arg check: 
     if mtype == 'altezza':
-        mt = 'MAX(MaxAltezza)'
+        mt = 'AVG(MaxAltezza)'
         st = 'STDEV(MaxAltezza)'
         v = 'A'
     elif mtype == 'forza':
@@ -39,6 +40,8 @@ def set_target_max(dbt, mtype):
     # Update Combos values to TargetMA/MF and StdMA/MF
     for (comboID, max_v, std_v) in list:
         # updates values (decimal.Decimal -> float)
+        if std_v<1:
+            std_v=1
         cursor.execute("UPDATE Combos SET TargetM"+v+" = ?, StdM"+v+" = ? WHERE ComboID = ?", float(max_v), float(std_v), comboID)
         logging.debug("Setting TargetM{} and StdM{} for ComboID = {}".format(v, v, comboID))
     cursor.commit()

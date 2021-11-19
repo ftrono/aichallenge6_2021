@@ -1,10 +1,10 @@
-import sys, logging, statistics
+import sys, logging, statistics,os
 import numpy as np
 import pandas as pd
-sys.path.insert(0, './')
+sys.path.insert(0, os.getcwd())
 from globals import *
 from utils import interpolate_curve
-from training_tools import compute_rate, ideal_curve, stdev_curve
+from training.training_tools import compute_rate, ideal_curve, stdev_curve
 
 #GENERATE TARGET VECTORS FOR A COMBOID:
 # - generate_hvec() #for height

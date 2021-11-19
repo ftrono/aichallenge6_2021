@@ -1,6 +1,6 @@
 import pandas as pd
-import sys
-sys.path.insert(0, './')
+import sys,os
+sys.path.insert(0, os.getcwd())
 from globals import *
 from utils import interpolate_curve, visualize, write_warning
 
@@ -40,8 +40,10 @@ def evaluate_max(dbt, riduttore, timestamp, cur, tgt, std, mtype):
     #evaluate current MA/MF if within StdMA/StdMF +- sigma:
     dev = std * sigma
     if (cur >= (tgt - dev)) and (cur <= (tgt + dev)):
+        logging.info("Timestamp {}: Max_{} OK".format(timestamp, mtype))
         return 0 #ok
     else:
+        logging.error("Current: {}, target: {}, std: {}".format(cur,tgt,dev))
         logging.warning("Timestamp {}: flagged with WID #{}. Max_{} out of acceptable range! Please check the assembly.".format(timestamp, wid, mtype))
         #write warning to DB:
         write_warning(dbt, riduttore, wid, timestamp)

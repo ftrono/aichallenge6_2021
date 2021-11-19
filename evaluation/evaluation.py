@@ -1,9 +1,9 @@
-import sys, logging
-sys.path.insert(0, './')
+import sys, logging,os
+sys.path.insert(0, os.getcwd())
 from globals import *
 from database_functions.db_connect import db_connect, db_disconnect
 from database_functions.extract_data import extract_data
-from eval_tools import evaluate_full
+from evaluation.eval_tools import evaluate_full
 
 
 #PART III) EVALUATE

@@ -1,5 +1,6 @@
-import sys, logging
-sys.path.insert(0, './')
+import sys, logging,os
+sys.path.insert(0, os.getcwd())
+#sys.path.insert(0, './')
 from globals import *
 from database_functions.db_connect import db_connect, db_disconnect
 from evaluation.eval_tools import evaluate_max

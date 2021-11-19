@@ -1,0 +1,12 @@
+[Unit]
+Description= import database service
+After=multi-user.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/azureadmin/main
+User=azureadmin
+ExecStart=/usr/bin/python3 /home/azureadmin/main/launcher.py
+
+[Install]
+WantedBy=multi-user.target
