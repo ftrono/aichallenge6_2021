@@ -1,8 +1,8 @@
 import sys, logging
 sys.path.insert(0, './')
+from globals import *
 from database_functions.db_connect import db_connect, db_disconnect
 from evaluation.eval_tools import evaluate_max
-from utils import write_warning
 
 #FLAG WARNINGS (FOR DATASET CLEANING):
 # - flag_ma()
@@ -11,7 +11,7 @@ from utils import write_warning
 
 
 #FLAG1: flag warnings for MA:
-def flag_ma(dbt, sigma_ma=1):
+def flag_ma(dbt):
     '''
     Function that checks if MaxAltezza is out if the bounds. 
     Bounds = Target max altezza + - deviation.
@@ -48,7 +48,7 @@ def flag_ma(dbt, sigma_ma=1):
                 tgt_ma = float(t[1])
                 std_ma = float(t[2])
                 #evaluate and flag:
-                evaluate_max(dbt, riduttore, timestamp, cur_ma, tgt_ma, std_ma, mtype='altezza', sigma=sigma_ma)
+                evaluate_max(dbt, riduttore, timestamp, cur_ma, tgt_ma, std_ma, mtype='altezza')
     return 0
 
 
@@ -70,7 +70,7 @@ def pairwise_delta(array):
 
 
 #FLAG2: extract delta timestamps:
-def flag_dtimes(sigma=1):
+def flag_rid():
     # Connect
     cnxn, cursor = db_connect()
     

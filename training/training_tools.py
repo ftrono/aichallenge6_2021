@@ -1,13 +1,13 @@
 import sys, statistics
 sys.path.insert(0, './')
-from utils import interpolate_curve
-import pandas as pd
+from globals import *
+import numpy as np
 
 #TRAINING TOOLS:
-# - set_target_max(cnxn, cursor, logging, mtype)
-# - (helper) ideal_curve(batch_forces)
-# - (helper) stdev_curve(batch_forces)
-# - train_curves(cnxn, cursor, logging)
+# - set_target_max()
+# - (helper) compute_rate()
+# - (helper) ideal_curve()
+# - (helper) stdev_curve()
 
 
 #set target MA/MF & its std within combo:
@@ -45,7 +45,20 @@ def set_target_max(dbt, mtype):
     return 0
 
 
-#BS1: curve of means:
+#helper: compute sample_rate for a pressata (for height vector):
+def compute_rate(orig_altezza):
+    #get vector of differences:
+    diff_vector=np.diff(orig_altezza)
+    diff_vector=np.absolute(diff_vector)
+    diff_vector=np.round(diff_vector,2)
+    #compute max freq:
+    unique, counts = np.unique(diff_vector, return_counts=True)
+    max_index_col = np.argmax(counts, axis=0) #max freq
+    sample_rate = unique[max_index_col]
+    return sample_rate
+
+
+#helper: calculate curve of means:
 def ideal_curve(batch_forces):
     '''
     Function to compute the ideal curve for a specific combination given by 
@@ -81,7 +94,7 @@ def ideal_curve(batch_forces):
     return out_curve
 
 
-#BS2: stdev of force curve:
+#helper: calculate stdev of force curve:
 def stdev_curve(batch_forces):
     '''
     Function to compute the average std_dev to be used as threshold 
@@ -113,36 +126,3 @@ def stdev_curve(batch_forces):
         stdev = statistics.stdev(temp)
         stdev_list.append(stdev)
     return stdev_list
-
-
-#NEW BS4: train & set curves for a comboid:
-def train_curve(dbt, comboid, timestamps, altezza_combo):
-    cursor = dbt['cursor']
-    cnxn = dbt['cnxn']
-    logging = dbt['logging']
-    batch_forces = []
-    logging.debug("Started modeling ComboID {}".format(comboid))
-
-    #2) for each timestamp:
-    for t in timestamps:
-        logging.debug("Modeling Pressata {} for ComboID {}".format(t, comboid))
-        #extract original curves (forza and altezza):
-        query = "SELECT Altezza, Forza FROM PressateData WHERE Timestamp="+str(t)
-        #store to Pandas dataframe
-        df = pd.read_sql(query, cnxn)
-        #extract data:
-        cur_altezza = list(df['Altezza'].to_numpy())
-        cur_forza = list(df['Forza'].to_numpy())
-
-        #interpolate force curve:
-        itp_forza = interpolate_curve(altezza_combo, cur_altezza, cur_forza)
-
-        #store to batch list for the current ComboID:
-        batch_forces.append(itp_forza)
-        
-    #3) get target curve parameters for the combo (batch_standardize):
-    logging.debug("Training final curve parameters for ComboID {}".format(comboid))
-    forza_combo = ideal_curve(batch_forces)
-    std_list = stdev_curve(batch_forces)
-    logging.debug("Successfully modeled ComboID {}".format(comboid))
-    return forza_combo, std_list

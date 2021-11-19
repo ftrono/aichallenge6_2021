@@ -1,6 +1,7 @@
 import pandas as pd
 import sys
 sys.path.insert(0, './')
+from globals import *
 from utils import interpolate_curve, visualize, write_warning
 
 #EVALUATION TOOLS:
@@ -10,7 +11,7 @@ from utils import interpolate_curve, visualize, write_warning
 
 
 #Eval max_altezza or max_forza:
-def evaluate_max(dbt, riduttore, timestamp, cur, tgt, std, mtype, sigma=1):
+def evaluate_max(dbt, riduttore, timestamp, cur, tgt, std, mtype):
     '''
     Function that evaluates if the max_value of either altezza or forza is within the target +- a threshold.
     
@@ -27,8 +28,10 @@ def evaluate_max(dbt, riduttore, timestamp, cur, tgt, std, mtype, sigma=1):
     #arg check: 
     if mtype == 'altezza':
         wid = 1
+        sigma = SIGMA_MA
     elif mtype == 'forza':
         wid = 3
+        sigma = SIGMA_MF
     else:
         print("ERROR: mtype must by either 'altezza' or 'forza'.")
         raise
@@ -46,7 +49,7 @@ def evaluate_max(dbt, riduttore, timestamp, cur, tgt, std, mtype, sigma=1):
 
 
 #Eval curve (point by point):
-def evaluate_curve(dbt, current, target, sigma=1, use_avg=False, minpoints=0):
+def evaluate_curve(dbt, current, target):
     '''
     Function that evaluates if all points of the curve (already interpolated) are within the acceptable std_dev bound 
     from the ideal curve, increased by a sigma.
@@ -65,20 +68,20 @@ def evaluate_curve(dbt, current, target, sigma=1, use_avg=False, minpoints=0):
     count_out = 0    
     
     #count points out of bounds:
-    if use_avg == True:
+    if USE_AVG == True:
         #use: average deviation:
-        dev = target.std_curve_avg * sigma
+        dev = target.std_curve_avg * SIGMA_CURVE
         for i in range(len(current.forza)):
             if (current.forza[i] < (target.forza[i] - dev)) or (current.forza[i] > (target.forza[i] + dev)):
                 count_out = count_out + 1
     else:
         #use deviation vector:
         for i in range(len(current.forza)):
-            if (current.forza[i] < (target.forza[i] - (target.std[i]*sigma))) or (current.forza[i] > (target.forza[i] + (target.std[i]*sigma))):
+            if (current.forza[i] < (target.forza[i] - (target.std[i]*SIGMA_CURVE))) or (current.forza[i] > (target.forza[i] + (target.std[i]*SIGMA_CURVE))):
                 count_out = count_out + 1
 
     #final check on curve:
-    if count_out <= minpoints: #ok
+    if count_out <= MIN_POINTS: #ok
         logging.info("Timestamp {}: assembly success. No warnings.".format(current.timestamp))
         return count_out, 0
     else:
@@ -90,7 +93,7 @@ def evaluate_curve(dbt, current, target, sigma=1, use_avg=False, minpoints=0):
 
 
 #CENTRAL EVALUATE FUNCTION:
-def evaluate_full(dbt, current, target, sigmas, minpoints=0, use_avg=False, preprocessed=False, visual=False, save=False):
+def evaluate_full(dbt, current, target, preprocessed=False, visual=WINDOW, save=SAVE_PNG, verbose=False):
     '''
     Function that evaluates if a pressata is correct or not. 
     It queries for the parameters of the pressata's combo, interpolates the curve and 
@@ -117,8 +120,6 @@ def evaluate_full(dbt, current, target, sigmas, minpoints=0, use_avg=False, prep
 
     '''
     #sigmas:
-    sigma_mf = sigmas['sigma_mf']
-    sigma_curve = sigmas['sigma_curve']
     comboid = current.comboid
     timestamp = current.timestamp
 
@@ -127,25 +128,32 @@ def evaluate_full(dbt, current, target, sigmas, minpoints=0, use_avg=False, prep
 
     if preprocessed == False:
         #check 1: max_altezza
-        sigma_ma = sigmas['sigma_ma']
-        wid = evaluate_max(dbt, current.riduttoreid, current.timestamp, current.ma, target.ma, target.std_ma, mtype='altezza', sigma=sigma_ma)
+        wid = evaluate_max(dbt, current.riduttoreid, current.timestamp, current.ma, target.ma, target.std_ma, mtype='altezza')
         if wid != 0:
-            if visual == True or save == True:
-                visualize(current, target, use_avg=use_avg, wid=wid, count_out=0, save=save)
+            if verbose == True:
+                print("Timestamp {}: flagged with WID #{}. Max_altezza out of acceptable range! Please check the assembly.".format(timestamp, wid))
             return -1
 
     #check 2: max_forza
-    wid = evaluate_max(dbt, current.riduttoreid, current.timestamp, current.mf, target.mf, target.std_mf, mtype='forza', sigma=sigma_mf)
+    wid = evaluate_max(dbt, current.riduttoreid, current.timestamp, current.mf, target.mf, target.std_mf, mtype='forza')
     if wid != 0:
-        if visual == True or save == True:
-            visualize(current, target, use_avg=use_avg, wid=wid, count_out=0, save=save)
+        if verbose == True:
+            print("Timestamp {}: flagged with WID #{}. Max_forza out of acceptable range! Please check the assembly.".format(timestamp, wid))
+        if (visual == True) or (save == True):
+            visualize(current, target, wid=wid, count_out=0, window=visual, save=save)
         return -1
     
     #check 3: compare curve
-    count_out, wid = evaluate_curve(dbt, current, target, sigma=sigma_curve, use_avg=use_avg, minpoints=minpoints)
-    if visual == True or save == True:
-        visualize(current, target, use_avg=use_avg, wid=wid, count_out=count_out, save=save)
+    count_out, wid = evaluate_curve(dbt, current, target)
     if wid == 0:
+        if verbose == True:
+            print("Timestamp {}: assembly success. No warnings.".format(current.timestamp))
+        if (visual == True) or (save == True):
+            visualize(current, target, wid=wid, count_out=count_out, window=visual, save=save)
         return 0
     else:
+        if verbose == True:
+            print("Timestamp {}: flagged with WID #{}. Curve out of bounds in {} points out of {}! Please check the assembly.".format(current.timestamp, wid, count_out, len(current.forza)))
+        if (visual == True) or (save == True):
+            visualize(current, target, wid=wid, count_out=count_out, window=visual, save=save)
         return -1

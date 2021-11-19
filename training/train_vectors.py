@@ -1,28 +1,19 @@
-from datetime import time
+import sys, logging, statistics
 import numpy as np
 import pandas as pd
-import statistics
-from training_tools import train_curve
+sys.path.insert(0, './')
+from globals import *
+from utils import interpolate_curve
+from training_tools import compute_rate, ideal_curve, stdev_curve
 
-#GENERATE TARGET HEIGHT VECTORS FOR COMBOS:
-# - (helper) compute_rate(orig_altezza)
-# - generate_hvectors(cnxn, cursor, logging)
-
-#helper: compute sample_rate for a pressata:
-def compute_rate(orig_altezza):
-    #get vector of differences:
-    diff_vector=np.diff(orig_altezza)
-    diff_vector=np.absolute(diff_vector)
-    diff_vector=np.round(diff_vector,2)
-    #compute max freq:
-    unique, counts = np.unique(diff_vector, return_counts=True)
-    max_index_col = np.argmax(counts, axis=0) #max freq
-    sample_rate = unique[max_index_col]
-    return sample_rate
+#GENERATE TARGET VECTORS FOR A COMBOID:
+# - generate_hvec() #for height
+# - generate_hcur() #for force
+# - train_vectors() 
 
 
 #generate target height vector for a comboid:
-def generate_hvector(dbt, timestamps, target_ma):
+def generate_hvec(dbt, timestamps, target_ma):
     cursor = dbt['cursor']
     cnxn = dbt['cnxn']
     logging = dbt['logging']
@@ -55,6 +46,40 @@ def generate_hvector(dbt, timestamps, target_ma):
     return altezza_combo
 
 
+#generate ideal force curve for a comboid:
+def generate_hcur(dbt, comboid, timestamps, altezza_combo):
+    cursor = dbt['cursor']
+    cnxn = dbt['cnxn']
+    logging = dbt['logging']
+    batch_forces = []
+    logging.debug("Started modeling ComboID {}".format(comboid))
+
+    #2) for each timestamp:
+    for t in timestamps:
+        logging.debug("Modeling Pressata {} for ComboID {}".format(t, comboid))
+        #extract original curves (forza and altezza):
+        query = "SELECT Altezza, Forza FROM PressateData WHERE Timestamp="+str(t)
+        #store to Pandas dataframe
+        df = pd.read_sql(query, cnxn)
+        #extract data:
+        cur_altezza = list(df['Altezza'].to_numpy())
+        cur_forza = list(df['Forza'].to_numpy())
+
+        #interpolate force curve:
+        itp_forza = interpolate_curve(altezza_combo, cur_altezza, cur_forza)
+
+        #store to batch list for the current ComboID:
+        batch_forces.append(itp_forza)
+        
+    #3) get target curve parameters for the combo (batch_standardize):
+    logging.debug("Training final curve parameters for ComboID {}".format(comboid))
+    forza_combo = ideal_curve(batch_forces)
+    std_list = stdev_curve(batch_forces)
+    logging.debug("Successfully modeled ComboID {}".format(comboid))
+    return forza_combo, std_list
+
+
+#JOINT: generate target height vector & ideal force curve for a ComboID:
 def train_vectors(dbt, comboid, target_ma, timestamps):
     cursor = dbt['cursor']
     cnxn = dbt['cnxn']
@@ -76,11 +101,11 @@ def train_vectors(dbt, comboid, target_ma, timestamps):
         std_curve_avg = statistics.stdev(forza_combo)
     else:
         #1) Target height vector:
-        altezza_combo = generate_hvector(dbt, timestamps, target_ma)
+        altezza_combo = generate_hvec(dbt, timestamps, target_ma)
         logging.debug("Target Altezza vector calculated for ComboID {}".format(comboid))
 
         #2) Target Forza curve and Std_curve:
-        forza_combo, std_list = train_curve(dbt, comboid, timestamps, altezza_combo)
+        forza_combo, std_list = generate_hcur(dbt, comboid, timestamps, altezza_combo)
         std_curve_avg = statistics.mean(std_list)
         logging.debug("Target Forza curve and std_curve generated for ComboID {}".format(comboid))
 

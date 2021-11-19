@@ -1,20 +1,21 @@
 import sys, logging
 sys.path.insert(0, './')
+from globals import *
 from database_functions.db_tools import reset_table
 from database_functions.extract_data import extract_data
-from flag_warnings import flag_dtimes, flag_ma
-from target_vectors import train_vectors
+from flag_warnings import flag_rid, flag_ma
+from train_vectors import train_vectors
 from training_tools import set_target_max
 from database_functions.db_connect import db_connect, db_disconnect
 from evaluation.eval_tools import evaluate_full
 
 #TRAINING FUNCTIONS:
-# - preprocessing(sigma_ma, sigma_dt)
-# - train(epochs, sigma_ma, sigma_mf, sigma_curve)
+# - preprocessing()
+# - train()
 
 
 #1) Preprocessing: learn TargetMA and StdMA, exclude wrong pressate by MA and dt, calculate target h vectors:
-def preprocessing(sigma_ma=1, sigma_dt=1):
+def preprocessing():
     # Connect
     cnxn, cursor = db_connect()
 
@@ -41,10 +42,10 @@ def preprocessing(sigma_ma=1, sigma_dt=1):
     log.info("Trained TargetMA and StdMA for all combos.")
 
     #2) Dataset cleaning: flag wrong curves by MA:
-    flag_ma(dbt, sigma_ma)
-    log.info("Flagged all Pressate not reaching TargetMA for their combo, with sigma = {}.".format(sigma_ma))
-    #flag_dtimes(dbt, sigma_dt)
-    #log.info("Flagged all Riduttori with incorrect number of pressate, with sigma = {}.".format(sigma_dt))
+    flag_ma(dbt)
+    log.info("Flagged all Pressate not reaching TargetMA for their combo, with sigma = {}.".format(SIGMA_MA))
+    #flag_rid(dbt)
+    #log.info("Flagged all Riduttori with incorrect number of pressate, with sigma = {}.".format(SIGMA_RID))
 
     # Disconnect
     db_disconnect(cnxn, cursor)
@@ -54,7 +55,7 @@ def preprocessing(sigma_ma=1, sigma_dt=1):
 
 
 #2) Training: learn target parameters for Combos and loop evaluate all timestamps in the DB:
-def train(epochs=1, sigma_mf=1, sigma_curve=1, use_avg=False, minpressate=2, minpoints=0, savepng=False):
+def train():
     # Connect
     cnxn, cursor = db_connect()
     
@@ -72,7 +73,6 @@ def train(epochs=1, sigma_mf=1, sigma_curve=1, use_avg=False, minpressate=2, min
     #DB tools:
     dbt = {'cnxn': cnxn, 'cursor': cursor, 'logging': log}
     #vars:
-    sigmas = {'sigma_mf': sigma_mf, 'sigma_curve': sigma_curve}
     combos = {}
 
     #1) Reset CombosData table:
@@ -88,7 +88,7 @@ def train(epochs=1, sigma_mf=1, sigma_curve=1, use_avg=False, minpressate=2, min
     print("Total number of Combos in DB: {}".format(len(combos)))
 
     #3) EPOCHS: parameters training:
-    for e in range(epochs):
+    for e in range(EPOCHS):
         print("STARTED epoch #{}".format(e+1))
         log.info("STARTED epoch #{}".format(e+1))
 
@@ -107,7 +107,7 @@ def train(epochs=1, sigma_mf=1, sigma_curve=1, use_avg=False, minpressate=2, min
             for tup in cursor.fetchall():
                 timestamps.append(tup[0])
             
-            if len(timestamps) < minpressate:
+            if len(timestamps) < MIN_PRESSATE:
                 log.info("Epoch #{}: ComboID skipped {}, number of Pressate lower than {}".format((e+1), comboid, len(timestamps)))
             else:
                 #train
@@ -131,7 +131,7 @@ def train(epochs=1, sigma_mf=1, sigma_curve=1, use_avg=False, minpressate=2, min
                     #extract data for current Pressata:
                     current = extract_data(dbt, stype='current', timestamp=timestamps[i])
                     #Evaluate current Pressata:
-                    ret = evaluate_full(dbt, current, target, sigmas, minpoints=minpoints, use_avg=use_avg, preprocessed=True, visual=False, save=savepng)
+                    ret = evaluate_full(dbt, current, target, preprocessed=True, visual=False)
                     #if flag:
                     if ret == -1:
                         cnt = cnt+1
@@ -139,7 +139,7 @@ def train(epochs=1, sigma_mf=1, sigma_curve=1, use_avg=False, minpressate=2, min
                         log.debug("Evaluated Pressata timestamp {} as correct. Evaluation result: {}".format(timestamps[i], ret))
                 
             #epoch completed for the current ComboID
-            log.info("COMPLETED EPOCH #{}: evaluated all Pressate for ComboID {}. Flagged {} new Pressate, with sigmas: MF {}, curve {}".format((e+1), comboid, cnt, sigma_mf, sigma_curve))
+            log.info("COMPLETED EPOCH #{}: evaluated all Pressate for ComboID {}. Flagged {} new Pressate, with sigmas: MF {}, curve {}".format((e+1), comboid, cnt, SIGMA_MF, SIGMA_CURVE))
 
             #Need stop mechanism.
     
@@ -152,5 +152,5 @@ def train(epochs=1, sigma_mf=1, sigma_curve=1, use_avg=False, minpressate=2, min
 
 #MAIN:
 if __name__ == '__main__':
-    preprocessing(sigma_ma=1, sigma_dt=1)
-    train(epochs=1, sigma_mf=2, sigma_curve=2, use_avg=False, minpressate=2, minpoints=5, savepng=True)
+    preprocessing()
+    train()
