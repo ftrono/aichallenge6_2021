@@ -64,7 +64,7 @@ def visualize(current, target, wid=0, count_out=0, window=WINDOW, save=SAVE_PNG)
     else:
         co = ""
     title = "ComboID: "+str(current.comboid)+" - Timestamp: "+str(current.timestamp)+" - WID: "+str(wid)+co
-    fout = PNG_PATH+"/"+str(current.comboid)+"_"+str(current.timestamp)+"_wid"+str(wid)+".png"
+    fout = OUTPUT_PATH+"/"+str(current.comboid)+"_"+str(current.timestamp)+"_wid"+str(wid)+".png"
 
     #title color:
     if wid == 0:

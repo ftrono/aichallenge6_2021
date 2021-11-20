@@ -23,4 +23,6 @@ USE_AVG = False
 #visual output:
 WINDOW = False
 SAVE_PNG = False
-PNG_PATH = "./output"
+
+#output path:
+OUTPUT_PATH = "./output"
