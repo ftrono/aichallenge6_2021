@@ -3,3 +3,4 @@ logs/**
 output/**
 __pycache__
 database_functions/queries/restore_db.sql
+tmp_img
