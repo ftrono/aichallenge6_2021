@@ -40,7 +40,7 @@ Gli script presenti in questa repository sono stati ideati per essere eseguiti s
 
 
 ## 3. APRIRE E CHIUDERE LE CONNESSIONI AL DB:
-* Aprire e chiudere le connessioni al DB chiamando:
+* NOTA: Solo nella macrofunzione della vostra parte: aprire e chiudere le connessioni al DB chiamando:
     ```
     import sys
     sys.path.insert(0, './')
@@ -53,53 +53,158 @@ Gli script presenti in questa repository sono stati ideati per essere eseguiti s
     db_disconnect(conn, cursor)
     
     ```
-* Nota: per importare i moduli della repo, usare:
+* Per importare i moduli della repo, usare:
     ```
-    import sys
-    sys.path.insert(0, './')
+    import sys, os
+    sys.path.insert(0, os.getcwd())
     from <subfolder>.<module> import <functions>
     ```
-
-
-## 4. CHIAMARE LE QUERY:
-* Scrivere le query direttamente nella cartella *“queries”* creando **più file *.sql* separati (uno per query)**. Non useremo classi.
-* Aprire e chiudere connessioni al DB seguendo il punto 3 in alto.
-* Ogni volta che si chiama una query in Python, vanno lanciati 2 comandi: **1)** ```cursor.execute(query)```, che prepara la query; **2)** ```cursor.commit()```, che aggiorna effettivamente il DB. 
-* **Per chiamare le query nelle funzioni python**: chiamare i file *.sql* dove avete scritto la query di riferimento ed eseguire con:
-    ```
-    with open(os.getcwd()+'/database_functions/queries/<filename>.sql', mode='r') as query:
-        cursor.execute(query.read())
-        cursor.commit()
-    ```
-* Per loopare sull'output della query lanciare (prima del commit):
-    ```
-    for row in cursor.fetchall():
-        (any command, i.e. print(row))
-    ```
-* NOTA: LE QUERY **NON** VENGONO ESEGUITE SENZA CURSOR.COMMIT().
-* **IN ALTERNATIVA**: per i SELECT, per gestire grandi quantità di dati, si possono usare i [Dataframe di Pandas](https://pandas.pydata.org/docs/reference/frame.html). In questo modo, la query viene automaticamente eseguita e convertita in una tabella Dataframe da cui si possono leggere e gestire i dati. Le colonne possono anche essere convertite in liste.
-    ```
-    import pandas as pd
-    
-    # QUERY TO DATAFRAME:
-    query = "SELECT ........"
-    df = pd.read_sql(query, conn)
-    # (senza execute e commit)
-    
-    #TO ACCESS VALUES:
-    # i.e. column 'MaxForza', value at row 0, cast to float:
-    mf = float(df['MaxForza'][0])
-    
-    # i.e column 'Forza', extract entire column as list:
-    series_forza = list(df['Forza'].to_numpy())
-    ```
+* Se una sottofunzione deve fare una query (meglio di no), passargli conn e cursor. NOTA: meglio usare Pandas invece.
+* Ogni volta che si chiama una query in Python, vanno lanciati 2 comandi: **1)** ```cursor.execute(query)```, che prepara la query; **2)** ```cursor.commit()```, che aggiorna effettivamente il DB. **OPPURE (meglio): usare Pandas!
 * [Guida documentazione Pyodbc](https://github.com/mkleehammer/pyodbc/wiki) per utilizzo e query da Python.
 
 
-## 5. GENERARE LE TABELLE:
-* Se le tabelle erano già state create, lanciare prima *remove_ALL_tables.py*
-* Lanciare *insert_data.py* (nota: è una versione ridotta, si ferma a 1000 pressate per velocità)
-* Lanciare *populate_max.py* per popolare i campi MaxForza e MaxAltezza
+## 4) PER LANCIARE LE FUNZIONI NELL'ALGORITMO DI TRAINING / EVALUATION (nota: non vale per l'export):
+* Usare SOLO il file Launcher. Tenere scommentata solo la funzione da lanciare.
+
+
+## 5) PANDAS:
+
+Per i SELECT consigliamo di scaricare tutte le tabelle SQL utili, già filtrate in senso largo (in modo da non doverle chiamare da capo), una sola volta e solo nella macrofunzione della vostra parte. 
+
+Invece di usare *cursor.execute()*, usare direttamente i **[Dataframe di Pandas](https://pandas.pydata.org/docs/reference/frame.html)**. In questo modo, la query viene automaticamente eseguita e convertita in una tabella Dataframe da cui si possono leggere e gestire i dati. Le colonne possono anche essere convertite in liste.
+```
+import pandas as pd
+
+# IMPORTARE DA SQL IN UN DATAFRAME:
+query = "SELECT ........"
+df = pd.read_sql(query, conn)
+# (si usa al posto di execute e commit!)
+```
+Conviene chiamare i dataframe con gli stessi nomi delle tabelle SQL (o con nomi chiari), in modo che si capisca cosa sono!
+
+Esempi pratici di utilizzo:
+
+**Import da SQL a Pandas:**
+
+```
+# scrivete una query sql onnicomprensiva con tutte le colonne che vi servono: 
+querysql = "SELECT Timestamp, ComboID, MaxAltezza FROM Pressate"
+
+# eseguire la query in questo modo creando un dataframe di nome Pressate:
+Pressate = pd.read_sql(querysql, cnxn) 
+
+# per visualizzare il dataframe:
+print(Pressate)
+
+# Per accedere a una colonna invece basta chiamarla con la sua intestazione (la stessa della tabella SQL!):
+# es. Pressate['Timestamp']
+```
+    
+**Query in Pandas:**
+
+Si possono fare le STESSE cose di SQL! Solo con una sintassi diversa.
+
+Ad ogni query, Pandas crea una sottotabella (separata) della tabella:
+```
+# Ho modi diversi per eseguire una query, a seconda se voglio filtrare per una stringa o per un numero:
+
+# a) query se una colonna ha stringhe:
+# es. voglio creare una sottotabella del dataframe Pressate in cui ci sono solo le Pressate con il ComboID "p0001MP080":
+
+#stringa:
+query = 'ComboID == "p0001MP080"'
+# stringa alternativa (con variabile):
+gino = 'p0001MP080'
+query = 'ComboID == "'+str(gino)+'"'
+
+# eseguo la query Pandas nel dataframe, ottenendo una sottotabella che chiamo PressateCombo
+PressateCombo = Pressate.query(query)
+print(PressateCombo)
+
+
+# b) query se una colonna ha numeri invece di stringhe:
+# es. voglio creare una sottotabella del dataframe Pressate in cui c'è solo la pressata con un timestamp (che è un int):
+timestamp = 1585567478
+# notare come cambia la sintassi:
+Pressata = Pressate[Pressate['Timestamp'] == timestamp]
+
+```
+OUT:
+```
+Pressate:
+      Timestamp     ComboID  MaxAltezza
+0    1584106101  p0038MP080      206.95
+1    1584106118  p0007MP080      200.05
+2    1584106142  a0207MP080      189.35
+3    1584106237  p0001MP080      160.79
+4    1584106258  p0008MP080      156.16
+..          ...         ...         ...
+983  1585573900  p0004MP105      166.04
+984  1585573951  p0004MP105      166.04
+985  1585573979  p0004MP105      166.04
+986  1585574002  p0004MP105      166.04
+987  1585574477  a0211MP105      270.57
+
+[988 rows x 3 columns]
+
+
+PressateCombo:
+      Timestamp     ComboID  MaxAltezza
+3    1584106237  p0001MP080      160.79
+9    1584106518  p0001MP080      160.80
+16   1584106927  p0001MP080      160.80
+65   1584347409  p0001MP080      160.80
+79   1584348491  p0001MP080      160.80
+91   1584348627  p0001MP080      160.80
+103  1584348763  p0001MP080      160.79
+115  1584349542  p0001MP080      160.80
+128  1584349667  p0001MP080      160.79
+144  1584349802  p0001MP080      160.79
+165  1584353423  p0001MP080      160.79
+166  1584353424  p0001MP080      160.79
+
+```
+
+Notare come cambia la lista di indici alla prima colonna della sottotabella! E' importante ricordarsi che gli indici di una sottotabella possono NON essere consecutivi a causa del filtro (seguono le righe originali).
+
+Per questo motivo, per accedere a una riga si possono usare 2 modi:
+```
+# Per accedere a una riga:
+# a) .iloc[...] -> restituisce la posizione reale della riga a prescindere dal suo indice post-filtro: 
+max_altezza = float(PressateCombo['MaxAltezza'].iloc[0])
+# OUT: 160.79
+
+# b) .loc[...] -> restituisce la posizione della riga secondo il suo indice originale (che, per la prima riga all'esempio in alto, NON è 0 ma è 3!!!!!!!): 
+max_altezza = float(PressateCombo['MaxAltezza'].loc[3])
+# OUT: 160.79
+```
+Metodi utili:
+```
+# Convertire intere colonne in liste:
+timestamps = Pressate['Timestamp'].tolist()
+
+# Convertire intere colonne in liste ma solo con gli elementi distinti (equivale al DISTINCT di SQL):
+combo_list = Pressate['ComboID'].unique().tolist()
+
+# FARE IL JOIN TRA TABELLE (supponiamo esista un secondo dataframe chiamato Warnings):
+# es. inner join con tabella Warnings (NOTA: crea sottotabella con SOLO LE RIGHE COMUNI!!!)
+# Commons = Pressate.merge(Warnings, on=["Timestamp"])
+# print(Commons)
+
+# Ottenere l'indice di posizione di una riga:
+row = Pressate.index
+# o una lista con tutti gli indici di una colonna (che, appunto, possono non essere consecutivi):
+rows = Pressate.index.values.tolist()
+
+# Cancellare una riga (o una lista di righe) dalla tabella:
+Pressate.drop(rows, inplace=True)
+
+```
+**GUIDE UTILI:**
+* Queries: https://www.geeksforgeeks.org/python-filtering-data-with-pandas-query-method/
+* Joins: https://www.shanelynn.ie/merge-join-dataframes-python-pandas-index-1/
+* Per il resto: Google.
 
 ---
 
