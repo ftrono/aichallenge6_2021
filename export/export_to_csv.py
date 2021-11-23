@@ -25,8 +25,10 @@ def save_table_csv(table_name):
     conn,cursor = db_connect()
     sql_query = pd.read_sql_query("SELECT * FROM "+str(table_name),conn)
     df = pd.DataFrame(sql_query)
+    if not os.path.isdir(OUTPUT_PATH):
+        os.mkdir(OUTPUT_PATH)
     percorso= os.path.join(OUTPUT_PATH,table_name+'.'+"csv")
-    df.to_csv(percorso,index=False)    
+    df.to_csv(percorso,index=False)
     db_disconnect(conn,cursor)
     
     return 0
