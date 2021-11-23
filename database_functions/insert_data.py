@@ -46,12 +46,13 @@ def insert_data(dbt,limit=1000000):
 
     #1) POPULATE WARNING_DESC TABLE::
     desc =  ["'Pressata: max_altezza out of bounds'",
-            "'Riduttore: incorrect number of pressate'",
+            "'Pressata: anomalous height curve'",
             "'Pressata: max_forza out of bounds'",
-            "'Pressata: force curve out of bounds'"]
+            "'Pressata: force curve out of bounds'",
+            "'Riduttore: incorrect number of pressate'"]
 
     for d in range(len(desc)):
-        query = "INSERT INTO WarningDesc ( Description) VALUES ("+desc[d]+")"
+        query = "INSERT INTO WarningDesc (Description) VALUES ("+desc[d]+")"
         cursor.execute(query)
         cursor.commit()
     general_log.info("WarningDesc populated")
@@ -109,7 +110,6 @@ def insert_data(dbt,limit=1000000):
                                         Timestamp=parse_date(p_row[1])
                                         try:
                                             IdComp,Stazione,Timestamp=name_parser(row["CSVname"]) # get informations form file name
-                                            
                                             ComboID=IdComp+Taglia
                                             if ComboID not in comboIDs:
                                                 try:
