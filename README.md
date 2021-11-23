@@ -166,7 +166,7 @@ PressateCombo:
 
 ```
 
-Notare come cambia la lista di indici alla prima colonna della sottotabella! E' importante ricordarsi che gli indici di una sottotabella possono NON essere consecutivi a causa del filtro (seguono le righe originali).
+**Notare come cambia la lista di indici alla prima colonna della sottotabella!** E' importante ricordarsi che gli indici di una sottotabella possono NON essere consecutivi a causa del filtro (seguono le righe originali).
 
 Per questo motivo, per accedere a una riga si possono usare 2 modi:
 ```
@@ -188,7 +188,7 @@ timestamps = Pressate['Timestamp'].tolist()
 combo_list = Pressate['ComboID'].unique().tolist()
 
 # FARE IL JOIN TRA TABELLE (supponiamo esista un secondo dataframe chiamato Warnings):
-# es. inner join con tabella Warnings (NOTA: crea sottotabella con SOLO LE RIGHE COMUNI!!!)
+# es. inner join con tabella Warnings (NOTA: crea sottotabella con tutte le colonne ma SOLO LE RIGHE COMUNI!!!)
 # Commons = Pressate.merge(Warnings, on=["Timestamp"])
 # print(Commons)
 
