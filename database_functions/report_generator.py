@@ -16,6 +16,7 @@ df = pd.read_sql(query, conn)
 #    |       | ... |         |                     |
 #    |       | ... |         |                     |
 #    |       | ... |         |                     |
+
 print(df)
 
 
