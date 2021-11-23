@@ -189,8 +189,8 @@ combo_list = Pressate['ComboID'].unique().tolist()
 
 # FARE IL JOIN TRA TABELLE (supponiamo esista un secondo dataframe chiamato Warnings):
 # es. inner join con tabella Warnings (NOTA: crea sottotabella con tutte le colonne ma SOLO LE RIGHE COMUNI!!!)
-# Commons = Pressate.merge(Warnings, on=["Timestamp"])
-# print(Commons)
+Commons = Pressate.merge(Warnings, on=["Timestamp"])
+print(Commons)
 
 # Ottenere l'indice di posizione di una riga:
 row = Pressate.index
