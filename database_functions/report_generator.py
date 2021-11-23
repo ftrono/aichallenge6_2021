@@ -9,5 +9,6 @@ query = ("SELECT Pressate.RiduttoreID, Pressate.ComboID, Pressate.MaxForza, Pres
 
 
 
+
 # disconnect
 db_connect(conn, cursor)
