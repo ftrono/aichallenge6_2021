@@ -28,18 +28,27 @@ riduttores = df['RiduttoreID'].unique()
 if not os.path.isdir('.' + OUTPUT_PATH):
     os.mkdir('.' + OUTPUT_PATH)
 
+replace_all = False
 for index, id_rid in enumerate(riduttores):
     df_by_riduttore = df.loc[df['RiduttoreID'] == riduttores[index]].drop(labels='RiduttoreID', axis=1)
     SAVE_PATH_NAME = '.' + OUTPUT_PATH + '/' + str(riduttores[index]) + '.csv'
     # Check overwrite
-    if os.path.isfile(SAVE_PATH_NAME):
-        approval = input(f"Report for riduttore {str(riduttores[index])} already exists. Do you want to replace it?\n[y: replace; n: don't replace; A: replace all; N: replace none]: ")
-        if approval == 'y':
-            df_by_riduttore.to_csv(SAVE_PATH_NAME, index=False)
-        elif approval == 'n':
-            pass
-    else:
+    if replace_all == True:
         df_by_riduttore.to_csv(SAVE_PATH_NAME, index=False)
+    # Ask for approval
+    else:
+        if os.path.isfile(SAVE_PATH_NAME):
+            approval = input(f"Report for riduttore {str(riduttores[index])} already exists. Do you want to replace it?\n[y: replace; n: don't replace; A: replace all: ")
+            if approval == 'y':
+                df_by_riduttore.to_csv(SAVE_PATH_NAME, index=False)
+            elif approval == 'n':
+                pass
+            elif approval == 'A' or approval == 'a':
+                replace_all = True
+                df_by_riduttore.to_csv(SAVE_PATH_NAME, index=False)
+
+        else:
+            df_by_riduttore.to_csv(SAVE_PATH_NAME, index=False)
 
 
 
