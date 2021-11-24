@@ -58,8 +58,11 @@ def extract_data(dbt, stype='current', timestamp=None, comboid=None):
         logging.debug("Extracting data for Pressata {}".format(timestamp))
 
         #EXTRACT DATA FOR CURRENT TIMESTAMP:
-        query = "SELECT ComboID, MaxForza, MaxAltezza, RiduttoreID FROM Pressate WHERE Timestamp="+str(timestamp)
-        df = pd.read_sql(query, cnxn)
+        try:
+            query = "SELECT ComboID, MaxForza, MaxAltezza, RiduttoreID FROM Pressate WHERE Timestamp="+str(timestamp)
+            df = pd.read_sql(query, cnxn)
+        except:
+            return -1
         #comboid:
         comboid = str(df['ComboID'][0])
         current.comboid = comboid

@@ -2,7 +2,8 @@ import pandas as pd
 import sys,os
 sys.path.insert(0, os.getcwd())
 from globals import *
-from utils import interpolate_curve, visualize, write_warning
+from export.visualize import visualize
+from training.training_tools import slice_curves, interpolate_curve
 
 #EVALUATION TOOLS:
 # - evaluate_max()
@@ -11,7 +12,7 @@ from utils import interpolate_curve, visualize, write_warning
 
 
 #Eval max_altezza or max_forza:
-def evaluate_max(dbt, riduttore, timestamp, cur, tgt, std, mtype):
+def evaluate_max(log, current, target, mtype):
     '''
     Function that evaluates if the max_value of either altezza or forza is within the target +- a threshold.
     
@@ -29,29 +30,54 @@ def evaluate_max(dbt, riduttore, timestamp, cur, tgt, std, mtype):
     if mtype == 'altezza':
         wid = 1
         sigma = SIGMA_MA
+        cur = current.ma
+        tgt = target.ma
+        std = target.std_ma
     elif mtype == 'forza':
         wid = 3
         sigma = SIGMA_MF
+        cur = current.mf
+        tgt = target.mf
+        std = target.std_mf
     else:
         print("ERROR: mtype must by either 'altezza' or 'forza'.")
         raise
 
-    logging = dbt['logging']
     #evaluate current MA/MF if within StdMA/StdMF +- sigma:
     dev = std * sigma
     if (cur >= (tgt - dev)) and (cur <= (tgt + dev)):
-        logging.info("Timestamp {}: Max_{} OK".format(timestamp, mtype))
+        log.info("ComboID: {}. Timestamp {}: Max_{} OK".format(target.comboid, current.timestamp, mtype))
         return 0 #ok
     else:
-        logging.error("Current: {}, target: {}, std: {}".format(cur,tgt,dev))
-        logging.warning("Timestamp {}: flagged with WID #{}. Max_{} out of acceptable range! Please check the assembly.".format(timestamp, wid, mtype))
-        #write warning to DB:
-        write_warning(dbt, riduttore, wid, timestamp)
+        log.error("ComboID: {}. Timestamp {}: WID {}. Current: {}, target: {}, dev: {}".format(target.comboid, current.timestamp, wid, cur, tgt, dev))
         return wid
 
 
+#Eval height curve trajectory:
+def evaluate_anomalous(log, current, target):
+    '''
+    Function that evaluates if the max_value of either altezza or forza is within the target +- a threshold.
+    
+    Parameters:
+    -------------------
+    input:
+    - ...
+    
+    output:
+    - wid (warning id) -> if warning found, else 0
+    '''
+    #evaluate if height curve starts with an increasing or decreasing trajectory:
+    if float(current.altezza[0]) > float(current.altezza[1]):
+        wid = 2
+        log.error("ComboID: {}. Timestamp {}: WID {}. Anomalous height curve".format(target.comboid, current.timestamp, wid))
+        return wid
+    else:
+        log.info("ComboID: {}. Timestamp {}: height curve OK".format(target.comboid, current.timestamp))
+        return 0 #ok
+
+
 #Eval point by point the interpolated curve:
-def evaluate_points(dbt, current, target):
+def evaluate_points(log, current, target):
     '''
     Function that evaluates if all points of the curve (already interpolated) are within the acceptable std_dev bound 
     from the ideal curve, increased by a sigma.
@@ -67,8 +93,7 @@ def evaluate_points(dbt, current, target):
     - count_out (int) -> count of points out of bounds
     - wid (warning id) -> if warning found, else 0.
     '''
-    logging = dbt['logging']
-    count_out = 0    
+    count_out = 0
     
     #count points out of bounds:
     if USE_AVG == True:
@@ -85,18 +110,16 @@ def evaluate_points(dbt, current, target):
 
     #final check on curve:
     if count_out <= MIN_POINTS: #ok
-        logging.info("Timestamp {}: assembly success. No warnings.".format(current.timestamp))
+        log.info("ComboID: {}. Timestamp {}: assembly success. No warnings.".format(current.comboid, current.timestamp))
         return count_out, 0
     else:
         wid = 4
-        logging.warning("Timestamp {}: flagged with WID #{}. Curve out of bounds in {} points out of {}! Please check the assembly.".format(current.timestamp, wid, count_out, len(current.forza)))
-        #write warning to DB:
-        write_warning(dbt, current.riduttoreid, wid, current.timestamp)
+        log.warning("ComboID: {}. Timestamp {}: WID #{}. Curve out of bounds in {} points out of {}! Please check the assembly.".format(current.comboid, current.timestamp, wid, count_out, len(current.forza)))
     return count_out, wid
 
 
 #CENTRAL EVALUATE FUNCTION:
-def evaluate_full(dbt, current, target, preprocessed=False, visual=WINDOW, save=SAVE_PNG, verbose=False):
+def evaluate_full(log, current, target, preprocessed=False, visual=WINDOW, save=SAVE_PNG, verbose=False):
     '''
     Function that evaluates if a pressata is correct or not. 
     It queries for the parameters of the pressata's combo, interpolates the curve and 
@@ -123,31 +146,46 @@ def evaluate_full(dbt, current, target, preprocessed=False, visual=WINDOW, save=
     
     output: 
     - 0 if pressata is accepted
-    - -1 if warnings flagged
+    - wid (int) if warning found
 
     '''
-    #INTERPOLATE CURVE (overwrite current.forza into collector object):
-    current.forza = interpolate_curve(target.altezza, current.altezza, current.forza)
-
+    #Preprocessing checks:
     if preprocessed == False:
         #check 1: max_altezza
-        wid = evaluate_max(dbt, current.riduttoreid, current.timestamp, current.ma, target.ma, target.std_ma, mtype='altezza')
+        wid = evaluate_max(log, current, target, mtype='altezza')
         if wid != 0:
             if verbose == True:
-                print("Timestamp {}: flagged with WID #{}. Max_altezza out of acceptable range! Please check the assembly.".format(current.timestamp, wid))
+                print("Timestamp {}: WID #{}. Max_altezza out of acceptable range! Please check the assembly.".format(current.timestamp, wid))
+            return wid
+        
+        #check 2: anomalous height vector
+        wid = evaluate_anomalous(log, current, target)
+        if wid != 0:
+            if verbose == True:
+                log.warning("Timestamp {}: WID #{}. Anomalous height curve.".format(current.timestamp, wid))
+            return wid
+
+        #Check if can go on with evaluating (only if preprocessed == False):
+        if target.mf == 0 or target.altezza == []:
+            print("ERROR: data not available for ComboID {}.".format(current.comboid))
             return -1
 
-    #check 2: max_forza
-    wid = evaluate_max(dbt, current.riduttoreid, current.timestamp, current.mf, target.mf, target.std_mf, mtype='forza')
+        #Slice curves & interpolate force curve (overwrite current.altezza and current.forza into collector object)
+        current.altezza, current.forza = slice_curves(target.ma, current.altezza, current.forza)
+        current.forza = interpolate_curve(target.altezza, current.altezza, current.forza)
+
+    #Always:
+    #check 3: max_forza
+    wid = evaluate_max(log, current, target, mtype='forza')
     if wid != 0:
         if verbose == True:
-            print("Timestamp {}: flagged with WID #{}. Max_forza out of acceptable range! Please check the assembly.".format(current.timestamp, wid))
+            print("Timestamp {}: WID #{}. Max_forza out of acceptable range! Please check the assembly.".format(current.timestamp, wid))
         if (visual == True) or (save == True):
             visualize(current, target, wid=wid, count_out=0, window=visual, save=save)
-        return -1
+        return wid
     
-    #check 3: compare curve
-    count_out, wid = evaluate_points(dbt, current, target)
+    #check 4: compare curve
+    count_out, wid = evaluate_points(log, current, target)
     if wid == 0:
         if verbose == True:
             print("Timestamp {}: assembly success. No warnings.".format(current.timestamp))
@@ -156,7 +194,7 @@ def evaluate_full(dbt, current, target, preprocessed=False, visual=WINDOW, save=
         return 0
     else:
         if verbose == True:
-            print("Timestamp {}: flagged with WID #{}. Curve out of bounds in {} points out of {}! Please check the assembly.".format(current.timestamp, wid, count_out, len(current.forza)))
+            print("Timestamp {}: WID #{}. Curve out of bounds in {} points out of {}! Please check the assembly.".format(current.timestamp, wid, count_out, len(current.forza)))
         if (visual == True) or (save == True):
             visualize(current, target, wid=wid, count_out=count_out, window=visual, save=save)
-        return -1
+        return wid
