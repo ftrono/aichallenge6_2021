@@ -49,7 +49,7 @@ def evaluate_max(log, current, target, mtype):
         log.debug("ComboID: {}. Timestamp {}: Max_{} OK".format(target.comboid, current.timestamp, mtype))
         return 0 #ok
     else:
-        log.warning("ComboID: {}. Timestamp {}: WID {}. Max_{} out of acceptable range! Current: {}, target: {}, dev: {}. Please check the assembly.".format(target.comboid, current.timestamp, wid, cur, tgt, dev))
+        log.warning("ComboID: {}. Timestamp {}: WID {}. Max_{} out of acceptable range! Current: {}, target: {}, dev: {}. Please check the assembly.".format(target.comboid, current.timestamp, wid, mtype, cur, tgt, dev))
         return wid
 
 

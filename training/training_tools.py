@@ -166,17 +166,20 @@ def slice_curves(target_ma, altezza, forza):
 
 #interpolate curve:
 def interpolate_curve(altezza_combo, altezza, forza):
-    def f(x):
-        x_points = altezza
-        y_points = forza
+    f = interpolate.interp1d(altezza, forza, kind='cubic', fill_value='extrapolate')
 
-        tck = interpolate.splrep(x_points, y_points)
-        return interpolate.splev(x, tck)
-    
-    new_forza=[]
-    for point in altezza_combo:
-        if point<altezza[0]:
-            new_forza.append(0)
+    min_f = min(forza)
+    max_f = max(forza)
+    new_forza = []
+
+    extrap = f(altezza_combo)
+
+    for p in extrap:
+        if p < min_f:
+            new_forza.append(min_f)
+        elif p > max_f:
+            new_forza.append(max_f)
         else:
-            new_forza.append(round(float(f(point)),2))
+            new_forza.append(round(float(p),2))
+    
     return new_forza

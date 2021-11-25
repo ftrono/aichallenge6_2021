@@ -102,7 +102,7 @@ def preprocessing():
         sets_targets.append((target.ma, target.std_ma, target.comboid))
 
         #3) Dataset cleaning:
-        log.debug("ComboID {}: evaluating {} Pressate for preprocessing...".format(comboid, len(tot_4combo)))
+        log.debug("ComboID {}: evaluating {} Pressate for preprocessing...".format(comboid, tot_4combo))
         #Flag wrong curves for MA:
         for row in PressateCombo.index:
             #init current Collector:

@@ -195,13 +195,24 @@ def train(epoch=0, resume=False):
             del PressataData
 
 
-            #ii) Learn the target height vector for the Combo:
+            #ii) Learn the target Forza parameters and target height vector for the Combo:
             if resume == True and comboid in c_trained:
-                #get already learned h vector:
+                #get already learned Forza parameters and target h vectors:
+                target.mf = float(Combo['TargetMF'].iloc[0])
+                target.std_mf = float(Combo['StdMF'].iloc[0])
                 target.altezza = ComboData['Altezza'].tolist()
                 log.debug("ComboID {}. Prelearned target Altezza curve extracted".format(comboid))
             else:
-                #learn h vector:
+                #learn:
+                # TargetMF and StdMF:
+                target.mf = float(PressateCombo['MaxForza'].mean())
+                try:
+                    target.std_mf = float(PressateCombo['MaxForza'].std()) + 1
+                except:
+                    target.std_mf = 1
+                log.debug("ComboID {}. TargetMF and StdMF generated".format(comboid))
+
+                # h vector:
                 sample_rate = compute_rate(batch_heights)
                 target.altezza = generate_hvec(sample_rate, MIN_ALTEZZA, target.ma)
                 log.debug("ComboID: {}. Learned target Altezza vector".format(comboid))
@@ -218,18 +229,16 @@ def train(epoch=0, resume=False):
             log.debug("ComboID: {}. Sliced and interpolated original curves in all Collectors".format(comboid))
 
             
-            #iv) Learn the target Forza parameters, curve and Std_curve for the Combo:
+            #iv) Learn the target Forza curve, Std_curve and StdCurveAvg for the Combo:
             if resume == True and comboid in c_trained:
                 #use already learned data:
                 target.forza = ComboData['Forza'].tolist()
                 target.std = ComboData['Std'].tolist()
-                target.mf = float(Combo['TargetMF'].iloc[0])
-                target.std_mf = float(Combo['StdMF'].iloc[0])
                 target.std_curve_avg = float(Combo['StdCurveAvg'].iloc[0])
                 log.debug("ComboID {}. Prelearned target Forza curve and std_curve extracted".format(comboid))
             else:
                 #learn:
-                #a. target Forza curve, Std_curve and StdCurveAvg:
+                #target Forza curve, Std_curve and StdCurveAvg:
                 target.forza = ideal_curve(batch_forces)
                 target.std = stdev_curve(batch_forces)
                 target.std_curve_avg = float(statistics.mean(target.std))
@@ -241,19 +250,12 @@ def train(epoch=0, resume=False):
                     sets_curves.append((comboid, float(target.altezza[i]), float(target.forza[i]), float(target.std[i])))
 
 
-                #b. TargetMF and StdMF:
-                target.mf = float(PressateCombo['MaxForza'].mean())
-                try:
-                    target.std_mf = float(PressateCombo['MaxForza'].std()) + 1
-                except:
-                    target.std_mf = 1
-                log.debug("ComboID {}. TargetMF and StdMF generated".format(comboid))
-
-
                 #BULK STORE ALL LEARNED PARAMETERS AND CURVES TO SQL DB (if not stored yet):
                 #Store TargetMF, StdMF and StdCurveAvg:
                 print(target.mf, target.std_mf, target.std_curve_avg, comboid)
                 print(sets_curves[0])
+                for i in range(len(currents)):
+                    print("Last interpolated: {}, targetMF: {}".format(currents[i].forza[-1], target.mf))
                 try:
                     cursor.execute("UPDATE Combos SET TargetMF = ?, StdMF = ?, StdCurveAvg = ? WHERE ComboID = ?", float(target.mf), float(target.std_mf), float(target.std_curve_avg), comboid)
                     cnxn.commit()
