@@ -30,7 +30,7 @@ def preprocessing():
     log=logging.getLogger('preprocessing')
     hdl=logging.FileHandler('./logs/preprocessing.log',mode='w')
     hdl.setFormatter(logging.Formatter('%(asctime)s %(levelname)s %(message)s'))
-    log.setLevel(logging.INFO)
+    log.setLevel(logging.DEBUG)
     log.addHandler(hdl)
 
     start_time = time.time()
@@ -65,6 +65,7 @@ def preprocessing():
     sets_targets = []
     sets_warnings = []
     tot_cnt = 0
+    db_error = False
 
 
     #2) PREPROCESS:
@@ -77,7 +78,10 @@ def preprocessing():
         target.comboid = str(comboid)
         cnt = 0
 
+        log.info("ComboID {}: preprocessing started.".format(comboid))
+
         #extract portion of Pressate table only with the current ComboID:
+        log.debug("ComboID {}: initializing data for preprocessing...".format(comboid))
         query = 'ComboID == "'+comboid+'"'
         PressateCombo = Pressate.query(query)
         tot_4combo = len(PressateCombo['Timestamp'].tolist())
@@ -92,11 +96,13 @@ def preprocessing():
             target.std_ma = float(PressateCombo['MaxAltezza'].std()) + 1
         except:
             target.std_ma = 1
+        log.debug("ComboID {}: TargetMA and StdMA generated".format(comboid))
         
         #2) Accumulate TargetMA and StdMA for later store:
         sets_targets.append((target.ma, target.std_ma, target.comboid))
 
         #3) Dataset cleaning:
+        log.debug("ComboID {}: evaluating {} Pressate for preprocessing...".format(comboid, len(tot_4combo)))
         #Flag wrong curves for MA:
         for row in PressateCombo.index:
             #init current Collector:
@@ -110,23 +116,19 @@ def preprocessing():
                 wid = evaluate_anomalous(log, current, target)
                 if wid != 0:
                     cnt = cnt+1
-                    #accumulate warnings:
+                    #accumulate warnings (WID 2: anomalous height curve):
                     sets_warnings.append((current.riduttoreid, current.timestamp, wid))
-                    #log:
-                    log.warning("ComboID: {}. Timestamp {}: WID #{}. Anomalous height curve.".format(comboid, current.timestamp, wid))
             else:
                 cnt = cnt+1
-                #accumulate warnings:
+                #accumulate warnings (WID 1: MaxAltezza out of range):
                 sets_warnings.append((current.riduttoreid, current.timestamp, wid))
-                #log:
-                log.warning("ComboID: {}. Timestamp {}: WID #{}. MaxAltezza out of acceptable range.".format(comboid, current.timestamp, wid))
 
         #Flag riduttori for number of Pressate (wid=5):
         #TO BE IMPLEMENTED
 
         #4) End statistics:
         tot_cnt = tot_cnt + cnt
-        log.info("ComboID {}: preprocessing complete. Flagged {} Pressate out of {}.".format(comboid, cnt, tot_4combo))
+        log.info("ComboID {}: preprocessing complete. Found {} Pressate to be flagged out of {}.".format(comboid, cnt, tot_4combo))
 
 
     #3) BULK STORE:
@@ -138,6 +140,7 @@ def preprocessing():
         log.info("Stored TargetMA and StdMA for all Combos into DB.")
         print("Stored TargetMA and StdMA for all Combos into DB.")
     except:
+        db_error = True
         log.error("Insert error: TargetMA and StdMA not stored to DB. Please relaunch Preprocessing.")
         print("Insert error: TargetMA and StdMA not stored to DB. Please relaunch Preprocessing.")
 
@@ -149,6 +152,7 @@ def preprocessing():
         log.info("Stored all warnings found into DB.")
         print("Stored all warnings found into DB.")
     except:
+        db_error = True
         log.error("Insert error: warnings not stored to DB. Please relaunch Preprocessing.")
         print("Insert error: warnings not stored to DB. Please relaunch Preprocessing.")
 
@@ -156,6 +160,12 @@ def preprocessing():
     #END:
     db_disconnect(cnxn, cursor)
     end_time = time.time()
-    log.info("Preprocessing COMPLETED in {} seconds! Flagged {} Pressate out of {}, with sigmas: MA {}.".format(round((end_time-start_time),2), tot_cnt, tot_pressate, SIGMA_MA))
-    print("Preprocessing COMPLETED in {} seconds! Flagged {} Pressate out of {}, with sigmas: MA {}.\n".format(round((end_time-start_time),2), tot_cnt, tot_pressate, SIGMA_MA))
-    return 0
+
+    if db_error == False:
+        log.info("Preprocessing COMPLETED in {} seconds! Flagged {} Pressate out of {}, with sigma MA {}.".format(round((end_time-start_time),2), tot_cnt, tot_pressate, SIGMA_MA))
+        print("Preprocessing COMPLETED in {} seconds! Flagged {} Pressate out of {}, with sigma MA {}.\n".format(round((end_time-start_time),2), tot_cnt, tot_pressate, SIGMA_MA))
+        return 0
+    else:
+        log.info("Preprocessing COMPLETED in {} seconds. Error in storing data to the DB: please relaunch Preprocessing. Found {} Pressate to be flagged out of {}, with sigma MA {}.".format(round((end_time-start_time),2), tot_cnt, tot_pressate, SIGMA_MA))
+        print("Preprocessing COMPLETED in {} seconds. Error in storing data to the DB: please relaunch Preprocessing. Found {} Pressate to be flagged out of {}, with sigma MA {}.\n".format(round((end_time-start_time),2), tot_cnt, tot_pressate, SIGMA_MA))
+        return -1

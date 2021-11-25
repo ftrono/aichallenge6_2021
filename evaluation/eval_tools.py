@@ -46,10 +46,10 @@ def evaluate_max(log, current, target, mtype):
     #evaluate current MA/MF if within StdMA/StdMF +- sigma:
     dev = std * sigma
     if (cur >= (tgt - dev)) and (cur <= (tgt + dev)):
-        log.info("ComboID: {}. Timestamp {}: Max_{} OK".format(target.comboid, current.timestamp, mtype))
+        log.debug("ComboID: {}. Timestamp {}: Max_{} OK".format(target.comboid, current.timestamp, mtype))
         return 0 #ok
     else:
-        log.error("ComboID: {}. Timestamp {}: WID {}. Current: {}, target: {}, dev: {}".format(target.comboid, current.timestamp, wid, cur, tgt, dev))
+        log.warning("ComboID: {}. Timestamp {}: WID {}. Max_{} out of acceptable range! Current: {}, target: {}, dev: {}. Please check the assembly.".format(target.comboid, current.timestamp, wid, cur, tgt, dev))
         return wid
 
 
@@ -69,10 +69,10 @@ def evaluate_anomalous(log, current, target):
     #evaluate if height curve starts with an increasing or decreasing trajectory:
     if float(current.altezza[0]) > float(current.altezza[1]):
         wid = 2
-        log.error("ComboID: {}. Timestamp {}: WID {}. Anomalous height curve".format(target.comboid, current.timestamp, wid))
+        log.warning("ComboID: {}. Timestamp {}: WID {}. Anomalous height curve".format(target.comboid, current.timestamp, wid))
         return wid
     else:
-        log.info("ComboID: {}. Timestamp {}: height curve OK".format(target.comboid, current.timestamp))
+        log.debug("ComboID: {}. Timestamp {}: height curve OK".format(target.comboid, current.timestamp))
         return 0 #ok
 
 
@@ -110,7 +110,7 @@ def evaluate_points(log, current, target):
 
     #final check on curve:
     if count_out <= MIN_POINTS: #ok
-        log.info("ComboID: {}. Timestamp {}: assembly success. No warnings.".format(current.comboid, current.timestamp))
+        log.debug("ComboID: {}. Timestamp {}: assembly success. No warnings.".format(current.comboid, current.timestamp))
         return count_out, 0
     else:
         wid = 4
@@ -155,19 +155,19 @@ def evaluate_full(log, current, target, preprocessed=False, visual=WINDOW, save=
         wid = evaluate_max(log, current, target, mtype='altezza')
         if wid != 0:
             if verbose == True:
-                print("Timestamp {}: WID #{}. Max_altezza out of acceptable range! Please check the assembly.".format(current.timestamp, wid))
+                print("ComboID: {}. Timestamp {}: WID {}. Max_altezza out of acceptable range! Current: {}, target: {}, dev: {}. Please check the assembly.".format(target.comboid, current.timestamp, wid, current.ma, target.ma, target.std_ma*SIGMA_MA))
             return wid
         
         #check 2: anomalous height vector
         wid = evaluate_anomalous(log, current, target)
         if wid != 0:
             if verbose == True:
-                log.warning("Timestamp {}: WID #{}. Anomalous height curve.".format(current.timestamp, wid))
+                print("ComboID: {}. Timestamp {}: WID #{}. Anomalous height curve.".format(current.comboid, current.timestamp, wid))
             return wid
 
         #Check if can go on with evaluating (only if preprocessed == False):
         if target.mf == 0 or target.altezza == []:
-            print("ERROR: data not available for ComboID {}.".format(current.comboid))
+            print("ComboID: {}. ERROR: data not available for the Combo.".format(current.comboid))
             return -1
 
         #Slice curves & interpolate force curve (overwrite current.altezza and current.forza into collector object)
@@ -179,7 +179,7 @@ def evaluate_full(log, current, target, preprocessed=False, visual=WINDOW, save=
     wid = evaluate_max(log, current, target, mtype='forza')
     if wid != 0:
         if verbose == True:
-            print("Timestamp {}: WID #{}. Max_forza out of acceptable range! Please check the assembly.".format(current.timestamp, wid))
+            print("ComboID: {}. Timestamp {}: WID {}. Max_forza out of acceptable range! Current: {}, target: {}, dev: {}. Please check the assembly.".format(target.comboid, current.timestamp, wid, current.mf, target.mf, target.std_mf*SIGMA_MF))
         if (visual == True) or (save == True):
             visualize(current, target, wid=wid, count_out=0, window=visual, save=save)
         return wid
@@ -188,13 +188,14 @@ def evaluate_full(log, current, target, preprocessed=False, visual=WINDOW, save=
     count_out, wid = evaluate_points(log, current, target)
     if wid == 0:
         if verbose == True:
-            print("Timestamp {}: assembly success. No warnings.".format(current.timestamp))
+            log.info("ComboID: {}. Timestamp {}: assembly success. No warnings.".format(current.comboid, current.timestamp))
+            print("ComboID: {}. Timestamp {}: assembly success. No warnings.".format(current.comboid, current.timestamp))
         if (visual == True) or (save == True):
             visualize(current, target, wid=wid, count_out=count_out, window=visual, save=save)
         return 0
     else:
         if verbose == True:
-            print("Timestamp {}: WID #{}. Curve out of bounds in {} points out of {}! Please check the assembly.".format(current.timestamp, wid, count_out, len(current.forza)))
+            print("ComboID: {}. Timestamp {}: WID #{}. Curve out of bounds in {} points out of {}! Please check the assembly.".format(current.comboid, current.timestamp, wid, count_out, len(current.forza)))
         if (visual == True) or (save == True):
             visualize(current, target, wid=wid, count_out=count_out, window=visual, save=save)
         return wid

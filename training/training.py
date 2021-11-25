@@ -1,5 +1,4 @@
 import sys, logging, os, time, statistics
-from numpy.core.numeric import full
 import pandas as pd
 sys.path.insert(0, os.getcwd())
 from globals import *
@@ -16,7 +15,7 @@ from evaluation.eval_tools import evaluate_full
 # - evaluate all Pressate in the DB and flag those not reaching TargetMF (with a sigma) and with anomalous curves.
 
 
-def train(epoch):
+def train(epoch=0, resume=False):
     '''
     2) Training part:
     - resets CombosData table (curves learnt previously)
@@ -30,15 +29,21 @@ def train(epoch):
     '''
     # Connect
     cnxn, cursor = db_connect()
-    e = epoch+1
+
+    #Note: resume training can be used only for one epoch!
+    if resume == True:
+        e = str(epoch+1)+"_res"
+        logname = './logs/training_resume.log'
+    else:
+        e = epoch+1
+        logname = './logs/training_epoch'+str(e)+'.log'
 
     #INIT:
     # Set logger:
     log=logging.getLogger('training')
-    filename = './logs/training_epoch'+str(e)+'.log'
-    hdl=logging.FileHandler(filename,mode='w')
+    hdl=logging.FileHandler(logname,mode='w')
     hdl.setFormatter(logging.Formatter('%(asctime)s %(levelname)s %(message)s'))
-    log.setLevel(logging.INFO)
+    log.setLevel(logging.DEBUG)
     log.addHandler(hdl)
 
     start_time = time.time()
@@ -53,11 +58,17 @@ def train(epoch):
     #accumulation lists:
     sets_curves = []
     sets_warnings = []
+    c_trained = []
     tot_cnt = 0
+    db_errors = []
+    warn_error = False
 
-    #0) Reset learned CombosData table:
-    reset_table(dbt, tablename="CombosData")
-    log.info("CombosData table reset")
+    #0) Training mode: full or resume:
+    if resume == False:
+        #reset learned CombosData table:
+        reset_table(dbt, tablename="CombosData")
+        log.info("CombosData table reset")
+
 
     #1) Extract ALL needed tables into memory (only timestamps with no warnings):
     #Pressate:
@@ -65,24 +76,41 @@ def train(epoch):
     query = "SELECT Pressate.Timestamp, Pressate.RiduttoreID, Pressate.ComboID, Pressate.MaxForza, Pressate.MaxAltezza FROM Pressate WHERE NOT EXISTS (SELECT Warnings.Timestamp FROM Warnings WHERE Warnings.Timestamp = Pressate.Timestamp)"
     Pressate = pd.read_sql(query, cnxn)
     tot_pressate = len(Pressate['Timestamp'].tolist())
-    log.info("Extracted table 1/3 (Pressate)...")
+    log.info("Extracted table 1/3 (Pressate)")
 
     #PressateData:
     query = "SELECT PressateData.Timestamp, Pressate.ComboID, PressateData.Forza, PressateData.Altezza FROM PressateData INNER JOIN Pressate ON PressateData.Timestamp = Pressate.Timestamp WHERE NOT EXISTS (SELECT Warnings.Timestamp FROM Warnings WHERE Warnings.Timestamp = PressateData.Timestamp)"
     PressateData = pd.read_sql(query, cnxn)
-    log.info("Extracted table 2/3 (PressateData)...")
+    log.info("Extracted table 2/3 (PressateData)")
 
     #Combos:
-    query = "SELECT ComboID, TargetMA, TargetMF, StdMF, StdCurveAvg FROM Combos"
-    Combos = pd.read_sql(query, cnxn)
-    log.info("Extracted table 3/3 (Combos)...")
-    #convert dataframe to lists:
-    combos_list = Combos['ComboID'].tolist()
-    tgtma_list = Combos['TargetMA'].tolist()
-    del Combos
-    
-    log.info("Total number of Combos to train: {}".format(len(combos_list)))
-    print("Total number of Combos to train: {}".format(len(combos_list)))
+    if resume == False:
+        query = "SELECT ComboID, TargetMA FROM Combos"
+        Combos = pd.read_sql(query, cnxn)
+        log.info("Extracted table 3/3 (Combos)")
+        #convert dataframe to lists:
+        combos_list = Combos['ComboID'].tolist()
+        tgtma_list = Combos['TargetMA'].tolist()
+        del Combos
+    else:
+        query = "SELECT ComboID, TargetMA, TargetMF, StdMF, StdCurveAvg FROM Combos"
+        Combos = pd.read_sql(query, cnxn)
+        log.info("Extracted table 3/3 (Combos)")
+        #list of ComboIDs:
+        combos_list = Combos['ComboID'].tolist()
+
+    #CombosData (only if resume):
+    if resume == True:
+        #extract already learned curves:
+        query = "SELECT * FROM CombosData"
+        CombosData = pd.read_sql(query, cnxn)
+        c_trained = CombosData['ComboID'].unique().tolist()
+        log.info("Extracted additional table for resume training (CombosData)")
+
+    res = len(combos_list)-len(c_trained)
+    log.info("Total number of Combos to train: {}/{}".format(res, len(combos_list)))
+    print("Total number of Combos to train: {}/{}".format(res, len(combos_list)))
+
 
     #2) For each ComboID:
     for comboid in combos_list:
@@ -92,10 +120,10 @@ def train(epoch):
         batch_forces = []
         cnt = 0
         combo_start = time.time()
+        query = 'ComboID == "'+comboid+'"'
 
         #extract portion of Pressate table only with the current ComboID:
-        log.info("NEW ComboID: {}. Extracting timestamps...".format(comboid))
-        query = 'ComboID == "'+comboid+'"'
+        log.info("NEW ComboID: {}. Initializing data for training...".format(comboid))
         PressateCombo = Pressate.query(query)
         #remove this portion from the original Pressate table (to save memory):
         rows = PressateCombo.index.values.tolist()
@@ -112,21 +140,33 @@ def train(epoch):
             #TRAIN!
             log.info("Training {} Pressate for ComboID {}".format(len(timestamps), comboid))
             print("\nTraining {} Pressate for ComboID {}".format(len(timestamps), comboid))
-            comboid4store = "'"+comboid+"'"
 
 
             #1) INIT:
             #init target Collector:
             target = Collector()
             target.comboid = str(comboid)
-            target.ma = float(tgtma_list[combos_list.index(comboid)])
+            if resume == True:
+                Combo = Combos.query(query)
+                target.ma = float(Combo['TargetMA'].iloc[0])
+            else:
+                target.ma = float(tgtma_list[combos_list.index(comboid)])
 
-            log.info("ComboID: {}. Extracting original curves...".format(comboid))
-            #extract portion of PressateData table related only to the current ComboID:
+            #extract curves of interest for the Combo:
+            log.debug("ComboID: {}. Extracting original curves...".format(comboid))
+
+            #a. from PressateData:
             PressateComboData = PressateData.query(query)
             #remove this portion from the original Pressate table (to save memory):
             rows = PressateComboData.index.values.tolist()
             PressateData.drop(rows, inplace=True)
+
+            #b. from CombosData (only if ComboID already trained):
+            if resume == True and comboid in c_trained:
+                ComboData = CombosData.query(query)
+                #remove this portion from the original CombosData table (to save memory):
+                rows = ComboData.index.values.tolist()
+                CombosData.drop(rows, inplace=True)
 
 
             #2) LEARN:           
@@ -148,76 +188,97 @@ def train(epoch):
                 currents[i].altezza = PressataData['Altezza'].tolist()
                 batch_heights.append(currents[i].altezza)
                 currents[i].forza = PressataData['Forza'].tolist()
-                log.info("ComboID: {}. Collectors ready".format(comboid))
+                log.debug("ComboID: {}. Collectors ready".format(comboid))
             
             #clean memory:
             del Pressata
             del PressataData
 
 
-            #ii) Learn the target vectors & parameters for the Combo:
-            # Target altezza vector:
-            sample_rate = compute_rate(batch_heights)
-            target.altezza = generate_hvec(sample_rate, MIN_ALTEZZA, target.ma)
-            log.info("ComboID: {}. Learned target Altezza vector".format(comboid))
-            del batch_heights
+            #ii) Learn the target height vector for the Combo:
+            if resume == True and comboid in c_trained:
+                #get already learned h vector:
+                target.altezza = ComboData['Altezza'].tolist()
+                log.debug("ComboID {}. Prelearned target Altezza curve extracted".format(comboid))
+            else:
+                #learn h vector:
+                sample_rate = compute_rate(batch_heights)
+                target.altezza = generate_hvec(sample_rate, MIN_ALTEZZA, target.ma)
+                log.debug("ComboID: {}. Learned target Altezza vector".format(comboid))
+                del batch_heights
 
-            # Slice & interpolate original curves:
+
+            #iii) Slice & interpolate original curves:
             for current in currents:
                 #i) slice portions of interest of original curves:
                 current.altezza, current.forza = slice_curves(target.ma, current.altezza, current.forza)
                 #ii) interpolate force curve:
                 current.forza = interpolate_curve(target.altezza, current.altezza, current.forza)
                 batch_forces.append(current.forza)
-            log.info("ComboID: {}. Sliced and interpolated original curves in all Collectors".format(comboid))
+            log.debug("ComboID: {}. Sliced and interpolated original curves in all Collectors".format(comboid))
 
-
-            #iii) Learn the target Forza curve and Std_curve for the Combo:
-            target.forza = ideal_curve(batch_forces)
-            target.std = stdev_curve(batch_forces)
-            target.std_curve_avg = float(statistics.mean(target.std))
-            del batch_forces
-            log.info("ComboID {}. Target Forza curve and std_curve generated".format(comboid))
-
-            #accumulate every index in target lists:
-            for i in range(len(target.altezza)):
-                sets_curves.append((comboid, float(target.altezza[i]), float(target.forza[i]), float(target.std[i])))
-
-
-            #iv) Learn TargetMF and StdMF for the Combo:
-            target.mf = float(PressateCombo['MaxForza'].mean())
-            try:
-                target.std_mf = float(PressateCombo['MaxForza'].std()) + 1
-            except:
-                target.std_mf = 1
-
-
-            #3) BULK STORE LEARNED PARAMETERS AND CURVES TO SQL DB:
-            #Store TargetMF, StdMF and StdCurveAvg:
-            print(target.mf, target.std_mf, target.std_curve_avg, comboid4store)
-            print(sets_curves[0])
-            try:
-                cursor.execute("UPDATE Combos SET TargetMF = ?, StdMF = ?, StdCurveAvg = ? WHERE ComboID = ?", float(target.mf), float(target.std_mf), float(target.std_curve_avg), comboid4store)
-                cnxn.commit()
-                log.info("ComboID {}: Successfully stored TargetMF, StdMF and StdCurveAvg into DB.".format(comboid))
-                print("ComboID {}: Successfully stored TargetMF, StdMF and StdCurveAvg into DB.".format(comboid))
-            except:
-                log.error("ComboID {}: Insert error: TargetMF, StdMF and StdCurveAvg not stored to DB. Please retry later.".format(comboid))
-                print("ComboID {}: Insert error: TargetMF, StdMF and StdCurveAvg not stored to DB. Please retry later.".format(comboid))
-
-            #Bulk store target curves (index by index):
-            try:
-                cursor.fast_executemany = True
-                cursor.executemany("INSERT INTO CombosData (ComboID, Altezza, Forza, Std) VALUES (?, ?, ?, ?)", sets_curves)
-                cnxn.commit()
-                log.info("ComboID {}: Successfully stored target curves into DB.".format(comboid))
-                print("ComboID {}: Successfully stored target curves into DB.".format(comboid))
-            except:
-                log.error("ComboID {}: Insert error: target curves not stored to DB. Please retry later.".format(comboid))
-                print("ComboID {}: Insert error: target curves not stored to DB. Please retry later.".format(comboid))
             
-            #reset accumulation list:
-            sets_curves = []
+            #iv) Learn the target Forza parameters, curve and Std_curve for the Combo:
+            if resume == True and comboid in c_trained:
+                #use already learned data:
+                target.forza = ComboData['Forza'].tolist()
+                target.std = ComboData['Std'].tolist()
+                target.mf = float(Combo['TargetMF'].iloc[0])
+                target.std_mf = float(Combo['StdMF'].iloc[0])
+                target.std_curve_avg = float(Combo['StdCurveAvg'].iloc[0])
+                log.debug("ComboID {}. Prelearned target Forza curve and std_curve extracted".format(comboid))
+            else:
+                #learn:
+                #a. target Forza curve, Std_curve and StdCurveAvg:
+                target.forza = ideal_curve(batch_forces)
+                target.std = stdev_curve(batch_forces)
+                target.std_curve_avg = float(statistics.mean(target.std))
+                del batch_forces
+                log.debug("ComboID {}. Target Forza curve, Std_curve and StdCurveAvg generated".format(comboid))
+
+                #accumulate every index in target lists:
+                for i in range(len(target.altezza)):
+                    sets_curves.append((comboid, float(target.altezza[i]), float(target.forza[i]), float(target.std[i])))
+
+
+                #b. TargetMF and StdMF:
+                target.mf = float(PressateCombo['MaxForza'].mean())
+                try:
+                    target.std_mf = float(PressateCombo['MaxForza'].std()) + 1
+                except:
+                    target.std_mf = 1
+                log.debug("ComboID {}. TargetMF and StdMF generated".format(comboid))
+
+
+                #BULK STORE ALL LEARNED PARAMETERS AND CURVES TO SQL DB (if not stored yet):
+                #Store TargetMF, StdMF and StdCurveAvg:
+                print(target.mf, target.std_mf, target.std_curve_avg, comboid)
+                print(sets_curves[0])
+                try:
+                    cursor.execute("UPDATE Combos SET TargetMF = ?, StdMF = ?, StdCurveAvg = ? WHERE ComboID = ?", float(target.mf), float(target.std_mf), float(target.std_curve_avg), comboid)
+                    cnxn.commit()
+                    log.info("ComboID {}: Successfully stored TargetMF, StdMF and StdCurveAvg into DB.".format(comboid))
+                    print("ComboID {}: Successfully stored TargetMF, StdMF and StdCurveAvg into DB.".format(comboid))
+                except:
+                    db_errors.append(comboid)
+                    log.error("ComboID {}: Insert error: TargetMF, StdMF and StdCurveAvg not stored to DB. Please retry later.".format(comboid))
+                    print("ComboID {}: Insert error: TargetMF, StdMF and StdCurveAvg not stored to DB. Please retry later.".format(comboid))
+
+                #Bulk store target curves (index by index):
+                try:
+                    cursor.fast_executemany = True
+                    cursor.executemany("INSERT INTO CombosData (ComboID, Altezza, Forza, Std) VALUES (?, ?, ?, ?)", sets_curves)
+                    cnxn.commit()
+                    log.info("ComboID {}: Successfully stored target curves into DB.".format(comboid))
+                    print("ComboID {}: Successfully stored target curves into DB.".format(comboid))
+                except:
+                    if comboid not in db_errors:
+                        db_errors.append(comboid)
+                    log.error("ComboID {}: Insert error: target curves not stored to DB. Please retry later.".format(comboid))
+                    print("ComboID {}: Insert error: target curves not stored to DB. Please retry later.".format(comboid))
+                
+                #reset accumulation list:
+                sets_curves = []
 
 
             #4) EVALUATE:
@@ -228,23 +289,19 @@ def train(epoch):
                 #status update:
                 pstr = "ComboID "+str(comboid)+": evaluating Pressata "+str(i+1)+"/"+str(len(currents))
                 print(pstr, end = "                                          \r")
-                #Evaluate current Pressata:
+                #evaluate current Pressata:
                 wid = evaluate_full(log, currents[i], target, preprocessed=True, visual=False)
                 if wid != 0:
                     cnt = cnt+1
-                    #accumulate warnings:
+                    #accumulate warnings (either WID 3 - MaxForza or WID 4 - Curve):
                     sets_warnings.append((currents[i].riduttoreid, currents[i].timestamp, wid))
-                    #log:
-                    log.warning("ComboID: {}. Timestamp {}: warning found. To be flagged with WID #{}.".format(comboid, currents[i].timestamp, wid))
-                else:
-                    log.debug("ComboID: {}. Timestamp {}: OK".format(comboid, currents[i].timestamp))
             
 
             #4) END STATISTICS:
             combo_end = time.time()
             tot_cnt = tot_cnt + cnt
-            log.info("ComboID {}: training completed in {} seconds. Flagged {} Pressate out of {}.".format(comboid, round((combo_end-combo_start),2), cnt, len(timestamps)))
-            print("\nComboID {}: training completed in {} seconds. Flagged {} Pressate out of {}.".format(comboid, round((combo_end-combo_start),2), cnt, len(timestamps)))
+            log.info("ComboID {}: training completed in {} seconds. Found {} Pressate to be flagged out of {}.".format(comboid, round((combo_end-combo_start),2), cnt, len(timestamps)))
+            print("\nComboID {}: training completed in {} seconds. Found {} Pressate to be flagged out of {}.".format(comboid, round((combo_end-combo_start),2), cnt, len(timestamps)))
 
 
     #3) BULK STORE WARNINGS:
@@ -256,13 +313,32 @@ def train(epoch):
         log.info("Stored all warnings found into DB.")
         print("Stored all warnings found into DB.")
     except:
-        log.error("Insert error: warnings not stored to DB. Please relaunch Preprocessing.")
-        print("Insert error: warnings not stored to DB. Please relaunch Preprocessing.")
+        warn_error = True
+        log.error("Insert error: warnings not stored to DB. Please retry later.")
+        print("Insert error: warnings not stored to DB. Please retry later.")
 
 
     #END:
     db_disconnect(cnxn, cursor)
-    end_time = time.time()    
-    log.info("Epoch {}: Training COMPLETED in {} seconds! Flagged {} Pressate out of {}, with sigmas: MF {}, curve {}.".format(e, round((end_time-start_time),2), tot_cnt, tot_pressate, SIGMA_MF, SIGMA_CURVE))
-    print("Epoch {}: Training COMPLETED in {} seconds! Flagged {} Pressate out of {}, with sigmas: MF {}, curve {}.\n".format(e, round((end_time-start_time),2), tot_cnt, tot_pressate, SIGMA_MF, SIGMA_CURVE))
-    return 0
+    end_time = time.time()
+    missed = len(combos_list) - len(db_errors)
+
+    if warn_error == False:
+        log.info("Epoch {}: Training COMPLETED in {} seconds. Parameters stored in DB for {} combos out of {}. Flagged {} Pressate out of {}, with sigmas: MF {}, curve {}.".format(e, round((end_time-start_time),2), missed, len(combos_list), tot_cnt, tot_pressate, SIGMA_MF, SIGMA_CURVE))
+        print("Epoch {}: Training COMPLETED in {} seconds. Parameters stored in DB for {} combos out of {}. Flagged {} Pressate out of {}, with sigmas: MF {}, curve {}.\n".format(e, round((end_time-start_time),2), missed, len(combos_list), tot_cnt, tot_pressate, SIGMA_MF, SIGMA_CURVE))
+        
+        if len(db_errors) == 0:
+            return 0
+        else:
+            log.info("Epoch {}: Parameters not stored for the following combos:".format(e))
+            log.info(db_errors)
+            return -1
+
+    else:
+        log.info("Epoch {}: Training COMPLETED in {} seconds. Parameters stored in DB for {} combos out of {}. Warnings NOT stored to DB. Found {} Pressate to be flagged out of {}, with sigmas: MF {}, curve {}.".format(e, round((end_time-start_time),2), missed, len(combos_list), tot_cnt, tot_pressate, SIGMA_MF, SIGMA_CURVE))
+        print("Epoch {}: Training COMPLETED in {} seconds. Parameters stored in DB for {} combos out of {}. Warnings NOT stored to DB. Found {} Pressate to be flagged out of {}, with sigmas: MF {}, curve {}.\n".format(e, round((end_time-start_time),2), missed, len(combos_list), tot_cnt, tot_pressate, SIGMA_MF, SIGMA_CURVE))
+
+        if len(db_errors) != 0:
+            log.info("Epoch {}: Parameters not stored for the following combos:".format(e))
+            log.info(db_errors)
+        return -1
