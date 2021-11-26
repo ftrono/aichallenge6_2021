@@ -3,6 +3,7 @@ sys.path.insert(0, os.getcwd())
 #sys.path.insert(0, './')
 from globals import *
 import numpy as np
+from scipy import interpolate
 
 #TRAINING TOOLS:
 # - set_target_max()
@@ -11,51 +12,8 @@ import numpy as np
 # - (helper) stdev_curve()
 
 
-#set target MA/MF & its std within combo:
-def set_target_max(dbt, mtype):
-    '''
-    Train MA/MF and StdMA/MF for a Combo.
-    1. Retrieves target value of Altezza (or Forza) and the Stdev of MA (or MF) for each ComboID (FROM: table Pressate)
-    2. Saves the values as TargetMA (or TargetMF) and StdMA (or StdMF) for the correspondent ComboID (TO: table Combos)
-
-    Parameters:
-    -------------------
-    input:
-    - dbt (dict) -> dict with cnxn, cursor and logging objects
-    - mtype (str) -> must be either 'altezza' or 'forza'
-    '''
-    #arg check: 
-    if mtype == 'altezza':
-        mt = 'MAX(Pressate.MaxAltezza)'
-        st = 'STDEV(Pressate.MaxAltezza)'
-        v = 'A'
-    elif mtype == 'forza':
-        mt = 'AVG(Pressate.MaxForza)'
-        st = 'STDEV(Pressate.MaxForza)'
-        v = 'F'
-    else:
-        print("ERROR: mtype must by either 'altezza' or 'forza'.")
-        raise
-
-    # Extract info for Pressate
-    cursor = dbt['cursor']
-    cnxn = dbt['cnxn']
-    logging = dbt['logging']
-    cursor.execute("SELECT Pressate.ComboID, "+mt+", "+st+" FROM Pressate WHERE NOT EXISTS (SELECT Warnings.Timestamp FROM Warnings WHERE Warnings.Timestamp = Pressate.Timestamp) GROUP BY ComboID")
-    list = cursor.fetchall()
-    # Update Combos values to TargetMA/MF and StdMA/MF
-    for (comboID, max_v, std_v) in list:
-        # updates values (decimal.Decimal -> float)
-        if (std_v == None) or (float(std_v) < 1):
-            std_v=1
-        cursor.execute("UPDATE Combos SET TargetM"+v+" = ?, StdM"+v+" = ? WHERE ComboID = ?", float(max_v), float(std_v), comboID)
-        logging.debug("Setting TargetM{} and StdM{} for ComboID = {}".format(v, v, comboID))
-    cursor.commit()
-    return 0
-
-
 #helper: compute sample_rate for a pressata (for height vector):
-def compute_rate(orig_altezza):
+def compute_rate(batch_altezze):
     '''
     Helper function: computes the sample rate for a Pressata for target height vector calculation.
 
@@ -65,15 +23,108 @@ def compute_rate(orig_altezza):
     returns:
     - sample_rate (float)
     '''
-    #get vector of differences:
-    diff_vector=np.diff(orig_altezza)
-    diff_vector=np.absolute(diff_vector)
-    diff_vector=np.round(diff_vector,2)
-    #compute max freq:
-    unique, counts = np.unique(diff_vector, return_counts=True)
-    max_index_col = np.argmax(counts, axis=0) #max freq
+    rates = []
+
+    #get sample rate of each Pressata in the batch:
+    for ls in batch_altezze:
+        #get vector of differences:
+        diff_vector=np.diff(ls)
+        diff_vector=np.absolute(diff_vector)
+        diff_vector=np.round(diff_vector,2)
+        #compute max freq:
+        unique, counts = np.unique(diff_vector, return_counts=True)
+        max_index_col = np.argmax(counts, axis=0) #max freq
+        rates.append(unique[max_index_col])
+
+    #get overall target sample rate (the max frequent):
+    unique, counts = np.unique(rates, return_counts=True)
+    max_index_col = np.argmax(counts, axis=0)
     sample_rate = unique[max_index_col]
+
     return sample_rate
+
+
+#generate target height vector for a comboid:
+def generate_hvec(tgt_rate, min_h, target_ma):
+    '''
+    Generate target height vector for a Combo.
+
+    Parameters:
+    -------------------
+    input:
+    - dbt (dict) -> dict with cnxn, cursor and logging objects
+    - timestamps (list) -> list of timestamps to analyze
+    - target_ma (float) -> TargetMA for the Combo.
+
+    returns:
+    - altezza_combo (list) -> target height vector for the Combo.
+    '''
+
+    #tgt_rate correction (to allow integer division):
+    rangelen = int((target_ma-min_h) // tgt_rate)
+    tgt_rate = (target_ma-min_h) / rangelen
+    altezza_combo = []
+
+    #4) compute target h vector:
+    for i in range(rangelen+1):
+        altezza_combo.append(round(min_h + (i*tgt_rate),2))
+    return altezza_combo
+
+
+#slice the portions of interest of curves:
+def slice_curves(altezza_combo, altezza, forza):
+    #vars:
+    target_ma = max(altezza_combo)
+    indices = []
+    altezza_corr = []
+    forza_corr = []
+    max_p = 0
+
+    #get indices of points of altezza curve in which it grows monotonically:
+    for p in altezza[1:]:
+        if p >= MIN_ALTEZZA and p <= target_ma:
+            if p > (p-1) and p > max_p:
+                max_p = p
+                indices.append(altezza.index(p))
+
+    #use the extracted indices to get a corrected version of the Pressata's altezza and forza curves:
+    for ind in indices:
+        altezza_corr.append(altezza[ind])
+        if forza[ind] >= 0:
+            forza_corr.append(forza[ind])
+        else:
+            forza_corr.append(0)
+    return altezza_corr, forza_corr
+
+
+#interpolate curve:
+def interpolate_curve(altezza_combo, altezza, forza):
+    #interpolate:
+    f = interpolate.interp1d(altezza, forza, kind='cubic', fill_value='extrapolate')
+    
+    #extrapolate:
+    min_f = min(forza)
+    max_f = max(forza)
+    new_forza = []
+    extrap = f(altezza_combo)
+
+    #correct curve:
+    for p in extrap:
+        if p < min_f:
+            new_forza.append(min_f)
+        elif p > max_f:
+            new_forza.append(max_f)
+        else:
+            new_forza.append(round(float(p),2))
+
+    #zero-padding for end area:
+    for ind in reversed(range(len(new_forza))):
+        if new_forza[ind] == new_forza[ind-1]:
+            new_forza[ind] = 0
+        else:
+            break
+    
+    return new_forza
 
 
 #helper: calculate curve of means:
