@@ -143,9 +143,11 @@ def train(epoch=0, resume=False):
             Combo = Combos.query(query)
             target.ma = float(Combo['TargetMA'].iloc[0])
             target.std_ma = float(Combo['StdMA'].iloc[0])
+            #convert TargetMA to max acceptable TargetMA (for training):
+            target.ma = target.ma + target.std_ma*SIGMA_MA
 
             #extract curves of interest for the Combo:
-            log.debug("ComboID: {}. Extracting original curves...".format(comboid))
+            log.debug("ComboID: {}: Extracting original curves...".format(comboid))
 
             #a. from PressateData:
             PressateComboData = PressateData.query(query)
@@ -180,7 +182,7 @@ def train(epoch=0, resume=False):
                 currents[i].altezza = PressataData['Altezza'].tolist()
                 batch_heights.append(currents[i].altezza)
                 currents[i].forza = PressataData['Forza'].tolist()
-                log.debug("ComboID: {}. Collectors ready".format(comboid))
+            log.debug("ComboID: {}: Collectors ready".format(comboid))
             
             #clean memory:
             del Pressata
@@ -207,18 +209,18 @@ def train(epoch=0, resume=False):
                 # h vector:
                 sample_rate = compute_rate(batch_heights)
                 target.altezza = generate_hvec(sample_rate, MIN_ALTEZZA, target.ma)
-                log.debug("ComboID: {}. Learned target Altezza vector".format(comboid))
+                log.debug("ComboID: {}: Learned target Altezza vector".format(comboid))
                 del batch_heights
 
 
             #iii) Slice & interpolate original curves:
             for current in currents:
                 #i) slice portions of interest of original curves:
-                current.altezza, current.forza = slice_curves(target.ma, current.altezza, current.forza)
+                current.altezza, current.forza = slice_curves(target.altezza, current.altezza, current.forza)
                 #ii) interpolate force curve:
                 current.forza = interpolate_curve(target.altezza, current.altezza, current.forza)
                 batch_forces.append(current.forza)
-            log.debug("ComboID: {}. Sliced and interpolated original curves in all Collectors".format(comboid))
+            log.debug("ComboID: {}: Sliced and interpolated original curves in all Collectors".format(comboid))
 
             
             #iv) Learn the target Forza curve, Std_curve and StdCurveAvg for the Combo:
@@ -244,10 +246,6 @@ def train(epoch=0, resume=False):
 
                 #BULK STORE ALL LEARNED PARAMETERS AND CURVES TO SQL DB (if not stored yet):
                 #Store TargetMF, StdMF and StdCurveAvg:
-                print(target.mf, target.std_mf, target.std_curve_avg, comboid)
-                print(sets_curves[0])
-                for i in range(len(currents)):
-                    print("Last interpolated: {}, targetMF: {}".format(currents[i].forza[-1], target.mf))
                 try:
                     cursor.execute("UPDATE Combos SET TargetMF = ?, StdMF = ?, StdCurveAvg = ? WHERE ComboID = ?", float(target.mf), float(target.std_mf), float(target.std_curve_avg), comboid)
                     cnxn.commit()

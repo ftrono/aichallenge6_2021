@@ -19,6 +19,8 @@ class Collector:
         self.altezza = []
         self.forza = []
         self.std = []
+        self.boundup = []
+        self.boundlow = []
 
 
 #Extract data from DB:

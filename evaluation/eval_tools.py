@@ -46,10 +46,10 @@ def evaluate_max(log, current, target, mtype):
     #evaluate current MA/MF if within StdMA/StdMF +- sigma:
     dev = std * sigma
     if (cur >= (tgt - dev)) and (cur <= (tgt + dev)):
-        log.debug("ComboID: {}. Timestamp {}: Max_{} OK".format(target.comboid, current.timestamp, mtype))
+        log.debug("ComboID: {}: Timestamp {}: Max_{} OK".format(target.comboid, current.timestamp, mtype))
         return 0 #ok
     else:
-        log.warning("ComboID: {}. Timestamp {}: WID {}. Max_{} out of acceptable range! Current: {}, target: {}, dev: {}. Please check the assembly.".format(target.comboid, current.timestamp, wid, mtype, cur, tgt, dev))
+        log.warning("ComboID: {}: Timestamp {}: WID {}. Max_{} out of acceptable range! Current: {}, target: {}, dev: {}. Please check the assembly.".format(target.comboid, current.timestamp, wid, mtype, cur, tgt, dev))
         return wid
 
 
@@ -69,10 +69,10 @@ def evaluate_anomalous(log, current, target):
     #evaluate if height curve starts with an increasing or decreasing trajectory:
     if float(current.altezza[0]) > float(current.altezza[1]):
         wid = 2
-        log.warning("ComboID: {}. Timestamp {}: WID {}. Anomalous height curve".format(target.comboid, current.timestamp, wid))
+        log.warning("ComboID: {}: Timestamp {}: WID {}. Anomalous height curve".format(target.comboid, current.timestamp, wid))
         return wid
     else:
-        log.debug("ComboID: {}. Timestamp {}: height curve OK".format(target.comboid, current.timestamp))
+        log.debug("ComboID: {}: Timestamp {}: height curve OK".format(target.comboid, current.timestamp))
         return 0 #ok
 
 
@@ -95,26 +95,38 @@ def evaluate_points(log, current, target):
     '''
     count_out = 0
     
-    #count points out of bounds:
+    #boundaries:
     if USE_AVG == True:
-        #use: average deviation:
-        dev = target.std_curve_avg * SIGMA_CURVE
-        for i in range(len(current.forza)):
-            if (current.forza[i] < (target.forza[i] - dev)) or (current.forza[i] > (target.forza[i] + dev)):
-                count_out = count_out + 1
+        target.boundup = [(target.forza[i] + (target.std_curve_avg*SIGMA_CURVE)) for i in range(len(target.forza))]
+        target.boundlow = [(target.forza[i] - (target.std_curve_avg*SIGMA_CURVE)) for i in range(len(target.forza))]
     else:
-        #use deviation vector:
-        for i in range(len(current.forza)):
-            if (current.forza[i] < (target.forza[i] - (target.std[i]*SIGMA_CURVE))) or (current.forza[i] > (target.forza[i] + (target.std[i]*SIGMA_CURVE))):
-                count_out = count_out + 1
+        target.boundup = [(target.forza[i] + (target.std[i]*SIGMA_CURVE)) for i in range(len(target.forza))]
+        #limit lower boundary:
+        #use average stdev as threshold if below zero:
+        min_low = -target.std_curve_avg*SIGMA_CURVE
+        target.boundlow = []
+        for i in range(len(target.forza)):
+            p = target.forza[i] - (target.std[i]*SIGMA_CURVE)
+            if p >= min_low:
+                target.boundlow.append(p)
+            else:
+                target.boundlow.append(min_low)
+
+    indices = []
+    #count points out of bounds:
+    for i in range(len(current.forza)):
+        if (current.forza[i] < target.boundlow[i]) or (current.forza[i] > target.boundup[i]):
+            count_out = count_out + 1
+            indices.append(i)
 
     #final check on curve:
     if count_out <= MIN_POINTS: #ok
-        log.debug("ComboID: {}. Timestamp {}: assembly success. No warnings.".format(current.comboid, current.timestamp))
+        log.debug("ComboID: {}: Timestamp {}: assembly success. No warnings.".format(current.comboid, current.timestamp))
         return count_out, 0
     else:
         wid = 4
-        log.warning("ComboID: {}. Timestamp {}: WID #{}. Curve out of bounds in {} points out of {}! Please check the assembly.".format(current.comboid, current.timestamp, wid, count_out, len(current.forza)))
+        log.warning("ComboID: {}: Timestamp {}: WID #{}. Curve out of bounds in {} points out of {}! Please check the assembly.".format(current.comboid, current.timestamp, wid, count_out, len(current.forza)))
+        log.debug(indices)
     return count_out, wid
 
 
@@ -155,23 +167,23 @@ def evaluate_full(log, current, target, preprocessed=False, visual=WINDOW, save=
         wid = evaluate_max(log, current, target, mtype='altezza')
         if wid != 0:
             if verbose == True:
-                print("ComboID: {}. Timestamp {}: WID {}. Max_altezza out of acceptable range! Current: {}, target: {}, dev: {}. Please check the assembly.".format(target.comboid, current.timestamp, wid, current.ma, target.ma, target.std_ma*SIGMA_MA))
+                print("ComboID: {}: Timestamp {}: WID {}. Max_altezza out of acceptable range! Current: {}, target: {}, dev: {}. Please check the assembly.".format(target.comboid, current.timestamp, wid, current.ma, target.ma, target.std_ma*SIGMA_MA))
             return wid
         
         #check 2: anomalous height vector
         wid = evaluate_anomalous(log, current, target)
         if wid != 0:
             if verbose == True:
-                print("ComboID: {}. Timestamp {}: WID #{}. Anomalous height curve.".format(current.comboid, current.timestamp, wid))
+                print("ComboID: {}: Timestamp {}: WID #{}. Anomalous height curve.".format(current.comboid, current.timestamp, wid))
             return wid
 
         #Check if can go on with evaluating (only if preprocessed == False):
         if target.mf == 0 or target.altezza == []:
-            print("ComboID: {}. ERROR: data not available for the Combo.".format(current.comboid))
+            print("ComboID: {}: ERROR: data not available for the Combo.".format(current.comboid))
             return -1
 
         #Slice curves & interpolate force curve (overwrite current.altezza and current.forza into collector object)
-        current.altezza, current.forza = slice_curves(target.ma, current.altezza, current.forza)
+        current.altezza, current.forza = slice_curves(target.altezza, current.altezza, current.forza)
         current.forza = interpolate_curve(target.altezza, current.altezza, current.forza)
 
     #Always:
@@ -179,7 +191,7 @@ def evaluate_full(log, current, target, preprocessed=False, visual=WINDOW, save=
     wid = evaluate_max(log, current, target, mtype='forza')
     if wid != 0:
         if verbose == True:
-            print("ComboID: {}. Timestamp {}: WID {}. Max_forza out of acceptable range! Current: {}, target: {}, dev: {}. Please check the assembly.".format(target.comboid, current.timestamp, wid, current.mf, target.mf, target.std_mf*SIGMA_MF))
+            print("ComboID: {}: Timestamp {}: WID {}. Max_forza out of acceptable range! Current: {}, target: {}, dev: {}. Please check the assembly.".format(target.comboid, current.timestamp, wid, current.mf, target.mf, target.std_mf*SIGMA_MF))
         if (visual == True) or (save == True):
             visualize(current, target, wid=wid, count_out=0, window=visual, save=save)
         return wid
@@ -188,14 +200,14 @@ def evaluate_full(log, current, target, preprocessed=False, visual=WINDOW, save=
     count_out, wid = evaluate_points(log, current, target)
     if wid == 0:
         if verbose == True:
-            log.info("ComboID: {}. Timestamp {}: assembly success. No warnings.".format(current.comboid, current.timestamp))
-            print("ComboID: {}. Timestamp {}: assembly success. No warnings.".format(current.comboid, current.timestamp))
+            log.info("ComboID: {}: Timestamp {}: assembly success. No warnings.".format(current.comboid, current.timestamp))
+            print("ComboID: {}: Timestamp {}: assembly success. No warnings.".format(current.comboid, current.timestamp))
         if (visual == True) or (save == True):
             visualize(current, target, wid=wid, count_out=count_out, window=visual, save=save)
         return 0
     else:
         if verbose == True:
-            print("ComboID: {}. Timestamp {}: WID #{}. Curve out of bounds in {} points out of {}! Please check the assembly.".format(current.comboid, current.timestamp, wid, count_out, len(current.forza)))
+            print("ComboID: {}: Timestamp {}: WID #{}. Curve out of bounds in {} points out of {}! Please check the assembly.".format(current.comboid, current.timestamp, wid, count_out, len(current.forza)))
         if (visual == True) or (save == True):
             visualize(current, target, wid=wid, count_out=count_out, window=visual, save=save)
         return wid

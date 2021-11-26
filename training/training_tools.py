@@ -72,8 +72,9 @@ def generate_hvec(tgt_rate, min_h, target_ma):
 
 
 #slice the portions of interest of curves:
-def slice_curves(target_ma, altezza, forza):
+def slice_curves(altezza_combo, altezza, forza):
     #vars:
+    target_ma = max(altezza_combo)
     indices = []
     altezza_corr = []
     forza_corr = []
@@ -98,14 +99,16 @@ def slice_curves(target_ma, altezza, forza):
 
 #interpolate curve:
 def interpolate_curve(altezza_combo, altezza, forza):
+    #interpolate:
     f = interpolate.interp1d(altezza, forza, kind='cubic', fill_value='extrapolate')
-
+    
+    #extrapolate:
     min_f = min(forza)
     max_f = max(forza)
     new_forza = []
-
     extrap = f(altezza_combo)
 
+    #correct curve:
     for p in extrap:
         if p < min_f:
             new_forza.append(min_f)
@@ -113,6 +116,13 @@ def interpolate_curve(altezza_combo, altezza, forza):
             new_forza.append(max_f)
         else:
             new_forza.append(round(float(p),2))
+
+    #zero-padding for end area:
+    for ind in reversed(range(len(new_forza))):
+        if new_forza[ind] == new_forza[ind-1]:
+            new_forza[ind] = 0
+        else:
+            break
     
     return new_forza
 
