@@ -85,19 +85,13 @@ def train(epoch=0, resume=False):
 
     #Combos:
     if resume == False:
-        query = "SELECT ComboID, TargetMA FROM Combos"
-        Combos = pd.read_sql(query, cnxn)
-        log.info("Extracted table 3/3 (Combos)")
-        #convert dataframe to lists:
-        combos_list = Combos['ComboID'].tolist()
-        tgtma_list = Combos['TargetMA'].tolist()
-        del Combos
+        query = "SELECT ComboID, TargetMA, StdMA FROM Combos"
     else:
-        query = "SELECT ComboID, TargetMA, TargetMF, StdMF, StdCurveAvg FROM Combos"
-        Combos = pd.read_sql(query, cnxn)
-        log.info("Extracted table 3/3 (Combos)")
-        #list of ComboIDs:
-        combos_list = Combos['ComboID'].tolist()
+        query = "SELECT ComboID, TargetMA, StdMA, TargetMF, StdMF, StdCurveAvg FROM Combos"
+    Combos = pd.read_sql(query, cnxn)
+    log.info("Extracted table 3/3 (Combos)")
+    #list of ComboIDs:
+    combos_list = Combos['ComboID'].tolist()
 
     #CombosData (only if resume):
     if resume == True:
@@ -146,11 +140,9 @@ def train(epoch=0, resume=False):
             #init target Collector:
             target = Collector()
             target.comboid = str(comboid)
-            if resume == True:
-                Combo = Combos.query(query)
-                target.ma = float(Combo['TargetMA'].iloc[0])
-            else:
-                target.ma = float(tgtma_list[combos_list.index(comboid)])
+            Combo = Combos.query(query)
+            target.ma = float(Combo['TargetMA'].iloc[0])
+            target.std_ma = float(Combo['StdMA'].iloc[0])
 
             #extract curves of interest for the Combo:
             log.debug("ComboID: {}. Extracting original curves...".format(comboid))

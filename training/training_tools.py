@@ -71,6 +71,52 @@ def generate_hvec(tgt_rate, min_h, target_ma):
     return altezza_combo
 
 
+#slice the portions of interest of curves:
+def slice_curves(target_ma, altezza, forza):
+    #vars:
+    indices = []
+    altezza_corr = []
+    forza_corr = []
+    max_p = 0
+
+    #get indices of points of altezza curve in which it grows monotonically:
+    for p in altezza[1:]:
+        if p >= MIN_ALTEZZA and p <= target_ma:
+            if p > (p-1) and p > max_p:
+                max_p = p
+                indices.append(altezza.index(p))
+
+    #use the extracted indices to get a corrected version of the Pressata's altezza and forza curves:
+    for ind in indices:
+        altezza_corr.append(altezza[ind])
+        if forza[ind] >= 0:
+            forza_corr.append(forza[ind])
+        else:
+            forza_corr.append(0)
+    return altezza_corr, forza_corr
+
+
+#interpolate curve:
+def interpolate_curve(altezza_combo, altezza, forza):
+    f = interpolate.interp1d(altezza, forza, kind='cubic', fill_value='extrapolate')
+
+    min_f = min(forza)
+    max_f = max(forza)
+    new_forza = []
+
+    extrap = f(altezza_combo)
+
+    for p in extrap:
+        if p < min_f:
+            new_forza.append(min_f)
+        elif p > max_f:
+            new_forza.append(max_f)
+        else:
+            new_forza.append(round(float(p),2))
+    
+    return new_forza
+
+
 #helper: calculate curve of means:
 def ideal_curve(batch_forces):
     '''
@@ -139,47 +185,3 @@ def stdev_curve(batch_forces):
         stdev = statistics.stdev(temp)
         stdev_list.append(stdev)
     return stdev_list
-
-
-#slice the portions of interest of curves:
-def slice_curves(target_ma, altezza, forza):
-    #vars:
-    indices = []
-    altezza_corr = []
-    forza_corr = []
-    max_p = 0
-
-    #get indices of points of altezza curve in which it grows monotonically:
-    for p in altezza[1:]:
-        if p >= MIN_ALTEZZA and p <= target_ma:
-            if p > (p-1) and p > max_p:
-                max_p = p
-                indices.append(altezza.index(p))
-
-    #use the extracted indices to get a corrected version of the Pressata's altezza and forza curves:
-    for ind in indices:
-        altezza_corr.append(altezza[ind])
-        forza_corr.append(forza[ind])
-
-    return altezza_corr, forza_corr
-
-
-#interpolate curve:
-def interpolate_curve(altezza_combo, altezza, forza):
-    f = interpolate.interp1d(altezza, forza, kind='cubic', fill_value='extrapolate')
-
-    min_f = min(forza)
-    max_f = max(forza)
-    new_forza = []
-
-    extrap = f(altezza_combo)
-
-    for p in extrap:
-        if p < min_f:
-            new_forza.append(min_f)
-        elif p > max_f:
-            new_forza.append(max_f)
-        else:
-            new_forza.append(round(float(p),2))
-    
-    return new_forza
