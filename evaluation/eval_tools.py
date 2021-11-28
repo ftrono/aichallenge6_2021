@@ -55,7 +55,7 @@ def evaluate_max(log, current, target, mtype):
         return wid
 
 
-#Eval height curve trajectory:
+#Eval height curve trajectory and/or slice length:
 def evaluate_anomalous(log, current, target, trajectory=False, sliced=False):
     '''
     Function that evaluates the original altezza curve of a Pressata, making either one of 2 checks:
