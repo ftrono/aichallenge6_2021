@@ -34,11 +34,12 @@ def save_table_csv(table_name):
     
     return 0
 
-def save_table_warnings(combo_id, timestamp, riduttore_id,wid,stazione):
+def save_table_warnings(combo_id=None, timestamp=None, riduttore_id=None,wid=None,stazione=None):
     '''
     Function that saves a table warnings of db in a file with extension as 'formato'. '
     The file is located in OUTPUT_PATH with name "combo_id"+Warning.csv.
-    For example: 
+    NOTE: Reports previously generated (also with the same name) will be replaced!
+    For example:
     a0215MP080Warning.csv
 
     Input:
@@ -47,29 +48,30 @@ def save_table_warnings(combo_id, timestamp, riduttore_id,wid,stazione):
     - riduttore_id: string, int or list
     - wid (warningID): string
     - stazione  : string
-    
-
     '''
     # Connect
     conn,cursor = db_connect()
 
-    if (combo_id is not None) and (timestamp=="") and (riduttore_id=="") and (wid=="") and (stazione==""):
+    num_generated = 0
+    if (combo_id is not None) and (timestamp=="" or timestamp is None) and (riduttore_id=="" or riduttore_id is None) and (wid=="" or wid is None) and (stazione=="" or stazione is None):
         sql_query = pd.read_sql_query("SELECT Pressate.Timestamp, Pressate.RiduttoreID, Pressate.ComboID, Pressate.Stazione, Warnings.WarningID FROM Pressate INNER JOIN Warnings ON (Warnings.Timestamp = Pressate.Timestamp) WHERE Pressate.ComboID={}".format(combo_id),conn)
         df = pd.DataFrame(sql_query)
         if not os.path.isdir(OUTPUT_PATH):
             os.mkdir(OUTPUT_PATH)
         percorso= os.path.join(OUTPUT_PATH,combo_id +"Warning"+'.'+"csv")
         df.to_csv(percorso,index=False)
+        num_generated += 1
 
-    elif (combo_id=="") and (timestamp is not None) and (riduttore_id=="") and (wid=="")and (stazione==""):
+    elif (combo_id=="" or combo_id is None) and (timestamp is not None) and (riduttore_id=="" or riduttore_id is None) and (wid=="" or wid is None) and (stazione=="" or stazione is None):
         sql_query = pd.read_sql_query("SELECT  Pressate.Timestamp, Pressate.RiduttoreID, Pressate.ComboID, Pressate.Timestamp, Pressate.Stazione, Warnings.WarningID FROM Pressate INNER JOIN Warnings ON (Warnings.Timestamp = Pressate.Timestamp) WHERE Warnings.Timestamp={}".format(timestamp),conn)
         df = pd.DataFrame(sql_query)
         if not os.path.isdir(OUTPUT_PATH):
             os.mkdir(OUTPUT_PATH)
         percorso= os.path.join(OUTPUT_PATH, timestamp +"Warning"+'.'+"csv")
         df.to_csv(percorso,index=False)
+        num_generated += 1
 
-    elif (combo_id=="") and (timestamp=="") and (riduttore_id is not None) and (wid=="")and (stazione==""):
+    elif (combo_id=="" or combo_id is None) and (timestamp=="" or timestamp is None) and (riduttore_id is not None) and (wid=="" or wid is None)and (stazione=="" or stazione is None):
         if not os.path.isdir(OUTPUT_PATH):
             os.mkdir(OUTPUT_PATH)
         # riduttore_id is a list
@@ -79,33 +81,42 @@ def save_table_warnings(combo_id, timestamp, riduttore_id,wid,stazione):
                 df = pd.DataFrame(sql_query)
                 percorso = os.path.join(OUTPUT_PATH, str(rid[0]) + "Warning" + '.' + "csv")
                 df.to_csv(percorso, index=False)
+                num_generated += 1
         # riduttore is a string or int
         elif not isinstance(riduttore_id, Iterable):
             sql_query = pd.read_sql_query("SELECT  Pressate.Timestamp, Pressate.RiduttoreID, Pressate.ComboID, Pressate.Timestamp, Pressate.Stazione, Warnings.WarningID FROM Pressate INNER JOIN Warnings ON (Warnings.Timestamp = Pressate.Timestamp) WHERE Pressate.RiduttoreID={}".format(riduttore_id),conn)
             df = pd.DataFrame(sql_query)
             percorso= os.path.join(OUTPUT_PATH,str(riduttore_id) +"Warning"+'.'+"csv")
             df.to_csv(percorso,index=False)
+            num_generated += 1
         else:
-            raise TypeError("Passed element must be either string, int or list.")
+            raise TypeError("Riduttore must be either string, int or list.")
 
-    elif (combo_id=="") and (timestamp=="") and (riduttore_id=="") and (wid is not None) and (stazione==""):
+    elif (combo_id=="" or combo_id is None) and (timestamp=="" or timestamp is None) and (riduttore_id=="" or riduttore_id is None) and (wid is not None) and (stazione=="" or stazione is None):
         sql_query = pd.read_sql_query("SELECT  Pressate.Timestamp, Pressate.RiduttoreID, Pressate.ComboID, Pressate.Timestamp, Pressate.Stazione, Warnings.WarningID FROM Pressate INNER JOIN Warnings ON (Warnings.Timestamp = Pressate.Timestamp) WHERE Warnings.WarningID={}".format(wid),conn)
         df = pd.DataFrame(sql_query)
         if not os.path.isdir(OUTPUT_PATH):
             os.mkdir(OUTPUT_PATH)
         percorso= os.path.join(OUTPUT_PATH,wid +"Warning"+'.'+"csv")
         df.to_csv(percorso,index=False)
+        num_generated += 1
 
-    elif (combo_id=="") and (timestamp=="") and (riduttore_id=="") and (wid=="") and (stazione is not None):
+    elif (combo_id=="" or combo_id is None) and (timestamp=="" or timestamp is None) and (riduttore_id=="" or riduttore_id is None) and (wid=="" or wid is None) and (stazione is not None):
         sql_query = pd.read_sql_query("SELECT  Pressate.Timestamp, Pressate.RiduttoreID, Pressate.ComboID, Pressate.Timestamp, Pressate.Stazione, Warnings.WarningID FROM Pressate INNER JOIN Warnings ON (Warnings.Timestamp = Pressate.Timestamp) WHERE Pressate.Stazione={}".format(stazione),conn)
         df = pd.DataFrame(sql_query)
         if not os.path.isdir(OUTPUT_PATH):
             os.mkdir(OUTPUT_PATH)
         percorso= os.path.join(OUTPUT_PATH,stazione +"Warning"+'.'+"csv")
         df.to_csv(percorso,index=False)
- 
+        num_generated += 1
+
     # Disconnect
     db_disconnect(conn,cursor)
+    if num_generated == 1:
+        print("1 report generated.")
+    else:
+        print("{} reports generated.".format(num_generated))
+
 
 
     return 0
