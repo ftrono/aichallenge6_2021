@@ -11,9 +11,8 @@ EPOCHS = 1
 
 #sigmas:
 SIGMA_MA = 2
-SIGMA_MF = 3
+SIGMA_MF = 1
 SIGMA_CURVE = 3
-SIGMA_RID = 1
 
 #thresholds:
 MIN_ALTEZZA = 100
