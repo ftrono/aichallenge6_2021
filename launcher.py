@@ -1,5 +1,6 @@
 from globals import *
-from training.training import preprocessing, train
+from training.preprocessing import preprocessing
+from training.training import train
 from evaluation.evaluation import call_evaluate
 
 #____________________________________________________________
@@ -13,11 +14,19 @@ from evaluation.evaluation import call_evaluate
 #1) Preprocess:
 preprocessing()
 
-#2) Train:
-train()
+# 2) Train:
+#a. Full training (accepts any number of epochs):
+for epoch in range(EPOCHS):
+    train(epoch, resume=False)
 
-#3) Evaluate:
-#Sample timestamps: 1584106142, 1584348510, 1584348501, 1584349549
-timestamp = input("Evaluate: insert timestamp here -> ")
-call_evaluate(timestamp, visual=True, save=True)
+#b. Resume training (NOTE: only for one epoch!):
+# Use this option ONLY if previous training was interrupted at some point
+# or if received some DB insert errors in prior training:
+#train(resume=True)
+
+
+# #3) Evaluate:
+# #Sample timestamps: 1584106142, 1584348510, 1584348501, 1584349549, 1584369231
+#timestamp = input("Evaluate: insert timestamp here -> ")
+#call_evaluate(timestamp, visual=True, save=True)
 

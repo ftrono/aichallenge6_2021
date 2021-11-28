@@ -21,19 +21,11 @@ def visualize(current, target, wid=0, count_out=0, window=WINDOW, save=SAVE_PNG)
     else:
         titcolor = 'firebrick'
 
-    #calculate upper & lower bound:
-    if USE_AVG == True:
-        ci_boundup = [(target.forza[i]+target.std_curve_avg) for i in range(len(target.forza))]
-        ci_boundlow = [(target.forza[i]-target.std_curve_avg) for i in range(len(target.forza))]
-    else:
-        ci_boundup = [(target.forza[i]+target.std[i]) for i in range(len(target.forza))]
-        ci_boundlow = [(target.forza[i]-target.std[i]) for i in range(len(target.forza))]
-
     #plot:
     plt.clf()
     plt.plot(target.altezza, target.forza, color='limegreen', linewidth=4, label="Ideal curve")
-    plt.plot(target.altezza, ci_boundup, color='orange', linestyle='--', linewidth=1, label="Upper boundary")
-    plt.plot(target.altezza, ci_boundlow, color='red', linestyle='--', linewidth=1, label="Lower boundary")
+    plt.plot(target.altezza, target.boundup, color='orange', linestyle='--', linewidth=1, label="Upper boundary")
+    plt.plot(target.altezza, target.boundlow, color='red', linestyle='--', linewidth=1, label="Lower boundary")
     plt.plot(target.altezza, current.forza, color='blue', linewidth=2, label="CURRENT CURVE")
     plt.xlabel('Altezza (mm)')
     plt.ylabel('Forza (kN)')

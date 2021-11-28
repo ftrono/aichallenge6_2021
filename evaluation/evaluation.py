@@ -42,10 +42,15 @@ def call_evaluate(timestamp, visual=WINDOW, save=SAVE_PNG):
     #call extract_params, which return 2 objects with all needed params 
     #(one for the current pressata, the other for the target combo):
     current = extract_data(dbt, stype='current', timestamp=timestamp)
+    if current == -1:
+        print("ERROR: timestamp {} not found.".format(timestamp))
+        db_disconnect(cnxn, cursor)
+        return -1
+    
     target = extract_data(dbt, stype='target', comboid=current.comboid)
 
     #Call:
-    evaluate_full(dbt, current, target, preprocessed=False, visual=visual, save=save, verbose=True)
+    evaluate_full(log, current, target, preprocessed=False, visual=visual, save=save, verbose=True)
 
     # Disconnect
     db_disconnect(cnxn, cursor)

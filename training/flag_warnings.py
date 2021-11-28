@@ -6,51 +6,12 @@ from database_functions.db_connect import db_connect, db_disconnect
 from evaluation.eval_tools import evaluate_max
 
 #FLAG WARNINGS (FOR DATASET CLEANING):
-# - flag_ma()
 # - (helper) pairwise_delta()
 # - flag_rid()
 
-
-#FLAG1: flag warnings for MA:
-def flag_ma(dbt):
-    '''
-    Function that checks if MaxAltezza is out if the bounds. 
-    Bounds = Target max altezza + - deviation.
-    deviation = sigma (global) * target max altezza
-
-    Input:
-    - dbt (dict) -> dict with cnxn, cursor and logging objects
-
-    Output:
-    - Write on db if there is warning: warning #1
-
-    '''
-    cursor = dbt['cursor']
-    cnxn = dbt['cnxn']
-    logging = dbt['logging']
-
-    #extract Timestamp, ComboID and MaxAltezza from Table Pressate and save in a list
-    get_data = 'SELECT ComboID, Timestamp, MaxAltezza, RiduttoreID FROM Pressate'
-    cursor.execute(get_data)
-    list_press = cursor.fetchall()
-
-    #extract ComboID, Target Max altezza and standard deviation max Altezza from Table Combos and save in a list (list_target)
-    get_target = 'SELECT ComboID, TargetMA, StdMA FROM Combos'
-    cursor.execute(get_target)
-    list_target = cursor.fetchall()
-
-    #CHECK id Max Altezza is out of the bounds
-    for p in list_press:
-        for t in list_target:
-            if p[0] == t[0]: #same comboid
-                riduttore = p[3]
-                timestamp = p[1]
-                cur_ma = float(p[2])
-                tgt_ma = float(t[1])
-                std_ma = float(t[2])
-                #evaluate and flag:
-                evaluate_max(dbt, riduttore, timestamp, cur_ma, tgt_ma, std_ma, mtype='altezza')
-    return 0
+#____________________________________________
+#WIP FILE
+#____________________________________________
 
 
 # Helper: pairwise delta
