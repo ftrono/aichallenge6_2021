@@ -9,7 +9,7 @@ from evaluation.eval_tools import evaluate_full
 #PART III) EVALUATE
 
 #CALLER:
-def call_evaluate(timestamp, visual=WINDOW, save=SAVE_PNG):
+def call_evaluate(timestamp, flag=False, visual=WINDOW, save=SAVE_PNG):
     '''
     Standalone evaluation function caller. It:
     - initializes DB connection and logger
@@ -50,7 +50,16 @@ def call_evaluate(timestamp, visual=WINDOW, save=SAVE_PNG):
     target = extract_data(dbt, stype='target', comboid=current.comboid)
 
     #Call:
-    evaluate_full(log, current, target, preprocessed=False, visual=visual, save=save, verbose=True)
+    wid = evaluate_full(log, current, target, preprocessed=False, visual=visual, save=save, verbose=True)
+    if wid != 0 and flag == True:
+        #Store warning found to SQL DB:
+        try:
+            cursor.execute("INSERT INTO Warnings (RiduttoreID, Timestamp, WarningID) VALUES (?, ?, ?)", current.riduttoreid, current.timestamp, wid)
+            cnxn.commit()
+            log.info("Timestamp: {}. Stored warning found into DB.".format(current.timestamp))
+        except:
+            log.error("Timestamp: {}. Insert error: warning not stored to DB. Please retry.".format(current.timestamp))
+            print("Timestamp: {}. Insert error: warning not stored to DB. Please retry.".format(current.timestamp))
 
     # Disconnect
     db_disconnect(cnxn, cursor)

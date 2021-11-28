@@ -6,10 +6,10 @@ from globals import *
 
 #VISUALIZATION FUNCTION
 #Visualize ideal curve, boundaries & current curve:
-def visualize(current, target, wid=0, count_out=0, window=WINDOW, save=SAVE_PNG):
+def visualize(current, target, wid=0, count_out=0, threshold=0, window=WINDOW, save=SAVE_PNG):
     #title and filename:
     if count_out != 0:
-        co = " - Points out: "+str(count_out)
+        co = " - Points out: "+str(count_out)+"/"+str(threshold)
     else:
         co = ""
     title = "ComboID: "+str(current.comboid)+" - Timestamp: "+str(current.timestamp)+" - WID: "+str(wid)+co

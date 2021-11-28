@@ -120,15 +120,15 @@ def evaluate_points(log, current, target):
             indices.append(i)
 
     #final check on curve:
-    threeshold= int(len(current.forza)*MIN_POINTS_PERC)
-    if count_out <= threeshold: #ok
+    threshold= int(len(current.forza)*MIN_POINTS_PERC)
+    if count_out <= threshold: #ok
         log.debug("ComboID: {}: Timestamp {}: assembly success. No warnings.".format(current.comboid, current.timestamp))
-        return count_out, 0
+        return count_out, threshold, 0
     else:
         wid = 4
-        log.warning("ComboID: {}: Timestamp {}: WID #{}. Curve out of bounds in {} points out of {}! Please check the assembly.".format(current.comboid, current.timestamp, wid, count_out, len(current.forza)))
+        log.warning("ComboID: {}: Timestamp {}: WID #{}. Curve out of bounds in {} points out of {}, threshold is {}! Please check the assembly.".format(current.comboid, current.timestamp, wid, count_out, len(current.forza), threshold))
         log.debug(indices)
-    return count_out, wid
+    return count_out, threshold, wid
 
 
 #CENTRAL EVALUATE FUNCTION:
@@ -198,17 +198,17 @@ def evaluate_full(log, current, target, preprocessed=False, visual=WINDOW, save=
         return wid
     
     #check 4: compare curve
-    count_out, wid = evaluate_points(log, current, target)
+    count_out, threshold, wid = evaluate_points(log, current, target)
     if wid == 0:
         if verbose == True:
             log.info("ComboID: {}: Timestamp {}: assembly success. No warnings.".format(current.comboid, current.timestamp))
             print("ComboID: {}: Timestamp {}: assembly success. No warnings.".format(current.comboid, current.timestamp))
         if (visual == True) or (save == True):
-            visualize(current, target, wid=wid, count_out=count_out, window=visual, save=save)
+            visualize(current, target, wid=wid, count_out=count_out, threshold=threshold, window=visual, save=save)
         return 0
     else:
         if verbose == True:
-            print("ComboID: {}: Timestamp {}: WID #{}. Curve out of bounds in {} points out of {}! Please check the assembly.".format(current.comboid, current.timestamp, wid, count_out, len(current.forza)))
+            print("ComboID: {}: Timestamp {}: WID #{}. Curve out of bounds in {} points out of {}, threshold is {}! Please check the assembly.".format(current.comboid, current.timestamp, wid, count_out, len(current.forza), threshold))
         if (visual == True) or (save == True):
-            visualize(current, target, wid=wid, count_out=count_out, window=visual, save=save)
+            visualize(current, target, wid=wid, count_out=count_out, threshold=threshold, window=visual, save=save)
         return wid
