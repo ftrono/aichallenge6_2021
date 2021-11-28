@@ -55,7 +55,7 @@ def save_table_warnings(combo_id, timestamp, riduttore_id,wid,stazione):
         df = pd.DataFrame(sql_query)
         if not os.path.isdir(OUTPUT_PATH):
             os.mkdir(OUTPUT_PATH)
-        percorso= os.path.join(OUTPUT_PATH,combo_id +"WarningELIANAPROVA"+'.'+"csv")
+        percorso= os.path.join(OUTPUT_PATH,combo_id +"Warning"+'.'+"csv")
         df.to_csv(percorso,index=False)
 
     elif (combo_id=="") and (timestamp is not None) and (riduttore_id=="") and (wid=="")and (stazione==""):
