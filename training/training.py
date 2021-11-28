@@ -309,14 +309,16 @@ def train(epoch=0, resume=False):
                 #status update:
                 pstr = "ComboID "+str(comboid)+": evaluating Pressata "+str(i+1)+"/"+str(len(currents))
                 print(pstr, end = "                                          \r")
-                #evaluate current Pressata:
-                wid = evaluate_full(log, currents[i], target, preprocessed=True, visual=False)
-                if SAVE_CSV == True:
-                    export_curves(dbt=dbt, current=currents[i], target=target, wid=wid)
-                if wid != 0:
-                    cnt = cnt+1
-                    #accumulate warnings (either WID 3 - MaxForza or WID 4 - Curve):
-                    sets_warnings.append((currents[i].riduttoreid, currents[i].timestamp, wid))
+                #if timestamp was not flagged with WID 2 after slicing (so, it was successfully interpolated):
+                if len(current.forza) == len(target.altezza):
+                    #evaluate current Pressata:
+                    wid = evaluate_full(log, currents[i], target, preprocessed=True, visual=False)
+                    if SAVE_CSV == True:
+                        export_curves(dbt=dbt, current=currents[i], target=target, wid=wid)
+                    if wid != 0:
+                        cnt = cnt+1
+                        #accumulate warnings (either WID 3 - MaxForza or WID 4 - Curve):
+                        sets_warnings.append((currents[i].riduttoreid, currents[i].timestamp, wid))
             
 
             #4) END STATISTICS:
