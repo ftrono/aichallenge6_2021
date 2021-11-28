@@ -33,6 +33,7 @@ def export_report(warneds=None, not_warneds=None, replace_all=False):
         os.mkdir('.' + OUTPUT_PATH)
         print("output folder created: ." + OUTPUT_PATH)
 
+
     if warneds != None:
         # Iterate through passed list
         print("entering for loop...")
