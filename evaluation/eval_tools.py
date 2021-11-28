@@ -2,11 +2,12 @@ import pandas as pd
 import sys,os
 sys.path.insert(0, os.getcwd())
 from globals import *
-from export.visualize import visualize
+from export.curves_plotting import get_boundaries, visualize
 from training.training_tools import slice_curves, interpolate_curve
 
 #EVALUATION TOOLS:
 # - evaluate_max()
+# - evaluate_anomalous()
 # - evaluate_points()
 # - evaluate_full()
 
@@ -19,12 +20,13 @@ def evaluate_max(log, current, target, mtype):
     Parameters:
     -------------------
     input:
-    - dbt (dict) -> dict with cnxn, cursor and logging objects
-    - cur, tgt, std (floats) -> current targets for the combo
-    - mtype -> must be either 'altezza' or 'forza'
+    - log -> log file used by caller function
+    - current (Collector) -> Collector object with the data for the current Pressata
+    - target (Collector) -> Collector object with the targets for the Combo
+    - mtype (str) -> must be either 'altezza' or 'forza'
     
     output:
-    - wid (warning id) -> if warning found, else 0
+    - wid (int) -> warning ID if warning found, else 0
     '''
     #arg check: 
     if mtype == 'altezza':
@@ -54,21 +56,38 @@ def evaluate_max(log, current, target, mtype):
 
 
 #Eval height curve trajectory:
-def evaluate_anomalous(log, current, target):
+def evaluate_anomalous(log, current, target, trajectory=False, sliced=False):
     '''
-    Function that evaluates if the max_value of either altezza or forza is within the target +- a threshold.
+    Function that evaluates the original altezza curve of a Pressata, making either one of 2 checks:
+    a) if the altezza curve of a Pressata starts with an increasing or decreasing trend (it actually should be increasing);
+    b) (if the curve has been sliced) the length of the kept portion of the sliced altezza curve (if the curve is too short, it was anomalous)
+
+    Both cases trigger a WID 2 - anomalous height curve.
     
     Parameters:
     -------------------
     input:
-    - ...
+    - log -> log file used by caller function
+    - current (Collector) -> Collector object with the data for the current Pressata
+    - target (Collector) -> Collector object with the targets for the Combo
+    - trajectory (boolean) -> triggers check a
+    - sliced_len (boolean) -> triggers check b
     
     output:
-    - wid (warning id) -> if warning found, else 0
+    - wid (int) -> warning ID if warning found, else 0
     '''
-    #evaluate if height curve starts with an increasing or decreasing trajectory:
-    if float(current.altezza[0]) > float(current.altezza[1]):
+    wid = 0
+
+    #check a) trajectory:
+    if (trajectory == True) and (float(current.altezza[0]) > float(current.altezza[1])):
         wid = 2
+
+    #check b) length of sliced vector:  
+    if (sliced == True) and (len(current.altezza) <= 3):
+        wid = 2
+
+    #log:
+    if wid != 0:
         log.warning("ComboID: {}: Timestamp {}: WID {}. Anomalous height curve".format(target.comboid, current.timestamp, wid))
         return wid
     else:
@@ -85,34 +104,21 @@ def evaluate_points(log, current, target):
     Parameters:
     -------------------
     input:
-    - dbt (dict) -> dict with cnxn, cursor and logging objects
-    - current -> Collector object with the data for the current Pressata
-    - target -> Collector object with the targets for the combo
+    - log -> log file used by caller function
+    - current (Collector) -> Collector object with the data for the current Pressata
+    - target (Collector) -> Collector object with the targets for the Combo
     
     output:
     - count_out (int) -> count of points out of bounds
-    - wid (warning id) -> if warning found, else 0.
+    - threshold (int) -> max number of points out allowed
+    - wid (int) -> warning ID if warning found, else 0
     '''
     count_out = 0
-    
-    #boundaries:
-    if USE_AVG == True:
-        target.boundup = [(target.forza[i] + (target.std_curve_avg*SIGMA_CURVE)) for i in range(len(target.forza))]
-        target.boundlow = [(target.forza[i] - (target.std_curve_avg*SIGMA_CURVE)) for i in range(len(target.forza))]
-    else:
-        target.boundup = [(target.forza[i] + (target.std[i]*SIGMA_CURVE)) for i in range(len(target.forza))]
-        #limit lower boundary:
-        #use average stdev as threshold if below zero:
-        min_low = -target.std_curve_avg*SIGMA_CURVE
-        target.boundlow = []
-        for i in range(len(target.forza)):
-            p = target.forza[i] - (target.std[i]*SIGMA_CURVE)
-            if p >= min_low:
-                target.boundlow.append(p)
-            else:
-                target.boundlow.append(min_low)
-
     indices = []
+
+    #boundaries:
+    target.boundup, target.boundlow = get_boundaries(target)
+    
     #count points out of bounds:
     for i in range(len(current.forza)):
         if (current.forza[i] < target.boundlow[i]) or (current.forza[i] > target.boundup[i]):
@@ -127,7 +133,6 @@ def evaluate_points(log, current, target):
     else:
         wid = 4
         log.warning("ComboID: {}: Timestamp {}: WID #{}. Curve out of bounds in {} points out of {}, threshold is {}! Please check the assembly.".format(current.comboid, current.timestamp, wid, count_out, len(current.forza), threshold))
-        log.debug(indices)
     return count_out, threshold, wid
 
 
@@ -136,30 +141,30 @@ def evaluate_full(log, current, target, preprocessed=False, visual=WINDOW, save=
     '''
     Function that evaluates if a pressata is correct or not. 
     It queries for the parameters of the pressata's combo, interpolates the curve and 
-    then makes 3 checks through the following functions:
+    then makes 4 checks through the following functions:
     1) evaluate_max, with mtype = 'altezza';
+    2) evaluate_anomalous, which evaluates if the altezza curve is anomalous (decreasing trajectory or caused excessive slicing);
     2) evaluate_max, with mtype = 'forza';
     3) evaluate_points, which scans the curve point by point;
     
-    If one check fails, the function is immediately interrupted: the warning is saved to the DB
-    and no further checks are made. A logging message is printed to a log file. (Return: -1)
+    If one check fails, the function is immediately interrupted: the warning is returned
+    and no further checks are made. A logging message is printed to a log file.
 
-    If all 3 checks are ok, then the pressata is considered acceptable. (Return: 0)
+    If all checks are ok, then the pressata is considered acceptable.
 
     Parameters:
     -------------------
     input:
-    - dbt (dict) -> dict with cnxn, cursor and logging objects
-    - current -> Collector object with the data for the current Pressata
-    - target -> Collector object with the targets for the combo
+    - log -> log file used by caller function
+    - current (Collector) -> Collector object with the data for the current Pressata
+    - target (Collector) -> Collector object with the targets for the Combo
     - preprocessed (bool) -> indicates if the evaluation is done in the training context (after preprocessing, so: True) or as standalone full evaluation (so: False)
     - visual (bool) -> call curve visualization function in a window
     - save (bool) -> save curves plot (done by visualization function) as png file
-    - verbose (bool) -> prints evaluation output also to stdout
+    - verbose (bool) -> prints evaluation output also if ok and to stdout
     
-    output: 
-    - 0 if pressata is accepted
-    - wid (int) if warning found
+    output:
+    - wid (int) -> warning ID if warning found, else 0
 
     '''
     #Preprocessing checks:
@@ -171,20 +176,22 @@ def evaluate_full(log, current, target, preprocessed=False, visual=WINDOW, save=
                 print("ComboID: {}: Timestamp {}: WID {}. Max_altezza out of acceptable range! Current: {}, target: {}, dev: {}. Please check the assembly.".format(target.comboid, current.timestamp, wid, current.ma, target.ma, target.std_ma*SIGMA_MA))
             return wid
         
-        #check 2: anomalous height vector
-        wid = evaluate_anomalous(log, current, target)
-        if wid != 0:
-            if verbose == True:
-                print("ComboID: {}: Timestamp {}: WID #{}. Anomalous height curve.".format(current.comboid, current.timestamp, wid))
-            return wid
-
         #Check if can go on with evaluating (only if preprocessed == False):
         if target.mf == 0 or target.altezza == []:
             print("ComboID: {}: ERROR: data not available for the Combo.".format(current.comboid))
             return -1
 
-        #Slice curves & interpolate force curve (overwrite current.altezza and current.forza into collector object)
+        #Slice curves (overwrite current.altezza and current.forza into collector object)
         current.altezza, current.forza = slice_curves(target.altezza, current.altezza, current.forza)
+
+        #check 2: anomalous height vector
+        wid = evaluate_anomalous(log, current, target, trajectory=True, sliced=True)
+        if wid != 0:
+            if verbose == True:
+                print("ComboID: {}: Timestamp {}: WID #{}. Anomalous height curve.".format(current.comboid, current.timestamp, wid))
+            return wid
+
+        #Interpolate force curve (overwrite current.altezza and current.forza into collector object)
         current.forza = interpolate_curve(target.altezza, current.altezza, current.forza)
 
     #Always:
@@ -193,8 +200,6 @@ def evaluate_full(log, current, target, preprocessed=False, visual=WINDOW, save=
     if wid != 0:
         if verbose == True:
             print("ComboID: {}: Timestamp {}: WID {}. Max_forza out of acceptable range! Current: {}, target: {}, dev: {}. Please check the assembly.".format(target.comboid, current.timestamp, wid, current.mf, target.mf, target.std_mf*SIGMA_MF))
-        if (visual == True) or (save == True):
-            visualize(current, target, wid=wid, count_out=0, window=visual, save=save)
         return wid
     
     #check 4: compare curve

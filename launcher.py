@@ -28,5 +28,5 @@ for epoch in range(EPOCHS):
 # #3) Evaluate:
 # #Sample timestamps: 1584106142, 1584348510, 1584348501, 1584349549, 1584369231
 #timestamp = input("Evaluate: insert timestamp here -> ")
-#call_evaluate(timestamp, flag=False, visual=True, save=True)
+#call_evaluate(timestamp, flag=True, visual=True, save=False)
 

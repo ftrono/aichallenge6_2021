@@ -6,13 +6,14 @@ from database_functions.db_connect import db_connect, db_disconnect
 from database_functions.db_tools import reset_table
 from database_functions.extract_data import Collector
 from training.training_tools import compute_rate, generate_hvec, slice_curves, interpolate_curve, ideal_curve, stdev_curve
-from evaluation.eval_tools import evaluate_full
+from evaluation.eval_tools import evaluate_anomalous, evaluate_full
+from export.curves_plotting import export_curves
 
 #TRAINING:
 #Complete population of the Combos, CombosData and Warnings tables.
 # - set TargetMF and StdMF for every ComboID;
 # - learn target curves (altezza_combo, forza_combo and points_std) for every ComboID;
-# - evaluate all Pressate in the DB and flag those not reaching TargetMF (with a sigma) and with anomalous curves.
+# - evaluate all Pressate in the DB and flag those not reaching TargetMF (with a sigma) and with curves out of bounds.
 
 
 def train(epoch=0, resume=False):
@@ -209,20 +210,47 @@ def train(epoch=0, resume=False):
                 # h vector:
                 sample_rate = compute_rate(batch_heights)
                 target.altezza = generate_hvec(sample_rate, MIN_ALTEZZA, target.ma)
+                #error check:
+                if len(target.altezza) <= 3:
+                    log.error("ComboID skipped {}, the learned target Altezza vector is shorter than 3 points.".format(comboid))
+                    print("ComboID skipped {}, the learned target Altezza vector is shorter than 3 points.".format(comboid))
+                    #skip to next Combo:
+                    continue
+                #else: go on:
                 log.debug("ComboID: {}: Learned target Altezza vector".format(comboid))
                 del batch_heights
 
 
             #iii) Slice & interpolate original curves:
+            max_l = 0
             for current in currents:
-                #i) slice portions of interest of original curves:
+                #1. slice portions of interest of original curves:
                 current.altezza, current.forza = slice_curves(target.altezza, current.altezza, current.forza)
-                #ii) interpolate force curve:
-                current.forza = interpolate_curve(target.altezza, current.altezza, current.forza)
-                batch_forces.append(current.forza)
+                #2. check anomalous sliced curve:
+                wid = evaluate_anomalous(log, current, target, sliced=True)
+                if wid != 0:
+                    cnt = cnt+1
+                    #accumulate warnings (WID 2: anomalous height curve):
+                    sets_warnings.append((current.riduttoreid, current.timestamp, wid))
+                else:
+                    #update checker var:
+                    cur_l = len(current.altezza)
+                    if cur_l > max_l:
+                        max_l = cur_l
+
+                    #3. interpolate force curve:
+                    current.forza = interpolate_curve(target.altezza, current.altezza, current.forza)
+                    batch_forces.append(current.forza)
             log.debug("ComboID: {}: Sliced and interpolated original curves in all Collectors".format(comboid))
 
+            #check if can proceed:
+            if max_l <= 3:
+                log.error("ComboID skipped {}, all sliced vectors are shorter than 3 points.".format(comboid))
+                print("ComboID skipped {}, all sliced vectors are shorter than 3 points.".format(comboid))
+                #skip to next Combo:
+                continue
             
+
             #iv) Learn the target Forza curve, Std_curve and StdCurveAvg for the Combo:
             if resume == True and comboid in c_trained:
                 #use already learned data:
@@ -283,6 +311,8 @@ def train(epoch=0, resume=False):
                 print(pstr, end = "                                          \r")
                 #evaluate current Pressata:
                 wid = evaluate_full(log, currents[i], target, preprocessed=True, visual=False)
+                if SAVE_CSV == True:
+                    export_curves(dbt=dbt, current=currents[i], target=target, wid=wid)
                 if wid != 0:
                     cnt = cnt+1
                     #accumulate warnings (either WID 3 - MaxForza or WID 4 - Curve):

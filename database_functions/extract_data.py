@@ -65,6 +65,12 @@ def extract_data(dbt, stype='current', timestamp=None, comboid=None):
             df = pd.read_sql(query, cnxn)
         except:
             return -1
+
+        #check if data found:
+        if df.empty==True:
+            print("ERROR: no data.")
+            return -1
+            
         #comboid:
         comboid = str(df['ComboID'][0])
         current.comboid = comboid
@@ -95,8 +101,17 @@ def extract_data(dbt, stype='current', timestamp=None, comboid=None):
         logging.debug("Extracting target data for ComboID {}".format(comboid))
 
         #EXTRACT TARGET COMBO DATA:
-        query = "SELECT TargetMA, TargetMF, StdMA, StdMF, StdCurveAvg FROM Combos WHERE ComboID='"+str(comboid)+"'"
-        df = pd.read_sql(query, cnxn)
+        try:
+            query = "SELECT TargetMA, TargetMF, StdMA, StdMF, StdCurveAvg FROM Combos WHERE ComboID='"+str(comboid)+"'"
+            df = pd.read_sql(query, cnxn)
+        except:
+            return -1
+
+        #check if data found:
+        if df.empty==True:
+            print("ERROR: no data.")
+            return -1
+
         #extract data:
         target.ma = float(df['TargetMA'][0])
         target.mf = float(df['TargetMF'][0])

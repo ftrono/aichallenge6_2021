@@ -4,6 +4,7 @@ from globals import *
 from database_functions.db_connect import db_connect, db_disconnect
 from database_functions.extract_data import extract_data
 from evaluation.eval_tools import evaluate_full
+from export.curves_plotting import export_curves
 
 
 #PART III) EVALUATE
@@ -51,6 +52,8 @@ def call_evaluate(timestamp, flag=False, visual=WINDOW, save=SAVE_PNG):
 
     #Call:
     wid = evaluate_full(log, current, target, preprocessed=False, visual=visual, save=save, verbose=True)
+    if SAVE_CSV == True:
+        export_curves(dbt=dbt, current=current, target=target, wid=wid)
     if wid != 0 and flag == True:
         #Store warning found to SQL DB:
         try:

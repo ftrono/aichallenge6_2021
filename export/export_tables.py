@@ -1,10 +1,8 @@
 import pandas as pd
-import sys, logging,os
-
+import sys, os
 from collections.abc import Iterable
 from pandas.core.frame import DataFrame
 sys.path.insert(0, os.getcwd())
-#sys.path.insert(0, './')
 from globals import *
 from database_functions.db_connect import db_connect, db_disconnect
 
@@ -20,7 +18,6 @@ def save_table_csv(table_name):
     Input:
     - table_name :  string
     
-
     '''
 
     conn,cursor = db_connect()
@@ -33,6 +30,7 @@ def save_table_csv(table_name):
     db_disconnect(conn,cursor)
     
     return 0
+
 
 def save_table_warnings(combo_id=None, timestamp=None, riduttore_id=None,wid=None,stazione=None):
     '''
@@ -116,8 +114,6 @@ def save_table_warnings(combo_id=None, timestamp=None, riduttore_id=None,wid=Non
         print("1 report generated.")
     else:
         print("{} reports generated.".format(num_generated))
-
-
 
     return 0
 

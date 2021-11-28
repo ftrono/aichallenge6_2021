@@ -1,10 +1,9 @@
-from database_functions.db_connect import db_connect, db_disconnect
-from export.export_to_csv import save_table_csv
-from export.export_to_csv import save_table_warnings
-from globals import *
 import sys, logging, os
 sys.path.insert(0, os.getcwd())
-#sys.path.insert(0, './')
+from globals import *
+from database_functions.db_connect import db_connect, db_disconnect
+from export.export_tables import save_table_csv
+from export.export_tables import save_table_warnings
 import pandas as pd
 from database_functions.extract_data import Collector
 

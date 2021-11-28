@@ -6,22 +6,24 @@ import numpy as np
 from scipy import interpolate
 
 #TRAINING TOOLS:
-# - set_target_max()
-# - (helper) compute_rate()
-# - (helper) ideal_curve()
-# - (helper) stdev_curve()
+# - compute_rate()
+# - generate_hvec()
+# - slice_curves()
+# - interpolate_curve()
+# - ideal_curve()
+# - stdev_curve()
 
 
-#helper: compute sample_rate for a pressata (for height vector):
+#compute sample_rate for a pressata (for height vector):
 def compute_rate(batch_altezze):
     '''
-    Helper function: computes the sample rate for a Pressata for target height vector calculation.
+    Compute the sample rate for target height vector calculation from a batch of Pressate.
 
     input:
-    - orig_altezza (list) for a Pressata
+    - batch_altezze (list of lists) -> list of original altezze vectors for a Combo
     
     returns:
-    - sample_rate (float)
+    - sample_rate (float) -> target sample rate for the target altezza vector for the Combo.
     '''
     rates = []
 
@@ -52,8 +54,8 @@ def generate_hvec(tgt_rate, min_h, target_ma):
     Parameters:
     -------------------
     input:
-    - dbt (dict) -> dict with cnxn, cursor and logging objects
-    - timestamps (list) -> list of timestamps to analyze
+    - tgt_rate (float) -> target sample rate calculated for the Combo (from the compute_rate() function)
+    - min_h (float) -> ninimum height value from which to cut the beginning of the height vector
     - target_ma (float) -> TargetMA for the Combo.
 
     returns:
@@ -73,6 +75,25 @@ def generate_hvec(tgt_rate, min_h, target_ma):
 
 #slice the portions of interest of curves:
 def slice_curves(altezza_combo, altezza, forza):
+    '''
+    Function that slices the portions of original altezza and forza curves of a Pressata,
+    keeping only the points (from both curves) in which Altezza is monotonically increasing.
+
+    The function removes the parts related to where Altezza is decreasing or is back at some levels already covered,
+    in order to remove duplicate values to allow interpolation.
+
+    Parameters:
+    -------------------
+    input:
+    - altezza_combo (list) -> target height vector for the Combo
+    - altezza (list) -> original altezza vector for a Pressata
+    - forza (list) -> original forza vector for a Pressata
+
+    returns:
+    - altezza_corr (list) -> sliced and monotonically increasing portion of the original Altezza curve for the Pressata
+    - forza_corr (list) -> sliced portion of the original Forza curve for the Pressata, corresponding to the kept portions 
+    of the altezza vector.
+    '''
     #vars:
     target_ma = max(altezza_combo)
     indices = []
@@ -99,6 +120,20 @@ def slice_curves(altezza_combo, altezza, forza):
 
 #interpolate curve:
 def interpolate_curve(altezza_combo, altezza, forza):
+    '''
+    Function that interpolates the sliced forza vector of a Pressata, on the basis of its sliced altezza vector
+    and the target altezza vector for the Combo.
+
+    Parameters:
+    -------------------
+    input:
+    - altezza_combo (list) -> target height vector for the Combo
+    - altezza (list) -> original altezza vector for a Pressata
+    - forza (list) -> original forza vector for a Pressata
+
+    returns:
+    - new_forza (list) -> interpolated forza vector for the Pressata.
+    '''
     #interpolate:
     f = interpolate.interp1d(altezza, forza, kind='cubic', fill_value='extrapolate')
     
