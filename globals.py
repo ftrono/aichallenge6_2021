@@ -23,7 +23,7 @@ USE_AVG = False
 
 #visual output:
 WINDOW = False
-SAVE_PNG = True
+SAVE_PNG = False
 SAVE_CSV = False
 
 #output path:
