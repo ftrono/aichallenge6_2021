@@ -120,7 +120,8 @@ def evaluate_points(log, current, target):
             indices.append(i)
 
     #final check on curve:
-    if count_out <= MIN_POINTS: #ok
+    threeshold= int(len(current.forza)*MIN_POINTS_PERC)
+    if count_out <= threeshold: #ok
         log.debug("ComboID: {}: Timestamp {}: assembly success. No warnings.".format(current.comboid, current.timestamp))
         return count_out, 0
     else:

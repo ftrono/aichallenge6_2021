@@ -18,7 +18,7 @@ SIGMA_RID = 1
 #thresholds:
 MIN_ALTEZZA = 100
 MIN_PRESSATE = 2
-MIN_POINTS = 5
+MIN_POINTS_PERC = 0.05
 USE_AVG = False
 
 #visual output:
