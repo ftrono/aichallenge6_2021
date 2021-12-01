@@ -39,4 +39,4 @@ def create_db(drop=False,limit=1000000):
 
 #MAIN:
 if __name__ == '__main__':
-    create_db(drop=True,limit=17792)
+    create_db(drop=True,limit=1000000)
