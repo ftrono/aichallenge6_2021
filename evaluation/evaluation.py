@@ -10,7 +10,7 @@ from export.curves_plotting import export_curves
 #PART III) EVALUATE
 
 #CALLER:
-def call_evaluate(timestamp, visual=WINDOW, save=SAVE_PNG):
+def call_evaluate(timestamp, window=WINDOW, png=SAVE_PNG, csv=SAVE_CSV):
     '''
     Standalone evaluation function caller. It:
     - initializes DB connection and logger
@@ -21,8 +21,9 @@ def call_evaluate(timestamp, visual=WINDOW, save=SAVE_PNG):
     -------------------
     input:
     - timestamp (int) -> timestamp of the Pressata to analyze
-    - visual (bool) -> visualize the curves plot in a window
-    - save (bool) -> saves the curves plot as png file
+    - window (bool) -> visualize the curves plot in a window
+    - png (bool) -> saves the curves plot as png file
+    - csv (bool) -> exports the curves plot as csv file
     '''
     # Connect
     cnxn, cursor = db_connect()
@@ -51,8 +52,8 @@ def call_evaluate(timestamp, visual=WINDOW, save=SAVE_PNG):
     target = extract_data(dbt, stype='target', comboid=current.comboid)
 
     #Call:
-    wid = evaluate_full(log, current, target, preprocessed=False, visual=visual, save=save, verbose=True)
-    if SAVE_CSV == True:
+    wid = evaluate_full(log, current, target, preprocessed=False, visual=window, save=png, verbose=True)
+    if csv == True:
         export_curves(dbt=dbt, current=current, target=target, wid=wid)
         
     #DB update:
@@ -81,10 +82,3 @@ def call_evaluate(timestamp, visual=WINDOW, save=SAVE_PNG):
     # Disconnect
     db_disconnect(cnxn, cursor)
     return 0
-
-
-#MAIN:
-if __name__ == '__main__':
-    #Sample timestamps: 1584106142, 1584348510, 1584348501, 1584349549
-    timestamp = input("Evaluate: insert timestamp here -> ")
-    call_evaluate(timestamp, visual=True, save=False)

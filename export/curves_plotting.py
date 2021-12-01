@@ -76,7 +76,10 @@ def export_curves(dbt=None, timestamp=None, current=None, target=None, wid=None)
         current.altezza, current.forza = slice_curves(target.altezza, current.altezza, current.forza)
         current.forza = interpolate_curve(target.altezza, current.altezza,current.forza)
 
-    percorso= os.path.join(OUTPUT_PATH,"curves/"+str(current.comboid)+"_"+str(current.timestamp)+"_wid"+str(wid)+".csv")
+    fpath = OUTPUT_PATH+"/curves/"+str(current.comboid)
+    if not os.path.isdir(fpath):
+        os.mkdir(fpath)
+    percorso= os.path.join(fpath,str(current.comboid)+"_"+str(current.timestamp)+"_wid"+str(wid)+".csv")
     
     #boundaries:
     if target.boundup == [] or target.boundlow == []:
@@ -116,7 +119,10 @@ def visualize(current, target, wid=0, count_out=0, threshold=0, window=WINDOW, s
     else:
         co = ""
     title = "ComboID: "+str(current.comboid)+" - Timestamp: "+str(current.timestamp)+" - WID: "+str(wid)+co
-    fout = OUTPUT_PATH+"/curves/"+str(current.comboid)+"_"+str(current.timestamp)+"_wid"+str(wid)+".png"
+    fpath = OUTPUT_PATH+"/curves/"+str(current.comboid)
+    if not os.path.isdir(fpath):
+        os.mkdir(fpath)
+    fout = fpath+"/"+str(current.comboid)+"_"+str(current.timestamp)+"_wid"+str(wid)+".png"
 
     #title color:
     if wid == 0:
