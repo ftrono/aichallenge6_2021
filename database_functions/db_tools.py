@@ -47,8 +47,8 @@ def drop_all(dbt):
 def reset_marks(dbt, remark=False):
     '''
     Modes:
-    - all=True -> resets all marks to zero
-    - all=False -> resets all marks to zero and marks again the timestamps for which a warning was found.
+    - remark=False -> only resets all marks to zero
+    - remark=True -> resets all marks to zero and marks again the timestamps for which a warning was found.
     '''
     cursor = dbt['cursor']
     cnxn = dbt['cnxn']
@@ -83,7 +83,6 @@ def reset_marks(dbt, remark=False):
         except:
             log.error("Insert error: Evaluated marks not stored to DB. Please retry later.")
             print("Insert error: Evaluated marks not stored to DB. Please retry later.")
-
     return 0
 
 
