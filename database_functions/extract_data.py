@@ -11,6 +11,7 @@ class Collector:
         self.riduttoreid = 0
         self.timestamp = 0
         self.comboid = ''
+        self.evaluated = 0
         self.ma = 0
         self.mf = 0
         self.std_ma = 0
@@ -61,7 +62,7 @@ def extract_data(dbt, stype='current', timestamp=None, comboid=None):
 
         #EXTRACT DATA FOR CURRENT TIMESTAMP:
         try:
-            query = "SELECT ComboID, MaxForza, MaxAltezza, RiduttoreID FROM Pressate WHERE Timestamp="+str(timestamp)
+            query = "SELECT ComboID, MaxForza, MaxAltezza, RiduttoreID, Evaluated FROM Pressate WHERE Timestamp="+str(timestamp)
             df = pd.read_sql(query, cnxn)
         except:
             return -1
@@ -78,6 +79,7 @@ def extract_data(dbt, stype='current', timestamp=None, comboid=None):
         current.mf = float(df['MaxForza'][0])
         current.ma = float(df['MaxAltezza'][0])
         current.riduttoreid = int(df['RiduttoreID'][0])
+        current.evaluated = int(df['Evaluated'][0])
 
         #EXTRACT ORIGINAL CURVES FOR CURRENT TIMESTAMP:
         query = "SELECT Forza, Altezza FROM PressateData WHERE Timestamp="+str(timestamp)

@@ -175,6 +175,13 @@ def evaluate_full(log, current, target, preprocessed=False, visual=WINDOW, save=
             if verbose == True:
                 print("ComboID: {}: Timestamp {}: WID {}. Max_altezza out of acceptable range! Current: {}, target: {}, dev: {}. Please check the assembly.".format(target.comboid, current.timestamp, wid, current.ma, target.ma, target.std_ma*SIGMA_MA))
             return wid
+
+        #check 2: anomalous height vector: trajectory check
+        wid = evaluate_anomalous(log, current, target, trajectory=True)
+        if wid != 0:
+            if verbose == True:
+                print("ComboID: {}: Timestamp {}: WID #{}. Anomalous height curve.".format(current.comboid, current.timestamp, wid))
+            return wid
         
         #Check if can go on with evaluating (only if preprocessed == False):
         if target.mf == 0 or target.altezza == []:
@@ -184,8 +191,8 @@ def evaluate_full(log, current, target, preprocessed=False, visual=WINDOW, save=
         #Slice curves (overwrite current.altezza and current.forza into collector object)
         current.altezza, current.forza = slice_curves(target.altezza, current.altezza, current.forza)
 
-        #check 2: anomalous height vector
-        wid = evaluate_anomalous(log, current, target, trajectory=True, sliced=True)
+        #check 3: anomalous height vector: sliced check
+        wid = evaluate_anomalous(log, current, target, sliced=True)
         if wid != 0:
             if verbose == True:
                 print("ComboID: {}: Timestamp {}: WID #{}. Anomalous height curve.".format(current.comboid, current.timestamp, wid))
@@ -195,14 +202,14 @@ def evaluate_full(log, current, target, preprocessed=False, visual=WINDOW, save=
         current.forza = interpolate_curve(target.altezza, current.altezza, current.forza)
 
     #Always:
-    #check 3: max_forza
+    #check 4: max_forza
     wid = evaluate_max(log, current, target, mtype='forza')
     if wid != 0:
         if verbose == True:
             print("ComboID: {}: Timestamp {}: WID {}. Max_forza out of acceptable range! Current: {}, target: {}, dev: {}. Please check the assembly.".format(target.comboid, current.timestamp, wid, current.mf, target.mf, target.std_mf*SIGMA_MF))
         return wid
     
-    #check 4: compare curve
+    #check 5: curve points
     count_out, threshold, wid = evaluate_points(log, current, target)
     if wid == 0:
         if verbose == True:

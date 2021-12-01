@@ -23,12 +23,10 @@ def parse_date(cell):
     return timestamp
 
 def generate_ComboID(idComp,taglia,stazione,master,rapporto,stadi):
-    if idComp=='p0009':
-        print("id: {}, stazione: {}, taglia: {}, master: {}".format(idComp,stazione,taglia,master))
     p009_rap=[30,40,70,100]
-    if idComp=='p0009' and stazione=='a1' and master==2 and (int(rapporto) in p009_rap):
+    if idComp=='p0009' and stazione=='a1' and int(master)==2 and (int(rapporto) in p009_rap):
         return idComp+taglia+'i10'
-    if idComp=='p0045' and stazione=='a1' and master==2 and rapporto==100:
+    if idComp=='p0045' and stazione=='a1' and int(master)==2 and int(rapporto)==100:
         return idComp+taglia+'i10'
     if stazione=='a5':
         return idComp+taglia+'s0'+str(stadi)

@@ -59,10 +59,10 @@ def train(epoch=0, resume=False):
     #accumulation lists:
     sets_curves = []
     sets_warnings = []
+    sets_eval = []
     c_trained = []
     tot_cnt = 0
     db_errors = []
-    warn_error = False
 
     #0) Training mode: full or resume:
     if resume == False:
@@ -71,16 +71,16 @@ def train(epoch=0, resume=False):
         log.info("CombosData table reset")
 
 
-    #1) Extract ALL needed tables into memory (only timestamps with no warnings):
+    #1) Extract ALL needed tables into memory (only timestamps not evaluated yet):
     #Pressate:
     log.info("Extracting tables from SQL DB...")
-    query = "SELECT Pressate.Timestamp, Pressate.RiduttoreID, Pressate.ComboID, Pressate.MaxForza, Pressate.MaxAltezza FROM Pressate WHERE NOT EXISTS (SELECT Warnings.Timestamp FROM Warnings WHERE Warnings.Timestamp = Pressate.Timestamp)"
+    query = "SELECT Timestamp, RiduttoreID, ComboID, MaxForza, MaxAltezza FROM Pressate WHERE Evaluated = 0"
     Pressate = pd.read_sql(query, cnxn)
     tot_pressate = len(Pressate['Timestamp'].tolist())
     log.info("Extracted table 1/3 (Pressate)")
 
     #PressateData:
-    query = "SELECT PressateData.Timestamp, Pressate.ComboID, PressateData.Forza, PressateData.Altezza FROM PressateData INNER JOIN Pressate ON PressateData.Timestamp = Pressate.Timestamp WHERE NOT EXISTS (SELECT Warnings.Timestamp FROM Warnings WHERE Warnings.Timestamp = PressateData.Timestamp)"
+    query = "SELECT PressateData.Timestamp, Pressate.ComboID, PressateData.Forza, PressateData.Altezza FROM PressateData INNER JOIN Pressate ON PressateData.Timestamp = Pressate.Timestamp WHERE Pressate.Evaluated = 0"
     PressateData = pd.read_sql(query, cnxn)
     log.info("Extracted table 2/3 (PressateData)")
 
@@ -319,6 +319,7 @@ def train(epoch=0, resume=False):
                         cnt = cnt+1
                         #accumulate warnings (either WID 3 - MaxForza or WID 4 - Curve):
                         sets_warnings.append((currents[i].riduttoreid, currents[i].timestamp, wid))
+                sets_eval.append((1, currents[i].timestamp))
             
 
             #4) END STATISTICS:
@@ -334,22 +335,35 @@ def train(epoch=0, resume=False):
         cursor.fast_executemany = True
         cursor.executemany("INSERT INTO Warnings (RiduttoreID, Timestamp, WarningID) VALUES (?, ?, ?)", sets_warnings)
         cnxn.commit()
+        warn_stored = True
         log.info("Stored all warnings found into DB.")
         print("Stored all warnings found into DB.")
     except:
-        warn_error = True
+        warn_stored = False
         log.error("Insert error: warnings not stored to DB. Please retry later.")
         print("Insert error: warnings not stored to DB. Please retry later.")
 
+    #Bulk store all accumulated Evaluated marks for Pressate to SQL DB:
+    try:
+        cursor.fast_executemany = True
+        cursor.executemany("UPDATE Pressate SET Evaluated = ? WHERE Timestamp = ?", sets_eval)
+        cnxn.commit()
+        marks_stored = True
+        log.info("Stored Evaluated mark for all Pressate into DB.")
+        print("Stored Evaluated mark for all Pressate into DB.")
+    except:
+        marks_stored = False
+        log.error("Insert error: Evaluated mark not stored to DB. Please retry later.")
+        print("Insert error: Evaluated mark not stored to DB. Please retry later.")
 
     #END:
     db_disconnect(cnxn, cursor)
     end_time = time.time()
-    missed = len(combos_list) - len(db_errors)
+    stored = len(combos_list) - len(db_errors)
 
-    if warn_error == False:
-        log.info("Epoch {}: Training COMPLETED in {} seconds. Parameters stored in DB for {} combos out of {}. Flagged {} Pressate out of {}, with sigmas: MF {}, curve {}.".format(e, round((end_time-start_time),2), missed, len(combos_list), tot_cnt, tot_pressate, SIGMA_MF, SIGMA_CURVE))
-        print("Epoch {}: Training COMPLETED in {} seconds. Parameters stored in DB for {} combos out of {}. Flagged {} Pressate out of {}, with sigmas: MF {}, curve {}.\n".format(e, round((end_time-start_time),2), missed, len(combos_list), tot_cnt, tot_pressate, SIGMA_MF, SIGMA_CURVE))
+    if warn_stored == True and marks_stored == True:
+        log.info("Epoch {}: Training COMPLETED in {} seconds. Parameters stored in DB for {} combos out of {}. Flagged {} Pressate out of {}, with sigmas: MF {}, curve {}.".format(e, round((end_time-start_time),2), stored, len(combos_list), tot_cnt, tot_pressate, SIGMA_MF, SIGMA_CURVE))
+        print("Epoch {}: Training COMPLETED in {} seconds. Parameters stored in DB for {} combos out of {}. Flagged {} Pressate out of {}, with sigmas: MF {}, curve {}.\n".format(e, round((end_time-start_time),2), stored, len(combos_list), tot_cnt, tot_pressate, SIGMA_MF, SIGMA_CURVE))
         
         if len(db_errors) == 0:
             return 0
@@ -359,8 +373,8 @@ def train(epoch=0, resume=False):
             return -1
 
     else:
-        log.info("Epoch {}: Training COMPLETED in {} seconds. Parameters stored in DB for {} combos out of {}. Warnings NOT stored to DB. Found {} Pressate to be flagged out of {}, with sigmas: MF {}, curve {}.".format(e, round((end_time-start_time),2), missed, len(combos_list), tot_cnt, tot_pressate, SIGMA_MF, SIGMA_CURVE))
-        print("Epoch {}: Training COMPLETED in {} seconds. Parameters stored in DB for {} combos out of {}. Warnings NOT stored to DB. Found {} Pressate to be flagged out of {}, with sigmas: MF {}, curve {}.\n".format(e, round((end_time-start_time),2), missed, len(combos_list), tot_cnt, tot_pressate, SIGMA_MF, SIGMA_CURVE))
+        log.info("Epoch {}: Training COMPLETED in {} seconds. Parameters stored in DB for {} combos out of {}. Warnings stored: {}, Evaluated marks stored: {}. Found {} Pressate to be flagged out of {}, with sigmas: MF {}, curve {}.".format(e, round((end_time-start_time),2), stored, len(combos_list), warn_stored, marks_stored, tot_cnt, tot_pressate, SIGMA_MF, SIGMA_CURVE))
+        print("Epoch {}: Training COMPLETED in {} seconds. Parameters stored in DB for {} combos out of {}. Warnings stored: {}, Evaluated marks stored: {}.  Found {} Pressate to be flagged out of {}, with sigmas: MF {}, curve {}.\n".format(e, round((end_time-start_time),2), stored, len(combos_list), warn_stored, marks_stored, tot_cnt, tot_pressate, SIGMA_MF, SIGMA_CURVE))
 
         if len(db_errors) != 0:
             log.info("Epoch {}: Parameters not stored for the following combos:".format(e))

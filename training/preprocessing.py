@@ -1,4 +1,4 @@
-import sys, logging, os, time
+import sys, logging, os, time, math
 import pandas as pd
 sys.path.insert(0, os.getcwd())
 from globals import *
@@ -64,6 +64,7 @@ def preprocessing():
     #accumulation lists:
     sets_targets = []
     sets_warnings = []
+    sets_eval = []
     tot_cnt = 0
     db_error = False
 
@@ -96,6 +97,8 @@ def preprocessing():
             target.std_ma = float(PressateCombo['MaxAltezza'].std()) + 1
         except:
             target.std_ma = 1
+        if math.isnan(target.std_ma) == True:
+            target.std_ma = 1
         log.debug("ComboID {}: TargetMA and StdMA generated".format(comboid))
         
         #2) Accumulate TargetMA and StdMA for later store:
@@ -118,10 +121,12 @@ def preprocessing():
                     cnt = cnt+1
                     #accumulate warnings (WID 2: anomalous height curve):
                     sets_warnings.append((current.riduttoreid, current.timestamp, wid))
+                    sets_eval.append((1, current.timestamp))
             else:
                 cnt = cnt+1
                 #accumulate warnings (WID 1: MaxAltezza out of range):
                 sets_warnings.append((current.riduttoreid, current.timestamp, wid))
+                sets_eval.append((1, current.timestamp))
 
         #Flag riduttori for number of Pressate (wid=5):
         #TO BE IMPLEMENTED
@@ -156,6 +161,17 @@ def preprocessing():
         log.error("Insert error: warnings not stored to DB. Please relaunch Preprocessing.")
         print("Insert error: warnings not stored to DB. Please relaunch Preprocessing.")
 
+    #Bulk store all accumulated booleans for Pressate to SQL DB:
+    try:
+        cursor.fast_executemany = True
+        cursor.executemany("UPDATE Pressate SET Evaluated = ? WHERE Timestamp = ?", sets_eval)
+        cnxn.commit()
+        log.info("Stored Evaluated marks for flagged Pressate into DB.")
+        print("Stored Evaluated marks for flagged Pressate into DB.")
+    except:
+        db_error = True
+        log.error("Insert error: Evaluated marks not stored to DB. Please relaunch Preprocessing.")
+        print("Insert error: Evaluated marks not stored to DB. Please relaunch Preprocessing.")
 
     #END:
     db_disconnect(cnxn, cursor)

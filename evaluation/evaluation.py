@@ -10,7 +10,7 @@ from export.curves_plotting import export_curves
 #PART III) EVALUATE
 
 #CALLER:
-def call_evaluate(timestamp, flag=False, visual=WINDOW, save=SAVE_PNG):
+def call_evaluate(timestamp, visual=WINDOW, save=SAVE_PNG):
     '''
     Standalone evaluation function caller. It:
     - initializes DB connection and logger
@@ -54,15 +54,29 @@ def call_evaluate(timestamp, flag=False, visual=WINDOW, save=SAVE_PNG):
     wid = evaluate_full(log, current, target, preprocessed=False, visual=visual, save=save, verbose=True)
     if SAVE_CSV == True:
         export_curves(dbt=dbt, current=current, target=target, wid=wid)
-    if wid != 0 and flag == True:
+        
+    #DB update:
+    if current.evaluated == 0:
         #Store warning found to SQL DB:
+        if wid != 0:
+            try:
+                cursor.execute("INSERT INTO Warnings (RiduttoreID, Timestamp, WarningID) VALUES (?, ?, ?)", current.riduttoreid, current.timestamp, wid)
+                cnxn.commit()
+                log.info("Timestamp: {}. Stored warning found into DB.".format(current.timestamp))
+            except:
+                log.error("Timestamp: {}. Insert error: warning not stored to DB. Please retry.".format(current.timestamp))
+                print("Timestamp: {}. Insert error: warning not stored to DB. Please retry.".format(current.timestamp))
+
+        #Store Evaluated mark to SQL DB:
         try:
-            cursor.execute("INSERT INTO Warnings (RiduttoreID, Timestamp, WarningID) VALUES (?, ?, ?)", current.riduttoreid, current.timestamp, wid)
+            cursor.execute("UPDATE Pressate SET Evaluated = 1 WHERE Timestamp = ?", current.timestamp)
             cnxn.commit()
-            log.info("Timestamp: {}. Stored warning found into DB.".format(current.timestamp))
+            log.info("Timestamp: {}. Stored Evaluated mark into DB.".format(current.timestamp))
         except:
-            log.error("Timestamp: {}. Insert error: warning not stored to DB. Please retry.".format(current.timestamp))
-            print("Timestamp: {}. Insert error: warning not stored to DB. Please retry.".format(current.timestamp))
+            log.error("Timestamp: {}. Insert error: Evaluated mark not stored to DB. Please retry.".format(current.timestamp))
+            print("Timestamp: {}. Insert error: Evaluated mark not stored to DB. Please retry.".format(current.timestamp))
+            
+            
 
     # Disconnect
     db_disconnect(cnxn, cursor)
