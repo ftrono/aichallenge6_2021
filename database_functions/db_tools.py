@@ -1,4 +1,5 @@
 import logging
+import pandas as pd
 
 #KEY DB FUNCTIONS:
 # - reset_table()
@@ -39,6 +40,50 @@ def drop_all(dbt):
             error=True
     if not error:
         logger.info("Dropped all tables")
+    return 0
+
+
+#reset Evaluated marks in Pressate table:
+def reset_marks(dbt, remark=False):
+    '''
+    Modes:
+    - all=True -> resets all marks to zero
+    - all=False -> resets all marks to zero and marks again the timestamps for which a warning was found.
+    '''
+    cursor = dbt['cursor']
+    cnxn = dbt['cnxn']
+    log = dbt['logging']
+
+    #1) reset whole Evaluated column:
+    log.info("Resetting Evaluated marks")
+    try:
+        cursor.execute("UPDATE Pressate SET Evaluated = DEFAULT")
+        cnxn.commit()
+        log.info("Evaluated marks reset.")
+        print("Evaluated marks reset.")
+    except:
+        log.error("Error: Evaluated marks not reset.")
+        print("Error: Evaluated marks not reset.")
+    
+    #2) remarking Timestamps with a Warning:
+    if remark == True:
+        log.info("Remarking the timestamps with a warning as Evaluated")
+        query = "SELECT Pressate.Timestamp FROM Pressate INNER JOIN Warnings ON Pressate.Timestamp = Warnings.Timestamp"
+        pressate_tomark = pd.read_sql(query, cnxn)
+        pressate_tomark = pressate_tomark['Timestamp'].tolist()
+        sets_tomark = [(1, int(p)) for p in pressate_tomark]
+        
+        #Bulk remark all timestamps with a Warning to SQL DB:
+        try:
+            cursor.fast_executemany = True
+            cursor.executemany("UPDATE Pressate SET Evaluated = ? WHERE Timestamp = ?", sets_tomark)
+            cnxn.commit()
+            log.info("Stored Evaluated marks for Pressate with warnings into DB.")
+            print("Stored Evaluated marks for Pressate with warnings into DB.")
+        except:
+            log.error("Insert error: Evaluated marks not stored to DB. Please retry later.")
+            print("Insert error: Evaluated marks not stored to DB. Please retry later.")
+
     return 0
 
 

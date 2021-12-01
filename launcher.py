@@ -15,14 +15,17 @@ from evaluation.evaluation import call_evaluate
 preprocessing()
 
 # 2) Train:
-#a. Full training (accepts any number of epochs):
-for epoch in range(EPOCHS):
-    train(epoch, resume=False)
+'''
+Additional options:
+- reset=True -> reset Evaluated marks;
+- resume=True -> use ONLY if previous training was interrupted at some point or if received some DB insert errors in prior training.
+'''
+#First epoch:
+train(reset=False, resume=False)
 
-#b. Resume training (NOTE: only for one epoch!):
-# Use this option ONLY if previous training was interrupted at some point
-# or if received some DB insert errors in prior training:
-#train(resume=True)
+#Next epochs (accepts any number of epochs):
+#for epoch in range(1, EPOCHS):
+#    train(epoch, reset=True, resume=False)
 
 
 # #3) Evaluate:

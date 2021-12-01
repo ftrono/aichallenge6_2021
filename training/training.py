@@ -3,7 +3,7 @@ import pandas as pd
 sys.path.insert(0, os.getcwd())
 from globals import *
 from database_functions.db_connect import db_connect, db_disconnect
-from database_functions.db_tools import reset_table
+from database_functions.db_tools import reset_table, reset_marks
 from database_functions.extract_data import Collector
 from training.training_tools import compute_rate, generate_hvec, slice_curves, interpolate_curve, ideal_curve, stdev_curve
 from evaluation.eval_tools import evaluate_anomalous, evaluate_full
@@ -16,7 +16,7 @@ from export.curves_plotting import export_curves
 # - evaluate all Pressate in the DB and flag those not reaching TargetMF (with a sigma) and with curves out of bounds.
 
 
-def train(epoch=0, resume=False):
+def train(epoch=0, reset=False, resume=False):
     '''
     2) Training part:
     - resets CombosData table (curves learnt previously)
@@ -64,12 +64,15 @@ def train(epoch=0, resume=False):
     tot_cnt = 0
     db_errors = []
 
-    #0) Training mode: full or resume:
+    #0) Resets:
+    #CombosData:
     if resume == False:
         #reset learned CombosData table:
         reset_table(dbt, tablename="CombosData")
         log.info("CombosData table reset")
 
+    if reset == True:
+        reset_marks(dbt, remark=True)
 
     #1) Extract ALL needed tables into memory (only timestamps not evaluated yet):
     #Pressate:
@@ -349,12 +352,12 @@ def train(epoch=0, resume=False):
         cursor.executemany("UPDATE Pressate SET Evaluated = ? WHERE Timestamp = ?", sets_eval)
         cnxn.commit()
         marks_stored = True
-        log.info("Stored Evaluated mark for all Pressate into DB.")
-        print("Stored Evaluated mark for all Pressate into DB.")
+        log.info("Stored Evaluated marks for all Pressate into DB.")
+        print("Stored Evaluated marks for all Pressate into DB.")
     except:
         marks_stored = False
-        log.error("Insert error: Evaluated mark not stored to DB. Please retry later.")
-        print("Insert error: Evaluated mark not stored to DB. Please retry later.")
+        log.error("Insert error: Evaluated marks not stored to DB. Please retry later.")
+        print("Insert error: Evaluated marks not stored to DB. Please retry later.")
 
     #END:
     db_disconnect(cnxn, cursor)

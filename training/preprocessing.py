@@ -3,7 +3,7 @@ import pandas as pd
 sys.path.insert(0, os.getcwd())
 from globals import *
 from database_functions.db_connect import db_connect, db_disconnect
-from database_functions.db_tools import reset_table
+from database_functions.db_tools import reset_table, reset_marks
 from evaluation.eval_tools import evaluate_max, evaluate_anomalous
 from database_functions.extract_data import Collector
 
@@ -48,14 +48,7 @@ def preprocessing():
     log.info("Warnings table reset.")
 
     #Evaluated marks:
-    try:
-        cursor.execute("UPDATE Pressate SET Evaluated = DEFAULT")
-        cnxn.commit()
-        log.info("Evaluated marks reset.")
-        print("Evaluated marks reset.")
-    except:
-        log.error("Error: Evaluated marks not reset.")
-        print("Error: Evaluated marks not reset.")
+    reset_marks(dbt, remark=False)
 
     #1) Extract full Pressate table into memory:
     log.info("Extracting needed tables from SQL DB...")
