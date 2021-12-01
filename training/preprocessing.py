@@ -42,9 +42,20 @@ def preprocessing():
     #DB tools:
     dbt = {'cnxn': cnxn, 'cursor': cursor, 'logging': log}
 
-    #0) Reset Warnings table:
+    #0) Reset tables:
+    #Warnings table:
     reset_table(dbt, tablename="Warnings")
     log.info("Warnings table reset.")
+
+    #Evaluated marks:
+    try:
+        cursor.execute("UPDATE Pressate SET Evaluated = DEFAULT")
+        cnxn.commit()
+        log.info("Evaluated marks reset.")
+        print("Evaluated marks reset.")
+    except:
+        log.error("Error: Evaluated marks not reset.")
+        print("Error: Evaluated marks not reset.")
 
     #1) Extract full Pressate table into memory:
     log.info("Extracting needed tables from SQL DB...")
