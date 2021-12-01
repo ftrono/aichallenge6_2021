@@ -18,7 +18,7 @@ def reset_table(dbt, tablename):
         cnxn.commit()
         print("Table "+tablename+" successfully reset.")
     except:
-        logger.error("Unable to reset "+tablename+" table.")
+        logger.error("ERROR: unable to reset "+tablename+" table.")
     return 0
 
 
@@ -48,10 +48,10 @@ def generate_tables(dbt):
     cnxn = dbt['cnxn']
     logger=logging.getLogger('general')
     # query strings
-    riduttori     = "CREATE TABLE Riduttori(RiduttoreID BIGINT NOT NULL PRIMARY KEY, Master BIT NOT NULL, Taglia CHAR(5) NOT NULL, Cd TINYINT NOT NULL, Stadi BIT NOT NULL, Rapporto TINYINT NOT NULL);"
-    combos        = "CREATE TABLE Combos(ComboID CHAR(10) NOT NULL PRIMARY KEY, Taglia CHAR(5) NOT NULL, IdComp CHAR(5) NOT NULL, TargetMA DECIMAL(5, 2) NOT NULL, TargetMF DECIMAL(5,2) NOT NULL, StdMA DECIMAL(5,2) NOT NULL, StdMF DECIMAL(5, 2) NOT NULL, StdCurveAvg DECIMAL(5,2) NOT NULL)"
-    combos_data   = "CREATE TABLE CombosData(ID INT NOT NULL IDENTITY PRIMARY KEY, ComboID CHAR(10) NOT NULL FOREIGN KEY REFERENCES Combos (ComboID) ON DELETE CASCADE ON UPDATE CASCADE, Forza DECIMAL(5, 2) NOT NULL, Altezza DECIMAL(5, 2) NOT NULL, Std DECIMAL(5, 2) NOT NULL)"
-    pressate      = "CREATE TABLE Pressate(Timestamp BIGINT NOT NULL PRIMARY KEY, RiduttoreID BIGINT NOT NULL FOREIGN KEY REFERENCES Riduttori (RiduttoreID) ON DELETE CASCADE ON UPDATE CASCADE, ComboID CHAR(10) NOT NULL FOREIGN KEY REFERENCES Combos (ComboID), Stazione CHAR(2) NOT NULL, MaxForza DECIMAL(5, 2) NOT NULL, MaxAltezza DECIMAL(5, 2) NOT NULL)"
+    riduttori     = "CREATE TABLE Riduttori(RiduttoreID BIGINT NOT NULL PRIMARY KEY, Master TINYINT NOT NULL, Taglia CHAR(5) NOT NULL, Cd DECIMAL(5,3) NOT NULL, Stadi TINYINT NOT NULL, Rapporto TINYINT NOT NULL);"
+    combos        = "CREATE TABLE Combos(ComboID CHAR(13) NOT NULL PRIMARY KEY, Taglia CHAR(5) NOT NULL, IdComp CHAR(5) NOT NULL, TargetMA DECIMAL(5, 2) NOT NULL, TargetMF DECIMAL(5,2) NOT NULL, StdMA DECIMAL(5,2) NOT NULL, StdMF DECIMAL(5, 2) NOT NULL, StdCurveAvg DECIMAL(5,2) NOT NULL)"
+    combos_data   = "CREATE TABLE CombosData(ID INT NOT NULL IDENTITY PRIMARY KEY, ComboID CHAR(13) NOT NULL FOREIGN KEY REFERENCES Combos (ComboID) ON DELETE CASCADE ON UPDATE CASCADE, Forza DECIMAL(5, 2) NOT NULL, Altezza DECIMAL(5, 2) NOT NULL, Std DECIMAL(5, 2) NOT NULL)"
+    pressate      = "CREATE TABLE Pressate(Timestamp BIGINT NOT NULL PRIMARY KEY, RiduttoreID BIGINT NOT NULL FOREIGN KEY REFERENCES Riduttori (RiduttoreID) ON DELETE CASCADE ON UPDATE CASCADE, ComboID CHAR(13) NOT NULL FOREIGN KEY REFERENCES Combos (ComboID), Stazione CHAR(2) NOT NULL, MaxForza DECIMAL(5, 2) NOT NULL, MaxAltezza DECIMAL(5, 2) NOT NULL, Evaluated BIT NOT NULL DEFAULT 0)"
     pressate_data = "CREATE TABLE PressateData(ID INT NOT NULL IDENTITY PRIMARY KEY, Timestamp BIGINT NOT NULL FOREIGN KEY REFERENCES Pressate (Timestamp) ON DELETE CASCADE ON UPDATE CASCADE, Forza DECIMAL(5,2) NOT NULL, Altezza DECIMAL(5, 2) NOT NULL)"
     warning_desc  = "CREATE TABLE WarningDesc(WarningID INT NOT NULL IDENTITY PRIMARY KEY, Description NTEXT NOT NULL)"
     warnings      = "CREATE TABLE Warnings(ID INT NOT NULL IDENTITY PRIMARY KEY, RiduttoreID BIGINT NOT NULL FOREIGN KEY REFERENCES Riduttori (RiduttoreID) ON DELETE CASCADE ON UPDATE CASCADE, Timestamp BIGINT FOREIGN KEY REFERENCES Pressate (Timestamp), WarningID INT NOT NULL FOREIGN KEY REFERENCES WarningDesc (WarningID) ON DELETE CASCADE ON UPDATE CASCADE)"
@@ -76,14 +76,17 @@ def populate_max(dbt):
     cursor = dbt['cursor']
     cnxn = dbt['cnxn']
     logger=logging.getLogger('general')
-    n=175494
-    ins=0
     logger.info("Start max values population in table Pressate")
     cursor.execute('SELECT Timestamp, MAX(Forza) as MaxF, MAX(Altezza) as MaxA FROM PressateData GROUP BY TIMESTAMP')
+    sets_max = []
     for row in cursor.fetchall():
-        cursor.execute('UPDATE Pressate SET MaxForza = ? , MaxAltezza =? WHERE Timestamp = ?',row[1],row[2],row[0])
-        ins+=1
-        logger.debug("Update: %s/%s"%(str(ins),str(n)))        
-    cursor.commit()
-    logger.info("Max values populated")
+        sets_max.append((float(row[1]),float(row[2]),int(row[0])))
+    #Bulk store all accumulated MaxForza and MaxAltezza to SQL DB:
+    try:
+        cursor.fast_executemany = True
+        cursor.executemany('UPDATE Pressate SET MaxForza = ? , MaxAltezza =? WHERE Timestamp = ?', sets_max)
+        cnxn.commit()
+        logger.info("Success: stored MaxForza and MaxAltezza for all Pressate into DB.")
+    except:
+        logger.error("Insert error: MaxForza and MaxAltezza not stored to DB. Please relaunch populate_max().") 
     return 0
