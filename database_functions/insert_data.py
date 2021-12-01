@@ -22,6 +22,16 @@ def parse_date(cell):
     timestamp=datetime.datetime.timestamp(date_time) # convert date object to timestamp
     return timestamp
 
+def generate_ComboID(idComp,taglia,stazione,master,rapporto,stadi):
+    p009_rap=[30,40,70,100]
+    if idComp=='p0009' and stazione=='a1' and master==2 and (rapporto in p009_rap):
+        return idComp+taglia+'i10'
+    if idComp=='p0045' and stazione=='a1' and master==2 and rapporto==100:
+        return idComp+taglia+'i10'
+    if stazione=='a5':
+        return idComp+taglia+'s0'+str(stadi)
+    return idComp+taglia+'000'
+
 
 
 
@@ -110,7 +120,7 @@ def insert_data(dbt,limit=1000000):
                                         Timestamp=parse_date(p_row[1])
                                         try:
                                             IdComp,Stazione,Timestamp=name_parser(row["CSVname"]) # get informations form file name
-                                            ComboID=IdComp+Taglia
+                                            ComboID=generate_ComboID(IdComp,Taglia,Stazione,Master,Rapporto,Stadi)
                                             if ComboID not in comboIDs:
                                                 try:
                                                     n_combo+=1
