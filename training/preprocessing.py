@@ -132,8 +132,6 @@ def preprocessing():
                 sets_warnings.append((current.riduttoreid, current.timestamp, wid))
                 sets_eval.append((1, current.timestamp))
 
-        #Flag riduttori for number of Pressate (wid=5):
-        #TO BE IMPLEMENTED
 
         #4) End statistics:
         tot_cnt = tot_cnt + cnt

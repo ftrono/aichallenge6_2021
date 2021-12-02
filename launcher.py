@@ -24,11 +24,11 @@ Additional options:
 train(reset=False, resume=False)
 
 #Next epochs (accepts any number of epochs):
-#for epoch in range(1, EPOCHS):
-#    train(epoch, reset=True, resume=False)
-
+if EPOCHS > 1:
+    for epoch in range(1, EPOCHS):
+        train(epoch, reset=True, resume=False)
 
 # #3) Evaluate:
 # #Sample timestamps: 1584106142, 1584348510, 1584348501, 1584349549, 1584369231, 1590414268, 1603464095, 1603455160
-#timestamp = input("Evaluate: insert timestamp here -> ")
-#call_evaluate(timestamp, window=True, png=True, csv=True)
+timestamp = input("Evaluate: insert timestamp here -> ")
+call_evaluate(timestamp, window=True, png=True, csv=True)
