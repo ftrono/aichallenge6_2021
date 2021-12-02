@@ -23,10 +23,10 @@ Additional options:
 #First epoch:
 train(reset=False, resume=False)
 
-#Next epochs (accepts any number of epochs):
+#Next epochs (accepts any number of epochs. No resume):
 if EPOCHS > 1:
     for epoch in range(1, EPOCHS):
-        train(epoch, reset=True, resume=False)
+        train(epoch, reset=True)
 
 # #3) Evaluate:
 # #Sample timestamps: 1584106142, 1584348510, 1584348501, 1584349549, 1584369231, 1590414268, 1603464095, 1603455160
