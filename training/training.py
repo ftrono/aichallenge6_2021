@@ -364,9 +364,15 @@ def train(epoch=0, reset=False, resume=False):
     end_time = time.time()
     stored = len(combos_list) - len(db_errors)
 
+    if CHECK_MF == True:
+        mf_str = "MF "+str(SIGMA_MF)+", "
+    else:
+        mf_str = ""
+
+    #FINAL LOG:
     if warn_stored == True and marks_stored == True:
-        log.info("Epoch {}: Training COMPLETED in {} seconds. Parameters stored in DB for {} combos out of {}. Flagged {} Pressate out of {}, with sigmas: MF {}, curve {}.".format(e, round((end_time-start_time),2), stored, len(combos_list), tot_cnt, tot_pressate, SIGMA_MF, SIGMA_CURVE))
-        print("Epoch {}: Training COMPLETED in {} seconds. Parameters stored in DB for {} combos out of {}. Flagged {} Pressate out of {}, with sigmas: MF {}, curve {}.\n".format(e, round((end_time-start_time),2), stored, len(combos_list), tot_cnt, tot_pressate, SIGMA_MF, SIGMA_CURVE))
+        log.info("Epoch {}: Training COMPLETED in {} seconds. Parameters stored in DB for {} combos out of {}. Flagged {} Pressate out of {}, with sigmas: {}curve {}.".format(e, round((end_time-start_time),2), stored, len(combos_list), tot_cnt, tot_pressate, mf_str, SIGMA_CURVE))
+        print("Epoch {}: Training COMPLETED in {} seconds. Parameters stored in DB for {} combos out of {}. Flagged {} Pressate out of {}, with sigmas: {}curve {}.\n".format(e, round((end_time-start_time),2), stored, len(combos_list), tot_cnt, tot_pressate, mf_str, SIGMA_CURVE))
         
         if len(db_errors) == 0:
             return 0
@@ -376,8 +382,8 @@ def train(epoch=0, reset=False, resume=False):
             return -1
 
     else:
-        log.info("Epoch {}: Training COMPLETED in {} seconds. Parameters stored in DB for {} combos out of {}. Warnings stored: {}, Evaluated marks stored: {}. Found {} Pressate to be flagged out of {}, with sigmas: MF {}, curve {}.".format(e, round((end_time-start_time),2), stored, len(combos_list), warn_stored, marks_stored, tot_cnt, tot_pressate, SIGMA_MF, SIGMA_CURVE))
-        print("Epoch {}: Training COMPLETED in {} seconds. Parameters stored in DB for {} combos out of {}. Warnings stored: {}, Evaluated marks stored: {}.  Found {} Pressate to be flagged out of {}, with sigmas: MF {}, curve {}.\n".format(e, round((end_time-start_time),2), stored, len(combos_list), warn_stored, marks_stored, tot_cnt, tot_pressate, SIGMA_MF, SIGMA_CURVE))
+        log.info("Epoch {}: Training COMPLETED in {} seconds. Parameters stored in DB for {} combos out of {}. Warnings stored: {}, Evaluated marks stored: {}. Found {} Pressate to be flagged out of {}, with sigmas: {}curve {}.".format(e, round((end_time-start_time),2), stored, len(combos_list), warn_stored, marks_stored, tot_cnt, tot_pressate, mf_str, SIGMA_CURVE))
+        print("Epoch {}: Training COMPLETED in {} seconds. Parameters stored in DB for {} combos out of {}. Warnings stored: {}, Evaluated marks stored: {}.  Found {} Pressate to be flagged out of {}, with sigmas: {}curve {}.\n".format(e, round((end_time-start_time),2), stored, len(combos_list), warn_stored, marks_stored, tot_cnt, tot_pressate, mf_str, SIGMA_CURVE))
 
         if len(db_errors) != 0:
             log.info("Epoch {}: Parameters not stored for the following combos:".format(e))

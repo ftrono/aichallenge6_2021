@@ -1,50 +1,16 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+from datetime import datetime
 import sys, os
 sys.path.insert(0, os.getcwd())
 from globals import *
 from database_functions.extract_data import extract_data 
 from database_functions.db_connect import db_connect, db_disconnect
-from training.training_tools import slice_curves, interpolate_curve
+from training.training_tools import slice_curves, interpolate_curve, get_boundaries
 
 #CURVES PLOTTING:
-# - get_boundaries() - upper and lower boundary
 # - export_curves() - to csv
 # - visualize() - to png or to a Matplotlib window
-
-
-#get upper and lower boundaries:
-def get_boundaries(target):
-    '''
-    Get the upper and lower boundaries for evaluating a curve.
-    
-    Parameters:
-    -------------------
-    input:
-    - target (Collector) -> Collector object with the targets for the Combo
-    
-    output:
-    - boundup (lists) -> upper curve boundary in vector format
-    - boundlow (lists) -> lower curve boundary in vector format
-    '''
-    if USE_AVG == True:
-        #if average stdev:
-        boundup = [(target.forza[i] + (target.std_curve_avg*SIGMA_CURVE)) for i in range(len(target.forza))]
-        boundlow = [(target.forza[i] - (target.std_curve_avg*SIGMA_CURVE)) for i in range(len(target.forza))]
-    else:
-        #if stdev vector:
-        boundup = [(target.forza[i] + (target.std[i]*SIGMA_CURVE)) for i in range(len(target.forza))]
-        #limit lower boundary:
-        #use average stdev as threshold if below zero:
-        min_low = -target.std_curve_avg*SIGMA_CURVE
-        boundlow = []
-        for i in range(len(target.forza)):
-            p = target.forza[i] - (target.std[i]*SIGMA_CURVE)
-            if p >= min_low:
-                boundlow.append(p)
-            else:
-                boundlow.append(min_low)
-    return boundup, boundlow
 
 
 #export to csv needed curves for visualization:
@@ -79,7 +45,7 @@ def export_curves(dbt=None, timestamp=None, current=None, target=None, wid=None)
     fpath = OUTPUT_PATH+"/curves/"+str(current.comboid)
     if not os.path.isdir(fpath):
         os.mkdir(fpath)
-    percorso= os.path.join(fpath,str(current.comboid)+"_"+str(current.timestamp)+"_wid"+str(wid)+".csv")
+    percorso= os.path.join(fpath,str(current.riduttoreid)+"_"+str(current.timestamp)+"_wid"+str(wid)+".csv")
     
     #boundaries:
     if target.boundup == [] or target.boundlow == []:
@@ -113,16 +79,14 @@ def visualize(current, target, wid=0, count_out=0, threshold=0, window=WINDOW, s
     - save (bool) -> saves the curves plot as png file.
     
     '''
-    #title and filename:
-    if count_out != 0:
-        co = " - Points out: "+str(count_out)+"/"+str(threshold)
-    else:
-        co = ""
-    title = "ComboID: "+str(current.comboid)+" - Timestamp: "+str(current.timestamp)+" - WID: "+str(wid)+co
+    #filename:
     fpath = OUTPUT_PATH+"/curves/"+str(current.comboid)
     if not os.path.isdir(fpath):
         os.mkdir(fpath)
-    fout = fpath+"/"+str(current.comboid)+"_"+str(current.timestamp)+"_wid"+str(wid)+".png"
+    fout = fpath+"/"+str(current.riduttoreid)+"_"+str(current.timestamp)+"_wid"+str(wid)+".png"
+
+    #title:
+    title = "ComboID: "+str(current.comboid)+" - Timestamp: "+str(current.timestamp)+" - WID: "+str(wid)
 
     #title color:
     if wid == 0:
@@ -130,16 +94,24 @@ def visualize(current, target, wid=0, count_out=0, threshold=0, window=WINDOW, s
     else:
         titcolor = 'firebrick'
 
+    #caption:
+    npoints = len(target.altezza)
+    caption1 = "RiduttoreID: "+str(current.riduttoreid)+", assembly date: "+str(datetime.fromtimestamp(int(current.timestamp)))
+    caption2 = "Points out: "+str(count_out)+"/"+str(npoints)+". Threshold: "+str(threshold)
+
     #plot:
     plt.clf()
+    plt.figure(figsize=(PNG_SIZE[0]/96, PNG_SIZE[1]/96))
     plt.plot(target.altezza, target.forza, color='limegreen', linewidth=4, label="Ideal curve")
     plt.plot(target.altezza, target.boundup, color='orange', linestyle='--', linewidth=1, label="Upper boundary")
     plt.plot(target.altezza, target.boundlow, color='red', linestyle='--', linewidth=1, label="Lower boundary")
     plt.plot(target.altezza, current.forza, color='blue', linewidth=2, label="CURRENT CURVE")
-    plt.xlabel('Altezza (mm)')
+    xlab = 'Altezza (mm)'
+    plt.xlabel(xlab+"\n\n"+caption1+"\n"+caption2)
     plt.ylabel('Forza (kN)')
     plt.legend(fontsize='x-small', frameon=False)
     plt.title(title, fontsize='small', fontweight='bold', color=titcolor)
+    plt.tight_layout()
     if save == True:
         plt.savefig(fout)
     if window == True:

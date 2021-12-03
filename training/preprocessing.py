@@ -117,8 +117,19 @@ def preprocessing():
             current.timestamp = int(PressateCombo['Timestamp'][row])
             current.riduttoreid = int(PressateCombo['RiduttoreID'][row])
             current.ma = float(PressateCombo['MaxAltezza'][row])
-            wid = evaluate_max(log, current, target, mtype='altezza')
+            wid = 0
+
+            #check MaxAltezza (if enabled):
+            if CHECK_MA == True:
+                wid = evaluate_max(log, current, target, mtype='altezza')
+                if wid != 0:
+                    cnt = cnt+1
+                    #accumulate warnings (WID 1: MaxAltezza out of range):
+                    sets_warnings.append((current.riduttoreid, current.timestamp, wid))
+                    sets_eval.append((1, current.timestamp))
+            
             if wid == 0:
+                #check anomalous curve:
                 current.altezza = PressateData[PressateData['Timestamp'] == current.timestamp]['Altezza'].tolist()
                 wid = evaluate_anomalous(log, current, target, trajectory=True)
                 if wid != 0:
@@ -126,12 +137,6 @@ def preprocessing():
                     #accumulate warnings (WID 2: anomalous height curve):
                     sets_warnings.append((current.riduttoreid, current.timestamp, wid))
                     sets_eval.append((1, current.timestamp))
-            else:
-                cnt = cnt+1
-                #accumulate warnings (WID 1: MaxAltezza out of range):
-                sets_warnings.append((current.riduttoreid, current.timestamp, wid))
-                sets_eval.append((1, current.timestamp))
-
 
         #4) End statistics:
         tot_cnt = tot_cnt + cnt
@@ -179,11 +184,17 @@ def preprocessing():
     db_disconnect(cnxn, cursor)
     end_time = time.time()
 
+    if CHECK_MA == True:
+        ma_str = ", with sigma MA "+str(SIGMA_MA)
+    else:
+        ma_str = ""
+
+    #FINAL LOG:
     if db_error == False:
-        log.info("Preprocessing COMPLETED in {} seconds! Flagged {} Pressate out of {}, with sigma MA {}.".format(round((end_time-start_time),2), tot_cnt, tot_pressate, SIGMA_MA))
-        print("Preprocessing COMPLETED in {} seconds! Flagged {} Pressate out of {}, with sigma MA {}.\n".format(round((end_time-start_time),2), tot_cnt, tot_pressate, SIGMA_MA))
+        log.info("Preprocessing COMPLETED in {} seconds! Flagged {} anomalous Pressate out of {}{}.".format(round((end_time-start_time),2), tot_cnt, tot_pressate, ma_str))
+        print("Preprocessing COMPLETED in {} seconds! Flagged {} anomalous Pressate out of {}{}.\n".format(round((end_time-start_time),2), tot_cnt, tot_pressate, ma_str))
         return 0
     else:
-        log.info("Preprocessing COMPLETED in {} seconds. Error in storing data to the DB: please relaunch Preprocessing. Found {} Pressate to be flagged out of {}, with sigma MA {}.".format(round((end_time-start_time),2), tot_cnt, tot_pressate, SIGMA_MA))
-        print("Preprocessing COMPLETED in {} seconds. Error in storing data to the DB: please relaunch Preprocessing. Found {} Pressate to be flagged out of {}, with sigma MA {}.\n".format(round((end_time-start_time),2), tot_cnt, tot_pressate, SIGMA_MA))
+        log.info("Preprocessing COMPLETED in {} seconds. Error in storing data to the DB: please relaunch Preprocessing. Found {} Pressate to be flagged out of {}{}.".format(round((end_time-start_time),2), tot_cnt, tot_pressate, ma_str))
+        print("Preprocessing COMPLETED in {} seconds. Error in storing data to the DB: please relaunch Preprocessing. Found {} Pressate to be flagged out of {}{}.\n".format(round((end_time-start_time),2), tot_cnt, tot_pressate, ma_str))
         return -1

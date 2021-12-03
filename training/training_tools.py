@@ -12,6 +12,7 @@ from scipy import interpolate
 # - interpolate_curve()
 # - ideal_curve()
 # - stdev_curve()
+# - get_boundaries()
 
 
 #compute sample_rate for a pressata (for height vector):
@@ -134,30 +135,19 @@ def interpolate_curve(altezza_combo, altezza, forza):
     returns:
     - new_forza (list) -> interpolated forza vector for the Pressata.
     '''
-    #interpolate:
-    f = interpolate.interp1d(altezza, forza, kind='cubic', fill_value='extrapolate')
-    
-    #extrapolate:
-    min_f = min(forza)
+    #vars:
     max_f = max(forza)
     new_forza = []
-    extrap = f(altezza_combo)
 
-    #correct curve:
-    for p in extrap:
-        if p < min_f:
-            new_forza.append(min_f)
-        elif p > max_f:
-            new_forza.append(max_f)
-        else:
-            new_forza.append(round(float(p),2))
+    #filling:
+    f = interpolate.interp1d(altezza, forza, kind='cubic', fill_value='extrapolate')
 
-    #zero-padding for end area:
-    for ind in reversed(range(len(new_forza))):
-        if new_forza[ind] == new_forza[ind-1]:
-            new_forza[ind] = 0
+    #interpolate & pad:
+    for point in altezza_combo:
+        if (point < altezza[0]) or (point > altezza[-1]):
+            new_forza.append(0)
         else:
-            break
+            new_forza.append(min(round(float(f(point)),2), max_f))
     
     return new_forza
 
@@ -230,3 +220,42 @@ def stdev_curve(batch_forces):
         stdev = statistics.stdev(temp)
         stdev_list.append(stdev)
     return stdev_list
+
+
+#get upper and lower boundaries:
+def get_boundaries(target):
+    '''
+    Get the upper and lower boundaries for evaluating a curve.
+    
+    Parameters:
+    -------------------
+    input:
+    - target (Collector) -> Collector object with the targets for the Combo
+    
+    output:
+    - boundup (lists) -> upper curve boundary in vector format
+    - boundlow (lists) -> lower curve boundary in vector format
+    '''
+    if USE_AVG == True:
+        #if average stdev:
+        boundup = [(target.forza[i] + (target.std_curve_avg*SIGMA_CURVE)) for i in range(len(target.forza))]
+        #limit lower boundary:
+        boundlow = []
+        for i in range(len(target.forza)):
+            p = target.forza[i] - (target.std_curve_avg*SIGMA_CURVE)
+            if p >= 0:
+                boundlow.append(p)
+            else:
+                boundlow.append(0)
+    else:
+        #if stdev vector:
+        boundup = [(target.forza[i] + (target.std[i]*SIGMA_CURVE)) for i in range(len(target.forza))]
+        #limit lower boundary:
+        boundlow = []
+        for i in range(len(target.forza)):
+            p = target.forza[i] - (target.std[i]*SIGMA_CURVE)
+            if p >= 0:
+                boundlow.append(p)
+            else:
+                boundlow.append(0)
+    return boundup, boundlow

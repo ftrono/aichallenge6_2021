@@ -6,24 +6,28 @@
 #____________________________________________________________
 
 
-#number of epochs:
+#SETUP:
 EPOCHS = 1
-
-#sigmas:
-SIGMA_MA = 2
-SIGMA_MF = 1
-SIGMA_CURVE = 3
-
-#thresholds:
 MIN_ALTEZZA = 100
 MIN_PRESSATE = 2
+
+#CHECKS:
+#1) TargetMA:
+CHECK_MA = False
+SIGMA_MA = 2
+
+#2) TargetMF:
+CHECK_MF = True
+SIGMA_MF = 1
+
+#3) Ideal curve (points check):
+SIGMA_CURVE = 2
 MIN_POINTS_PERC = 0.05
 USE_AVG = False
 
-#visual output:
-WINDOW = False
-SAVE_PNG = False
+#VISUAL OUTPUT:
+SAVE_PNG = True
+PNG_SIZE = (1024, 576)
 SAVE_CSV = False
-
-#output path:
+WINDOW = False
 OUTPUT_PATH = "./output"

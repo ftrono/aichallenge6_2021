@@ -170,11 +170,12 @@ def evaluate_full(log, current, target, preprocessed=False, visual=WINDOW, save=
     #Preprocessing checks:
     if preprocessed == False:
         #check 1: max_altezza
-        wid = evaluate_max(log, current, target, mtype='altezza')
-        if wid != 0:
-            if verbose == True:
-                print("ComboID: {}: Timestamp {}: WID {}. Max_altezza out of acceptable range! Current: {}, target: {}, dev: {}. Please check the assembly.".format(target.comboid, current.timestamp, wid, current.ma, target.ma, target.std_ma*SIGMA_MA))
-            return wid
+        if CHECK_MA == True:
+            wid = evaluate_max(log, current, target, mtype='altezza')
+            if wid != 0:
+                if verbose == True:
+                    print("ComboID: {}: Timestamp {}: WID {}. Max_altezza out of acceptable range! Current: {}, target: {}, dev: {}. Please check the assembly.".format(target.comboid, current.timestamp, wid, current.ma, target.ma, target.std_ma*SIGMA_MA))
+                return wid
 
         #check 2: anomalous height vector: trajectory check
         wid = evaluate_anomalous(log, current, target, trajectory=True)
@@ -203,11 +204,12 @@ def evaluate_full(log, current, target, preprocessed=False, visual=WINDOW, save=
 
     #Always:
     #check 4: max_forza
-    wid = evaluate_max(log, current, target, mtype='forza')
-    if wid != 0:
-        if verbose == True:
-            print("ComboID: {}: Timestamp {}: WID {}. Max_forza out of acceptable range! Current: {}, target: {}, dev: {}. Please check the assembly.".format(target.comboid, current.timestamp, wid, current.mf, target.mf, target.std_mf*SIGMA_MF))
-        return wid
+    if CHECK_MF == True:
+        wid = evaluate_max(log, current, target, mtype='forza')
+        if wid != 0:
+            if verbose == True:
+                print("ComboID: {}: Timestamp {}: WID {}. Max_forza out of acceptable range! Current: {}, target: {}, dev: {}. Please check the assembly.".format(target.comboid, current.timestamp, wid, current.mf, target.mf, target.std_mf*SIGMA_MF))
+            return wid
     
     #check 5: curve points
     count_out, threshold, wid = evaluate_points(log, current, target)
