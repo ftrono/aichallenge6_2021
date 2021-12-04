@@ -45,7 +45,14 @@ def evaluate_max(log, current, target, mtype):
         print("ERROR: mtype must by either 'altezza' or 'forza'.")
         raise
 
-    #evaluate current MA/MF if within StdMA/StdMF +- sigma:
+    #if MF: flat curve check first:
+    if mtype == 'forza':
+        threshold = tgt*FLAT_THRESHOLD_PERC
+        if cur < threshold:
+            log.warning("ComboID: {}: Timestamp {}: WID 3. Flat curve: Max_forza below threshold! Current: {}, target: {}, threshold: {}. Please check the assembly.".format(target.comboid, current.timestamp, cur, tgt, threshold))
+            return wid
+
+    #Check: evaluate current MA/MF if within StdMA/StdMF +- sigma:
     dev = std * sigma
     if (cur >= (tgt - dev)) and (cur <= (tgt + dev)):
         log.debug("ComboID: {}: Timestamp {}: Max_{} OK".format(target.comboid, current.timestamp, mtype))
