@@ -12,10 +12,11 @@ from training.training_tools import slice_curves, interpolate_curve
 # - evaluate_full()
 
 
-#Eval max_altezza or max_forza:
+#Eval max_altezza or max_forza (WID 1/3):
 def evaluate_max(log, current, target, mtype):
     '''
-    Function that evaluates if the max_value of either altezza or forza is within the target +- a threshold.
+    Function that evaluates if the max_value of either altezza or forza is within the target +- a threshold (WID 1/3).
+    While evaluating MaxForza, it also detects a flat curve (always WID 3).
     
     Parameters:
     -------------------
@@ -62,7 +63,7 @@ def evaluate_max(log, current, target, mtype):
         return wid
 
 
-#Eval height curve trajectory and/or slice length:
+#Eval height curve trajectory and/or slice length (WID 2):
 def evaluate_anomalous(log, current, target, trajectory=False, sliced=False):
     '''
     Function that evaluates the original altezza curve of a Pressata, making either one of 2 checks:
@@ -102,11 +103,11 @@ def evaluate_anomalous(log, current, target, trajectory=False, sliced=False):
         return 0 #ok
 
 
-#Eval point by point the interpolated curve:
+#Eval point by point the interpolated curve (WID 4):
 def evaluate_points(log, current, target):
     '''
     Function that evaluates if all points of the curve (already interpolated) are within the acceptable std_dev bound 
-    from the ideal curve, increased by a sigma.
+    from the ideal curve, increased by a sigma. (WID 4)
 
     Parameters:
     -------------------

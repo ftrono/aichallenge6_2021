@@ -9,6 +9,8 @@ from database_functions.db_connect import db_connect, db_disconnect
 from training.training_tools import slice_curves, interpolate_curve, get_boundaries
 
 #CURVES PLOTTING:
+# - commons_generator()
+# - prepend_lines()
 # - export_curves() - to csv
 # - visualize() - to png or to a Matplotlib window
 
@@ -17,6 +19,10 @@ from training.training_tools import slice_curves, interpolate_curve, get_boundar
 def commons_generator(current, wid, ftype):
     '''
     Generate filename and informational text for both the png plot and the csv export.
+    Input:
+    - current (Collector) - Collector object with the data for the current Pressata
+    - wid (int)
+    - ftype (str) -> must be either 'png' or 'csv' (no points).
     '''
     #directory:
     fpath = OUTPUT_PATH+"/curves/"+str(current.comboid)
@@ -40,6 +46,10 @@ def commons_generator(current, wid, ftype):
 def prepend_lines(fout, temp, lines):
     '''
     Insert informational lines at the beginning of a csv file.
+    Input:
+    - fout (str) -> full filename of original csv
+    - temp (str) -> full filename of temporary csv to use
+    - lines (list) -> list of string lines to prepend.
     '''
     header = True
     #open original file in read mode and temp file in write mode:
