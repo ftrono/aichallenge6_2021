@@ -4,13 +4,13 @@ from globals import *
 from database_functions.db_connect import db_connect, db_disconnect
 from database_functions.extract_data import extract_data
 from evaluation.eval_tools import evaluate_full
-from export.curves_plotting import export_curves
+from export.curves_plotting import curves_to_csv
 
 
 #PART III) EVALUATE
 
 #CALLER:
-def call_evaluate(timestamp, window=WINDOW, png=SAVE_PNG, csv=SAVE_CSV):
+def call_evaluate(timestamp, png=SAVE_PNG, csv=SAVE_CSV):
     '''
     Standalone evaluation function caller. It:
     - initializes DB connection and logger
@@ -52,9 +52,9 @@ def call_evaluate(timestamp, window=WINDOW, png=SAVE_PNG, csv=SAVE_CSV):
     target = extract_data(dbt, stype='target', comboid=current.comboid)
 
     #Call:
-    wid = evaluate_full(log, current, target, preprocessed=False, visual=window, save=png, verbose=True)
+    wid = evaluate_full(log, current, target, preprocessed=False, save=png, verbose=True)
     if csv == True:
-        export_curves(dbt=dbt, current=current, target=target, wid=wid)
+        curves_to_csv(dbt=dbt, current=current, target=target, wid=wid)
         
     #DB update:
     if current.evaluated == 0:
@@ -65,8 +65,9 @@ def call_evaluate(timestamp, window=WINDOW, png=SAVE_PNG, csv=SAVE_CSV):
                 cnxn.commit()
                 log.info("Timestamp: {}. Stored warning found into DB.".format(current.timestamp))
             except:
-                log.error("Timestamp: {}. Insert error: warning not stored to DB. Please retry.".format(current.timestamp))
-                print("Timestamp: {}. Insert error: warning not stored to DB. Please retry.".format(current.timestamp))
+                message = "Timestamp: {}. Insert error: warning not stored to DB. Please retry.".format(current.timestamp)
+                log.error(message)
+                print(message)
 
         #Store Evaluated mark to SQL DB:
         try:
@@ -74,11 +75,10 @@ def call_evaluate(timestamp, window=WINDOW, png=SAVE_PNG, csv=SAVE_CSV):
             cnxn.commit()
             log.info("Timestamp: {}. Stored Evaluated mark into DB.".format(current.timestamp))
         except:
-            log.error("Timestamp: {}. Insert error: Evaluated mark not stored to DB. Please retry.".format(current.timestamp))
-            print("Timestamp: {}. Insert error: Evaluated mark not stored to DB. Please retry.".format(current.timestamp))
+            message = "Timestamp: {}. Insert error: Evaluated mark not stored to DB. Please retry.".format(current.timestamp)
+            log.error(message)
+            print(message)
             
-            
-
     # Disconnect
     db_disconnect(cnxn, cursor)
     return 0

@@ -2,21 +2,21 @@ import pandas as pd
 import sys,os
 sys.path.insert(0, os.getcwd())
 from globals import *
-from export.curves_plotting import get_boundaries, visualize
+from export.curves_plotting import get_boundaries, curves_to_png
 from training.training_tools import slice_curves, interpolate_curve
 
 #EVALUATION TOOLS:
-# - evaluate_max()
+# - evaluate_ma()
+# - evaluate_mf()
 # - evaluate_anomalous()
 # - evaluate_points()
 # - evaluate_full()
 
 
-#Eval max_altezza or max_forza (WID 1/3):
-def evaluate_max(log, current, target, mtype):
+#Eval max_altezza (WID 1):
+def evaluate_ma(log, current, target):
     '''
-    Function that evaluates if the max_value of either altezza or forza is within the target +- a threshold (WID 1/3).
-    While evaluating MaxForza, it also detects a flat curve (always WID 3).
+    Function that evaluates if the max_value of altezza is within the target +- a threshold (WID 1).
     
     Parameters:
     -------------------
@@ -24,50 +24,74 @@ def evaluate_max(log, current, target, mtype):
     - log -> log file used by caller function
     - current (Collector) -> Collector object with the data for the current Pressata
     - target (Collector) -> Collector object with the targets for the Combo
-    - mtype (str) -> must be either 'altezza' or 'forza'
     
     output:
     - wid (int) -> warning ID if warning found, else 0
+    - message (str) -> log warning string (for verbose print)
     '''
-    #arg check: 
-    if mtype == 'altezza':
+    #a) check if current pressata reaches the minimum cutoff MIN_ALTEZZA:
+    if current.ma <= MIN_ALTEZZA:
         wid = 1
-        sigma = SIGMA_MA
-        cur = current.ma
-        tgt = target.ma
-        std = target.std_ma
-    elif mtype == 'forza':
+        message = "ComboID: {}: Timestamp {}: WID {}. MaxAltezza below cutoff point! Current: {}, cutoff: {}. Please check the assembly.".format(target.comboid, current.timestamp, wid, current.ma, MIN_ALTEZZA)
+        log.warning(message)
+        return wid, message
+
+    #b) (if enabled) evaluate current MA if within StdMA +- sigma:
+    if CHECK_MA == True:
+        dev = target.std_ma * SIGMA_MA
+        if (current.ma >= (target.ma - dev)) and (current.ma <= (target.ma + dev)):
+            log.debug("ComboID: {}: Timestamp {}: MaxAltezza OK".format(target.comboid, current.timestamp))
+            return 0, 0 #ok
+        else:
+            wid = 1
+            message = "ComboID: {}: Timestamp {}: WID {}. MaxAltezza out of acceptable range! Current: {}, target: {}, dev: {}. Please check the assembly.".format(target.comboid, current.timestamp, wid, current.ma, target.ma, dev)
+            log.warning(message)
+            return wid, message
+    else:
+        return 0, 0 #ok
+
+
+#Eval max_forza (WID 3):
+def evaluate_mf(log, current, target):
+    '''
+    Function that evaluates if the max_value of forza is within the target +- a threshold (WID 3).
+    
+    Parameters:
+    -------------------
+    input:
+    - log -> log file used by caller function
+    - current (Collector) -> Collector object with the data for the current Pressata
+    - target (Collector) -> Collector object with the targets for the Combo
+    
+    output:
+    - wid (int) -> warning ID if warning found, else 0
+    - message (str) -> log warning string (for verbose print)
+    '''
+    #a) check flat curve:
+    threshold = target.mf * FLAT_THRESHOLD_PERC
+    if current.mf < threshold:
         wid = 3
-        sigma = SIGMA_MF
-        cur = current.mf
-        tgt = target.mf
-        std = target.std_mf
-    else:
-        print("ERROR: mtype must by either 'altezza' or 'forza'.")
-        raise
+        message = "ComboID: {}: Timestamp {}: WID {}. Flat curve: Max_forza below threshold! Current: {}, target: {}, threshold: {}. Please check the assembly.".format(target.comboid, current.timestamp, wid, current.mf, target.mf, threshold)
+        log.warning(message)
+        return wid, message
 
-    #if MF: flat curve check first:
-    if mtype == 'forza':
-        threshold = tgt*FLAT_THRESHOLD_PERC
-        if cur < threshold:
-            log.warning("ComboID: {}: Timestamp {}: WID 3. Flat curve: Max_forza below threshold! Current: {}, target: {}, threshold: {}. Please check the assembly.".format(target.comboid, current.timestamp, cur, tgt, threshold))
-            return wid
-
-    #Check: evaluate current MA/MF if within StdMA/StdMF +- sigma:
-    dev = std * sigma
-    if (cur >= (tgt - dev)) and (cur <= (tgt + dev)):
-        log.debug("ComboID: {}: Timestamp {}: Max_{} OK".format(target.comboid, current.timestamp, mtype))
-        return 0 #ok
+    #b) evaluate current MF if within StdMF +- sigma:
+    dev = target.std_mf * SIGMA_MF
+    if (current.mf >= (target.mf - dev)) and (current.mf <= (target.mf + dev)):
+        log.debug("ComboID: {}: Timestamp {}: MaxForza OK".format(target.comboid, current.timestamp))
+        return 0, 0 #ok
     else:
-        log.warning("ComboID: {}: Timestamp {}: WID {}. Max_{} out of acceptable range! Current: {}, target: {}, dev: {}. Please check the assembly.".format(target.comboid, current.timestamp, wid, mtype, cur, tgt, dev))
-        return wid
+        wid = 3
+        message = "ComboID: {}: Timestamp {}: WID {}. MaxForza out of acceptable range! Current: {}, target: {}, dev: {}. Please check the assembly.".format(target.comboid, current.timestamp, wid, current.mf, target.mf, dev)
+        log.warning(message)
+        return wid, message
 
 
 #Eval height curve trajectory and/or slice length (WID 2):
 def evaluate_anomalous(log, current, target, trajectory=False, sliced=False):
     '''
     Function that evaluates the original altezza curve of a Pressata, making either one of 2 checks:
-    a) if the altezza curve of a Pressata starts with an increasing or decreasing trend (it actually should be increasing);
+    a) if the original altezza curve of a Pressata starts with an increasing or decreasing trend (it actually should be increasing) or is shorter than a minimum number of csv rows (MIN_ORIG_ROWS);
     b) (if the curve has been sliced) the length of the kept portion of the sliced altezza curve (if the curve is too short, it was anomalous)
 
     Both cases trigger a WID 2 - anomalous height curve.
@@ -87,8 +111,11 @@ def evaluate_anomalous(log, current, target, trajectory=False, sliced=False):
     wid = 0
 
     #check a) trajectory:
-    if (trajectory == True) and (float(current.altezza[0]) > float(current.altezza[1])):
-        wid = 2
+    if (trajectory == True):
+        if (len(current.altezza) <= MIN_ORIG_ROWS):
+            wid = 2
+        elif (float(current.altezza[0]) > float(current.altezza[1])):
+            wid = 2
 
     #check b) length of sliced vector:  
     if (sliced == True) and (len(current.altezza) <= 3):
@@ -145,14 +172,14 @@ def evaluate_points(log, current, target):
 
 
 #CENTRAL EVALUATE FUNCTION:
-def evaluate_full(log, current, target, preprocessed=False, visual=WINDOW, save=SAVE_PNG, verbose=False):
+def evaluate_full(log, current, target, preprocessed=False, save=SAVE_PNG, verbose=False):
     '''
     Function that evaluates if a pressata is correct or not. 
     It queries for the parameters of the pressata's combo, interpolates the curve and 
-    then makes 4 checks through the following functions:
-    1) evaluate_max, with mtype = 'altezza';
+    then makes a series of checks through the following functions:
+    1) evaluate_ma (cutoff point and, if enabled, vs TargetMA);
     2) evaluate_anomalous, which evaluates if the altezza curve is anomalous (decreasing trajectory or caused excessive slicing);
-    2) evaluate_max, with mtype = 'forza';
+    2) evaluate_mf;
     3) evaluate_points, which scans the curve point by point;
     
     If one check fails, the function is immediately interrupted: the warning is returned
@@ -167,7 +194,6 @@ def evaluate_full(log, current, target, preprocessed=False, visual=WINDOW, save=
     - current (Collector) -> Collector object with the data for the current Pressata
     - target (Collector) -> Collector object with the targets for the Combo
     - preprocessed (bool) -> indicates if the evaluation is done in the training context (after preprocessing, so: True) or as standalone full evaluation (so: False)
-    - visual (bool) -> call curve visualization function in a window
     - save (bool) -> save curves plot (done by visualization function) as png file
     - verbose (bool) -> prints evaluation output also if ok and to stdout
     
@@ -177,13 +203,12 @@ def evaluate_full(log, current, target, preprocessed=False, visual=WINDOW, save=
     '''
     #Preprocessing checks:
     if preprocessed == False:
-        #check 1: max_altezza
-        if CHECK_MA == True:
-            wid = evaluate_max(log, current, target, mtype='altezza')
-            if wid != 0:
-                if verbose == True:
-                    print("ComboID: {}: Timestamp {}: WID {}. Max_altezza out of acceptable range! Current: {}, target: {}, dev: {}. Please check the assembly.".format(target.comboid, current.timestamp, wid, current.ma, target.ma, target.std_ma*SIGMA_MA))
-                return wid
+        #check 1: max_altezza (will check for cutoff point and, only if enabled, for CHECK_MA):
+        wid, message = evaluate_ma(log, current, target)
+        if wid != 0:
+            if verbose == True:
+                print(message)
+            return wid
 
         #check 2: anomalous height vector: trajectory check
         wid = evaluate_anomalous(log, current, target, trajectory=True)
@@ -212,12 +237,11 @@ def evaluate_full(log, current, target, preprocessed=False, visual=WINDOW, save=
 
     #Always:
     #check 4: max_forza
-    if CHECK_MF == True:
-        wid = evaluate_max(log, current, target, mtype='forza')
-        if wid != 0:
-            if verbose == True:
-                print("ComboID: {}: Timestamp {}: WID {}. Max_forza out of acceptable range! Current: {}, target: {}, dev: {}. Please check the assembly.".format(target.comboid, current.timestamp, wid, current.mf, target.mf, target.std_mf*SIGMA_MF))
-            return wid
+    wid, message = evaluate_mf(log, current, target)
+    if wid != 0:
+        if verbose == True:
+            print(message)
+        return wid
     
     #check 5: curve points
     count_out, threshold, wid = evaluate_points(log, current, target)
@@ -225,12 +249,12 @@ def evaluate_full(log, current, target, preprocessed=False, visual=WINDOW, save=
         if verbose == True:
             log.info("ComboID: {}: Timestamp {}: assembly success. No warnings.".format(current.comboid, current.timestamp))
             print("ComboID: {}: Timestamp {}: assembly success. No warnings.".format(current.comboid, current.timestamp))
-        if (visual == True) or (save == True):
-            visualize(current, target, wid=wid, count_out=count_out, threshold=threshold, window=visual, save=save)
+        if save == True:
+            curves_to_png(current, target, wid=wid, count_out=count_out, threshold=threshold)
         return 0
     else:
         if verbose == True:
             print("ComboID: {}: Timestamp {}: WID #{}. Curve out of bounds in {} points out of {}, threshold is {}! Please check the assembly.".format(current.comboid, current.timestamp, wid, count_out, len(current.forza), threshold))
-        if (visual == True) or (save == True):
-            visualize(current, target, wid=wid, count_out=count_out, threshold=threshold, window=visual, save=save)
+        if save == True:
+            curves_to_png(current, target, wid=wid, count_out=count_out, threshold=threshold)
         return wid

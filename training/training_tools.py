@@ -236,26 +236,14 @@ def get_boundaries(target):
     - boundup (lists) -> upper curve boundary in vector format
     - boundlow (lists) -> lower curve boundary in vector format
     '''
-    if USE_AVG == True:
-        #if average stdev:
-        boundup = [(target.forza[i] + (target.std_curve_avg*SIGMA_CURVE)) for i in range(len(target.forza))]
-        #limit lower boundary:
-        boundlow = []
-        for i in range(len(target.forza)):
-            p = target.forza[i] - (target.std_curve_avg*SIGMA_CURVE)
-            if p >= 0:
-                boundlow.append(p)
-            else:
-                boundlow.append(0)
-    else:
-        #if stdev vector:
-        boundup = [(target.forza[i] + (target.std[i]*SIGMA_CURVE)) for i in range(len(target.forza))]
-        #limit lower boundary:
-        boundlow = []
-        for i in range(len(target.forza)):
-            p = target.forza[i] - (target.std[i]*SIGMA_CURVE)
-            if p >= 0:
-                boundlow.append(p)
-            else:
-                boundlow.append(0)
+    #upper boundary:
+    boundup = [(target.forza[i] + (target.std[i]*SIGMA_CURVE)) for i in range(len(target.forza))]
+    #limit lower boundary:
+    boundlow = []
+    for i in range(len(target.forza)):
+        p = target.forza[i] - (target.std[i]*SIGMA_CURVE)
+        if p >= 0:
+            boundlow.append(p)
+        else:
+            boundlow.append(0)
     return boundup, boundlow

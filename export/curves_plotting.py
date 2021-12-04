@@ -74,8 +74,8 @@ def prepend_lines(fout, temp, lines):
     return 0
 
 
-#export to csv needed curves for visualization:
-def export_curves(dbt=None, timestamp=None, current=None, target=None, wid=None):
+#Export to csv target curve, boundaries & current curve for visualization:
+def curves_to_csv(dbt=None, timestamp=None, current=None, target=None, wid=None):
     close = False
     if not dbt:
         cnxn, cursor = db_connect()
@@ -129,10 +129,10 @@ def export_curves(dbt=None, timestamp=None, current=None, target=None, wid=None)
     return 0
 
 
-#Visualize ideal curve, boundaries & current curve:
-def visualize(current, target, wid=0, count_out=0, threshold=0, window=WINDOW, save=SAVE_PNG):
+#Export to png target curve, boundaries & current curve for visualization:
+def curves_to_png(current, target, wid=0, count_out=0, threshold=0):
     '''
-    Visualize the curves plot by either opening a Matplotlib window (note: will pause the process!) or saving it as png file.
+    Visualize the curves plot by saving it as png file.
 
     Parameters:
     -------------------
@@ -172,8 +172,5 @@ def visualize(current, target, wid=0, count_out=0, threshold=0, window=WINDOW, s
     plt.legend(fontsize='x-small', frameon=False)
     plt.title(title, fontsize='small', fontweight='bold', color=titcolor)
     plt.tight_layout()
-    if save == True:
-        plt.savefig(fout)
-    if window == True:
-        plt.show()
+    plt.savefig(fout)
     return 0

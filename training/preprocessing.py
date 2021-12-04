@@ -4,7 +4,7 @@ sys.path.insert(0, os.getcwd())
 from globals import *
 from database_functions.db_connect import db_connect, db_disconnect
 from database_functions.db_tools import reset_table, reset_marks
-from evaluation.eval_tools import evaluate_max, evaluate_anomalous
+from evaluation.eval_tools import evaluate_ma, evaluate_anomalous
 from database_functions.extract_data import Collector
 
 #PART II.A) PREPROCESSING:
@@ -19,7 +19,8 @@ def preprocessing():
     1) Preprocessing part:
     - resets Warnings table
     - learn TargetMA and StdMA for all Combos
-    - exclude wrong pressate by MA
+    - exclude wrong pressate by MA (below cutoff and, only if enabled in globals, vs TargetMA)
+    - exclude wrong pressate with anomalous height series for original trajectory (included original series length)
     - flag riduttori if incorrect number of pressate of same id_comps
     '''
     # Connect
@@ -119,14 +120,13 @@ def preprocessing():
             current.ma = float(PressateCombo['MaxAltezza'][row])
             wid = 0
 
-            #check MaxAltezza (if enabled):
-            if CHECK_MA == True:
-                wid = evaluate_max(log, current, target, mtype='altezza')
-                if wid != 0:
-                    cnt = cnt+1
-                    #accumulate warnings (WID 1: MaxAltezza out of range):
-                    sets_warnings.append((current.riduttoreid, current.timestamp, wid))
-                    sets_eval.append((1, current.timestamp))
+            #check MaxAltezza (will check for cutoff point and, only if enabled, for TargetMA):
+            wid, _ = evaluate_ma(log, current, target)
+            if wid != 0:
+                cnt = cnt+1
+                #accumulate warnings (WID 1: MaxAltezza out of range):
+                sets_warnings.append((current.riduttoreid, current.timestamp, wid))
+                sets_eval.append((1, current.timestamp))
             
             if wid == 0:
                 #check anomalous curve:
@@ -191,10 +191,12 @@ def preprocessing():
 
     #FINAL LOG:
     if db_error == False:
-        log.info("Preprocessing COMPLETED in {} seconds! Flagged {} anomalous Pressate out of {}{}.".format(round((end_time-start_time),2), tot_cnt, tot_pressate, ma_str))
-        print("Preprocessing COMPLETED in {} seconds! Flagged {} anomalous Pressate out of {}{}.\n".format(round((end_time-start_time),2), tot_cnt, tot_pressate, ma_str))
+        message = "Preprocessing COMPLETED in {} seconds! Flagged {} anomalous Pressate out of {}{}.".format(round((end_time-start_time),2), tot_cnt, tot_pressate, ma_str)
+        log.info(message)
+        print(message)
         return 0
     else:
-        log.info("Preprocessing COMPLETED in {} seconds. Error in storing data to the DB: please relaunch Preprocessing. Found {} Pressate to be flagged out of {}{}.".format(round((end_time-start_time),2), tot_cnt, tot_pressate, ma_str))
-        print("Preprocessing COMPLETED in {} seconds. Error in storing data to the DB: please relaunch Preprocessing. Found {} Pressate to be flagged out of {}{}.\n".format(round((end_time-start_time),2), tot_cnt, tot_pressate, ma_str))
+        message = "Preprocessing COMPLETED in {} seconds. Error in storing data to the DB: please relaunch Preprocessing. Found {} Pressate to be flagged out of {}{}.".format(round((end_time-start_time),2), tot_cnt, tot_pressate, ma_str)
+        log.info(message)
+        print(message)
         return -1

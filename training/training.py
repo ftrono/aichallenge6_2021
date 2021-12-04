@@ -7,7 +7,7 @@ from database_functions.db_tools import reset_table, reset_marks
 from database_functions.extract_data import Collector
 from training.training_tools import compute_rate, generate_hvec, slice_curves, interpolate_curve, ideal_curve, stdev_curve
 from evaluation.eval_tools import evaluate_anomalous, evaluate_full
-from export.curves_plotting import export_curves
+from export.curves_plotting import curves_to_csv
 
 #TRAINING:
 #Complete population of the Combos, CombosData and Warnings tables.
@@ -330,7 +330,7 @@ def train(epoch=0, reset=False, resume=False):
                     #evaluate current Pressata:
                     wid = evaluate_full(log, currents[i], target, preprocessed=True, visual=False)
                     if SAVE_CSV == True:
-                        export_curves(dbt=dbt, current=currents[i], target=target, wid=wid)
+                        curves_to_csv(dbt=dbt, current=currents[i], target=target, wid=wid)
                     if wid != 0:
                         cnt = cnt+1
                         #accumulate warnings (either WID 3 - MaxForza or WID 4 - Curve):
@@ -377,15 +377,11 @@ def train(epoch=0, reset=False, resume=False):
     end_time = time.time()
     stored = len(combos_list) - len(db_errors)
 
-    if CHECK_MF == True:
-        mf_str = "MF "+str(SIGMA_MF)+", "
-    else:
-        mf_str = ""
-
     #FINAL LOG:
     if warn_stored == True and marks_stored == True:
-        log.info("Epoch {}: Training COMPLETED in {} seconds. Parameters stored in DB for {} combos out of {}. Flagged {} Pressate out of {}, with sigmas: {}curve {}.".format(e, round((end_time-start_time),2), stored, len(combos_list), tot_cnt, tot_pressate, mf_str, SIGMA_CURVE))
-        print("Epoch {}: Training COMPLETED in {} seconds. Parameters stored in DB for {} combos out of {}. Flagged {} Pressate out of {}, with sigmas: {}curve {}.\n".format(e, round((end_time-start_time),2), stored, len(combos_list), tot_cnt, tot_pressate, mf_str, SIGMA_CURVE))
+        message = "Epoch {}: Training COMPLETED in {} seconds. Parameters stored in DB for {} combos out of {}. Flagged {} Pressate out of {}, with sigmas: MF {}, curve {}.".format(e, round((end_time-start_time),2), stored, len(combos_list), tot_cnt, tot_pressate, SIGMA_MF, SIGMA_CURVE)
+        log.info(message)
+        print(message)
         
         if len(db_errors) == 0:
             return 0
@@ -395,8 +391,9 @@ def train(epoch=0, reset=False, resume=False):
             return -1
 
     else:
-        log.info("Epoch {}: Training COMPLETED in {} seconds. Parameters stored in DB for {} combos out of {}. Warnings stored: {}, Evaluated marks stored: {}. Found {} Pressate to be flagged out of {}, with sigmas: {}curve {}.".format(e, round((end_time-start_time),2), stored, len(combos_list), warn_stored, marks_stored, tot_cnt, tot_pressate, mf_str, SIGMA_CURVE))
-        print("Epoch {}: Training COMPLETED in {} seconds. Parameters stored in DB for {} combos out of {}. Warnings stored: {}, Evaluated marks stored: {}.  Found {} Pressate to be flagged out of {}, with sigmas: {}curve {}.\n".format(e, round((end_time-start_time),2), stored, len(combos_list), warn_stored, marks_stored, tot_cnt, tot_pressate, mf_str, SIGMA_CURVE))
+        message = "Epoch {}: Training COMPLETED in {} seconds. Parameters stored in DB for {} combos out of {}. Warnings stored: {}, Evaluated marks stored: {}. Found {} Pressate to be flagged out of {}, with sigmas: MF {}, curve {}.".format(e, round((end_time-start_time),2), stored, len(combos_list), warn_stored, marks_stored, tot_cnt, tot_pressate, SIGMA_MF, SIGMA_CURVE)
+        log.info(message)
+        print(message)
 
         if len(db_errors) != 0:
             log.info("Epoch {}: Parameters not stored for the following combos:".format(e))
