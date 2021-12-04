@@ -17,9 +17,8 @@ def parse_date(cell):
     ora=int(cell[9:11])
     minuto=int(cell[12:14])
     secondo=int(cell[15:17])
-    date_time=datetime.datetime(anno,mese,giorno,ora,minuto,secondo) # convert string to date obj
-    
-    timestamp=datetime.datetime.replace(tzinfo=timezone.utc).timestamp(date_time) # convert date object to timestamp
+    dt=datetime.datetime(anno,mese,giorno,ora,minuto,secondo) # convert string to date obj
+    timestamp=dt.replace(tzinfo=timezone.utc).timestamp() # convert date object to timestamp
     return timestamp
 
 def generate_ComboID(idComp,taglia,stazione,master,rapporto,stadi):
