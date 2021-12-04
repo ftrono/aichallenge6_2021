@@ -147,7 +147,8 @@ def interpolate_curve(altezza_combo, altezza, forza):
         if (point < altezza[0]) or (point > altezza[-1]):
             new_forza.append(0)
         else:
-            new_forza.append(min(round(float(f(point)),2), max_f))
+            itp = max(0, round(float(f(point)),2))
+            new_forza.append(min(itp, max_f))
     
     return new_forza
 

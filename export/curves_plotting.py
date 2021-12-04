@@ -175,3 +175,64 @@ def curves_to_png(current, target, wid=0, count_out=0, threshold=0):
     fig.savefig(fout)
     plt.close(fig)
     return 0
+
+
+#original png:
+def plot_original(timestamp):
+    cnxn, cursor = db_connect()
+    dbt = {'cnxn': cnxn, 'cursor': cursor}
+
+    #extract data:
+    current = extract_data(dbt, stype='current', timestamp=timestamp)
+    target = extract_data(dbt, stype='target', comboid=current.comboid)
+
+    #cut forza at its max:
+    max_ind = current.forza.index(max(current.forza))
+    cur_altezza = current.altezza[:(max_ind+2)]
+    cur_forza = current.forza[:(max_ind+2)]
+
+    #slice:
+    sliced_altezza, sliced_forza = slice_curves(target.altezza, current.altezza, current.forza)
+
+    #interpolate (if possible):
+    if len(current.altezza) > 3:
+        itp = True
+        itp_forza = interpolate_curve(target.altezza, sliced_altezza, sliced_forza)
+        fig, axis = plt.subplots(nrows=1, ncols=3, figsize=(1280/96, 576/96))
+    else:
+        itp = False
+        fig, axis = plt.subplots(nrows=1, ncols=2, figsize=(1024/96, 576/96))
+
+    #filename:
+    fout = OUTPUT_PATH+"/curves/"+str(current.riduttoreid)+"_"+str(current.timestamp)+"_orig.png"
+    title = "ComboID: "+str(current.comboid)+", Timestamp: "+str(current.timestamp)
+    caption1 = "RiduttoreID: "+str(current.riduttoreid)+", Stazione: "+str(current.stazione)+", Assembly date: "+str(datetime.fromtimestamp(int(current.timestamp)))
+    caption2 = "Master: "+str(current.master)+", Rapporto: "+str(current.rapporto)+", Stadi: "+str(current.stadi)+", Cd: "+str(current.cd)
+
+    #subplot 1: original curves:
+    orig = axis[0]
+    orig.plot(cur_altezza, cur_forza, color='darkgoldenrod', linewidth=2)
+    orig.set_title("Full original (up to MF)", fontsize='small')
+    orig.set(xlabel='Altezza (mm)', ylabel='Forza (kN)')
+
+    #subplot 2: elaborated curves:
+    slic = axis[1]
+    slic.plot(sliced_altezza, sliced_forza, color='forestgreen', linewidth=2)
+    slic.set_title("Sliced", fontsize='small')
+    slic.set(xlabel='Altezza (mm)')
+
+    #subplot 3: interpolated (if possible):
+    if itp == True:
+        itp = axis[2]
+        itp.plot(target.altezza, itp_forza, color='dodgerblue', linewidth=2)
+        itp.set_title("Interpolated", fontsize='small')
+        itp.set(xlabel='Altezza (mm)')
+    
+    fig.suptitle(title+"\n"+caption1+"\n"+caption2, fontsize='small')
+
+    fig.tight_layout()
+    plt.savefig(fout)
+    plt.close(fig)
+
+    db_disconnect(cnxn, cursor)
+    return 0
