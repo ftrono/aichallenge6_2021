@@ -96,8 +96,9 @@ def visualize(current, target, wid=0, count_out=0, threshold=0, window=WINDOW, s
 
     #caption:
     npoints = len(target.altezza)
-    caption1 = "RiduttoreID: "+str(current.riduttoreid)+", assembly date: "+str(datetime.fromtimestamp(int(current.timestamp)))
-    caption2 = "Points out: "+str(count_out)+"/"+str(npoints)+". Threshold: "+str(threshold)
+    caption1 = "Points out: "+str(count_out)+"/"+str(npoints)+". Threshold: "+str(threshold)
+    caption2 = "RiduttoreID: "+str(current.riduttoreid)+", Stazione: "+str(current.stazione)+", Assembly date: "+str(datetime.fromtimestamp(int(current.timestamp)))
+    caption3 = "Master: "+str(current.master)+", Rapporto: "+str(current.rapporto)+", Stadi: "+str(current.stadi)+", Cd: "+str(current.cd)
 
     #plot:
     plt.clf()
@@ -107,7 +108,7 @@ def visualize(current, target, wid=0, count_out=0, threshold=0, window=WINDOW, s
     plt.plot(target.altezza, target.boundlow, color='red', linestyle='--', linewidth=1, label="Lower boundary")
     plt.plot(target.altezza, current.forza, color='blue', linewidth=2, label="CURRENT CURVE")
     xlab = 'Altezza (mm)'
-    plt.xlabel(xlab+"\n\n"+caption1+"\n"+caption2)
+    plt.xlabel(xlab+"\n\n"+caption1+"\n"+caption2+"\n"+caption3)
     plt.ylabel('Forza (kN)')
     plt.legend(fontsize='x-small', frameon=False)
     plt.title(title, fontsize='small', fontweight='bold', color=titcolor)

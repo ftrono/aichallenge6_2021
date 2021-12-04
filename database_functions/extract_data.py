@@ -22,6 +22,11 @@ class Collector:
         self.std = []
         self.boundup = []
         self.boundlow = []
+        self.stazione = ''
+        self.master = 0
+        self.rapporto = 0
+        self.stadi = 0
+        self.cd = 0
 
 
 #Extract data from DB:
@@ -62,7 +67,7 @@ def extract_data(dbt, stype='current', timestamp=None, comboid=None):
 
         #EXTRACT DATA FOR CURRENT TIMESTAMP:
         try:
-            query = "SELECT ComboID, MaxForza, MaxAltezza, RiduttoreID, Evaluated FROM Pressate WHERE Timestamp="+str(timestamp)
+            query = "SELECT Pressate.ComboID, Pressate.MaxForza, Pressate.MaxAltezza, Pressate.RiduttoreID, Pressate.Evaluated, Pressate.Stazione, Riduttori.Master, Riduttori.Rapporto, Riduttori.Stadi, Riduttori.Cd FROM Pressate INNER JOIN Riduttori on Pressate.RiduttoreID = Riduttori.RiduttoreID WHERE Timestamp="+str(timestamp)
             df = pd.read_sql(query, cnxn)
         except:
             return -1
@@ -80,6 +85,12 @@ def extract_data(dbt, stype='current', timestamp=None, comboid=None):
         current.ma = float(df['MaxAltezza'][0])
         current.riduttoreid = int(df['RiduttoreID'][0])
         current.evaluated = int(df['Evaluated'][0])
+        #full info extraction:
+        current.stazione = str(df['Stazione'].iloc[0])
+        current.master = int(df['Master'].iloc[0])
+        current.rapporto = int(df['Rapporto'].iloc[0])
+        current.stadi = int(df['Stadi'].iloc[0])
+        current.cd = float(df['Cd'].iloc[0])
 
         #EXTRACT ORIGINAL CURVES FOR CURRENT TIMESTAMP:
         query = "SELECT Forza, Altezza FROM PressateData WHERE Timestamp="+str(timestamp)

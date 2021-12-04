@@ -2,14 +2,12 @@ import csv, time, datetime, os, logging
 #import telegram_send
 
 
-#Herper functions:
+#Helper functions:
 def name_parser(name): # take as input the file name
     # get information from file name
     id=name[14:19]
     stazione=name[21:23]
-    date_time=datetime.datetime(int(name[24:28]), int(name[29:31]), int(name[32:34]),int(name[35:37]),int(name[38:40]),int(name[41:43])) # convert string to date obj
-    timestamp=datetime.datetime.timestamp(date_time) # convert date object to timestamp
-    return id,stazione,timestamp
+    return id,stazione
 
 def parse_date(cell):
     anno=int("20"+cell[6:8])
@@ -119,7 +117,7 @@ def insert_data(dbt,limit=1000000):
                                     if p_row[1]!='Date':
                                         Timestamp=parse_date(p_row[1])
                                         try:
-                                            IdComp,Stazione,Timestamp=name_parser(row["CSVname"]) # get informations form file name
+                                            IdComp,Stazione=name_parser(row["CSVname"]) # get informations form file name
                                             ComboID=generate_ComboID(IdComp,Taglia,Stazione,Master,Rapporto,Stadi)
                                             if ComboID not in comboIDs:
                                                 try:

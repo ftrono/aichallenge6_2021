@@ -77,7 +77,12 @@ def train(epoch=0, reset=False, resume=False):
     #1) Extract ALL needed tables into memory (only timestamps not evaluated yet):
     #Pressate:
     log.info("Extracting tables from SQL DB...")
-    query = "SELECT Timestamp, RiduttoreID, ComboID, MaxForza, MaxAltezza FROM Pressate WHERE Evaluated = 0"
+    if SAVE_PNG == True or SAVE_CSV == True:
+        #full info extraction:
+        query = "SELECT Pressate.Timestamp, Pressate.RiduttoreID, Pressate.ComboID, Pressate.MaxForza, Pressate.MaxAltezza, Pressate.Stazione, Riduttori.Master, Riduttori.Rapporto, Riduttori.Stadi, Riduttori.Cd FROM Pressate INNER JOIN Riduttori on Pressate.RiduttoreID = Riduttori.RiduttoreID WHERE Evaluated = 0"
+    else:
+        #extract only data needed for training:
+        query = "SELECT Timestamp, RiduttoreID, ComboID, MaxForza, MaxAltezza FROM Pressate WHERE Evaluated = 0"
     Pressate = pd.read_sql(query, cnxn)
     tot_pressate = len(Pressate['Timestamp'].tolist())
     log.info("Extracted table 1/3 (Pressate)")
@@ -186,6 +191,14 @@ def train(epoch=0, reset=False, resume=False):
                 currents[i].altezza = PressataData['Altezza'].tolist()
                 batch_heights.append(currents[i].altezza)
                 currents[i].forza = PressataData['Forza'].tolist()
+
+                if SAVE_PNG == True or SAVE_CSV == True:
+                    #full info extraction:
+                    currents[i].stazione = str(Pressata['Stazione'].iloc[0])
+                    currents[i].master = int(Pressata['Master'].iloc[0])
+                    currents[i].rapporto = int(Pressata['Rapporto'].iloc[0])
+                    currents[i].stadi = int(Pressata['Stadi'].iloc[0])
+                    currents[i].cd = float(Pressata['Cd'].iloc[0])
             log.debug("ComboID: {}: Collectors ready".format(comboid))
             
             #clean memory:
