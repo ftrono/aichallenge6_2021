@@ -1,4 +1,5 @@
 import csv, time, datetime, os, logging
+from datetime import timezone
 #import telegram_send
 
 
@@ -17,7 +18,8 @@ def parse_date(cell):
     minuto=int(cell[12:14])
     secondo=int(cell[15:17])
     date_time=datetime.datetime(anno,mese,giorno,ora,minuto,secondo) # convert string to date obj
-    timestamp=datetime.datetime.timestamp(date_time) # convert date object to timestamp
+    
+    timestamp=datetime.datetime.replace(tzinfo=timezone.utc).timestamp(date_time) # convert date object to timestamp
     return timestamp
 
 def generate_ComboID(idComp,taglia,stazione,master,rapporto,stadi):
@@ -111,6 +113,7 @@ def insert_data(dbt,limit=1000000):
                         t_line_count=0 # initialize secondary row counter
                         header=True
                         dataList=[]
+                        duplicate=False
                         for p_row in pressata: # iterate over rows in pressata csv
                             if (t_line_count==0 or t_line_count==1) and header:
                                 try:
@@ -136,12 +139,13 @@ def insert_data(dbt,limit=1000000):
                                             except:
                                                 e_pres+=1
                                                 general_log.error("Unable to add pressata " + str(row["CSVname"]) + " duplicate timestamp")
+                                                duplicate=True
                                         except:
                                             general_log.error("Unknown error at "+str(row["CSVname"]))
                                 except:
                                     general_log.warning(str(row["CSVname"])+" Wrong (header) date cell "+str(Timestamp)+" at line "+str(t_line_count))
                                 #general_log.debug("Timestamp: {}, {}".format(Timestamp, row["CSVpath"]))
-                            elif t_line_count>2: # skip first 3 rows
+                            elif t_line_count>2 and not duplicate: # skip first 3 rows
                                 if header:
                                     general_log.warning("Pressata %s not inserted but data are available"%(row["CSVname"])) 
                                 else: 
@@ -158,7 +162,7 @@ def insert_data(dbt,limit=1000000):
                                         e_pres_data+=1
                                         general_log.warning(str(row["CSVname"]) + " Malformed row " + str(t_line_count))
                             t_line_count+=1
-                        if not header:
+                        if not header and not duplicate:
                             try:
                                 cursor.execute("INSERT INTO PressateData (Timestamp,Forza,Altezza) VALUES "+','.join(dataList))
                                 general_log.debug("Inserted data for pressata " + str(row["CSVname"]))
