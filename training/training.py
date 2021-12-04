@@ -328,7 +328,7 @@ def train(epoch=0, reset=False, resume=False):
                 #if timestamp was not flagged with WID 2 after slicing (so, it was successfully interpolated):
                 if len(currents[i].forza) == len(target.altezza):
                     #evaluate current Pressata:
-                    wid = evaluate_full(log, currents[i], target, preprocessed=True, visual=False)
+                    wid = evaluate_full(log, currents[i], target, preprocessed=True)
                     if SAVE_CSV == True:
                         curves_to_csv(dbt=dbt, current=currents[i], target=target, wid=wid)
                     if wid != 0:
