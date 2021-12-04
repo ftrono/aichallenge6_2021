@@ -101,7 +101,8 @@ def curves_to_csv(dbt=None, timestamp=None, current=None, target=None, wid=None)
 
     if len(current.forza) != len(target.forza):
         current.altezza, current.forza = slice_curves(target.altezza, current.altezza, current.forza)
-        current.forza = interpolate_curve(target.altezza, current.altezza,current.forza)
+        if len(current.altezza) > 3:
+            current.forza = interpolate_curve(target.altezza, current.altezza,current.forza)
 
     #generate filename, title and the other captions:
     fout, header, values = commons_generator(current, wid, ftype='csv')
@@ -160,8 +161,7 @@ def curves_to_png(current, target, wid=0, count_out=0, threshold=0):
     fout, title, caption1, caption2 = commons_generator(current, wid, ftype='png')
 
     #plot:
-    plt.clf()
-    plt.figure(figsize=(PNG_SIZE[0]/96, PNG_SIZE[1]/96))
+    fig = plt.figure(figsize=(PNG_SIZE[0]/96, PNG_SIZE[1]/96))
     plt.plot(target.altezza, target.forza, color='limegreen', linewidth=4, label="Ideal curve")
     plt.plot(target.altezza, target.boundup, color='orange', linestyle='--', linewidth=1, label="Upper boundary")
     plt.plot(target.altezza, target.boundlow, color='red', linestyle='--', linewidth=1, label="Lower boundary")
@@ -172,5 +172,6 @@ def curves_to_png(current, target, wid=0, count_out=0, threshold=0):
     plt.legend(fontsize='x-small', frameon=False)
     plt.title(title, fontsize='small', fontweight='bold', color=titcolor)
     plt.tight_layout()
-    plt.savefig(fout)
+    fig.savefig(fout)
+    plt.close(fig)
     return 0
