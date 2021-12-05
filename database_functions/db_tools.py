@@ -2,25 +2,12 @@ import logging
 import pandas as pd
 
 #KEY DB FUNCTIONS:
-# - reset_table()
 # - drop_all()
+# - empty_table()
+# - reset_warns()
+# - reset_marks()
 # - generate_tables()
 # - populate_max()
-
-
-#reset a specific table:
-def reset_table(dbt, tablename):
-    cursor = dbt['cursor']
-    cnxn = dbt['cnxn']
-    logger=logging.getLogger('general')
-    try:
-        query = "TRUNCATE TABLE "+tablename
-        cursor.execute(query)
-        cnxn.commit()
-        print("Table "+tablename+" successfully reset.")
-    except:
-        logger.error("ERROR: unable to reset "+tablename+" table.")
-    return 0
 
 
 #remove ALL tables:
@@ -40,6 +27,38 @@ def drop_all(dbt):
             error=True
     if not error:
         logger.info("Dropped all tables")
+    return 0
+
+
+#empty a specific table:
+def empty_table(dbt, tablename):
+    cursor = dbt['cursor']
+    cnxn = dbt['cnxn']
+    logger=logging.getLogger('general')
+    try:
+        query = "TRUNCATE TABLE "+tablename
+        cursor.execute(query)
+        cnxn.commit()
+        print("Table "+tablename+" successfully reset.")
+    except:
+        logger.error("ERROR: unable to reset "+tablename+" table.")
+    return 0
+
+
+#reset Warnings in Warnings table to the status after preprocessing (keeps only WID 1 & 2):
+def reset_warns(dbt):
+    cursor = dbt['cursor']
+    cnxn = dbt['cnxn']
+    log = dbt['logging']
+    log.info("Resetting Warnings tables at the status after Preprocessing")
+    try:
+        cursor.execute("DELETE FROM Warnings WHERE WarningID > 2")
+        cnxn.commit()
+        log.info("Warnings table reset to the status after Preprocessing.")
+        print("Warnings table reset to the status after Preprocessing.")
+    except:
+        log.error("DB error: Warnings table NOT reset to Preprocessing status. Please relaunch manually.")
+        print("DB error: Warnings table NOT reset to Preprocessing status. Please relaunch manually.")
     return 0
 
 

@@ -3,7 +3,7 @@ import pandas as pd
 sys.path.insert(0, os.getcwd())
 from globals import *
 from database_functions.db_connect import db_connect, db_disconnect
-from database_functions.db_tools import reset_table, reset_marks
+from database_functions.db_tools import empty_table, reset_warns, reset_marks
 from database_functions.extract_data import Collector
 from training.training_tools import compute_rate, generate_hvec, slice_curves, interpolate_curve, ideal_curve, stdev_curve
 from evaluation.eval_tools import evaluate_anomalous, evaluate_full
@@ -16,10 +16,15 @@ from export.curves_plotting import curves_to_csv
 # - evaluate all Pressate in the DB and flag those not reaching TargetMF (with a sigma) and with curves out of bounds.
 
 
-def train(epoch=0, reset=False, resume=False):
+def train(epoch=0, resume=False):
     '''
     2) Training part:
-    - resets CombosData table (curves learnt previously)
+    - if resume:
+        - finish train combos not already trained
+    - if not resume:
+        - resets CombosData table (curves learnt previously)
+        - resets previous Warnings and Elaborated marks at the status after preprocessing
+
     - for each epoch:
         - learn TargetMF and StdMF for all Combos
         - for each ComboID:
@@ -67,11 +72,11 @@ def train(epoch=0, reset=False, resume=False):
     #0) Resets:
     #CombosData:
     if resume == False:
-        #reset learned CombosData table:
-        reset_table(dbt, tablename="CombosData")
+        #empty learned CombosData table:
+        empty_table(dbt, tablename="CombosData")
         log.info("CombosData table reset")
-
-    if reset == True:
+        #reset Warnings and Evaluated marks to the status after Preprocessing:
+        reset_warns(dbt)
         reset_marks(dbt, remark=True)
 
     #1) Extract ALL needed tables into memory (only timestamps not evaluated yet):

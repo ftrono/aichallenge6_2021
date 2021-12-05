@@ -3,7 +3,7 @@ import pandas as pd
 sys.path.insert(0, os.getcwd())
 from globals import *
 from database_functions.db_connect import db_connect, db_disconnect
-from database_functions.db_tools import reset_table, reset_marks
+from database_functions.db_tools import empty_table, reset_marks
 from evaluation.eval_tools import evaluate_ma, evaluate_anomalous
 from database_functions.extract_data import Collector
 
@@ -45,8 +45,8 @@ def preprocessing():
 
     #0) Reset tables:
     #Warnings table:
-    reset_table(dbt, tablename="Warnings")
-    log.info("Warnings table reset.")
+    empty_table(dbt, tablename="Warnings")
+    log.info("Warnings table emptied.")
 
     #Evaluated marks:
     reset_marks(dbt, remark=False)
