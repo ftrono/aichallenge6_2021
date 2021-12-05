@@ -20,7 +20,7 @@ def train(epoch=0, resume=False):
     '''
     2) Training part:
     - if resume:
-        - finish train combos not already trained
+        - finish train combos not already trained (note: works only for one epoch!)
     - if not resume:
         - resets CombosData table (curves learnt previously)
         - resets previous Warnings and Elaborated marks at the status after preprocessing
@@ -38,7 +38,7 @@ def train(epoch=0, resume=False):
 
     #Note: resume training can be used only for one epoch!
     if resume == True:
-        e = str(epoch+1)+"_res"
+        e = "RES"
         logname = './logs/training_resume.log'
     else:
         e = epoch+1
@@ -75,8 +75,9 @@ def train(epoch=0, resume=False):
         #empty learned CombosData table:
         empty_table(dbt, tablename="CombosData")
         log.info("CombosData table reset")
-        #reset Warnings and Evaluated marks to the status after Preprocessing:
-        reset_warns(dbt)
+        #reset Warnings (only if 1st epoch) and Evaluated marks to the status after Preprocessing:
+        if e == 1:
+            reset_warns(dbt)
         reset_marks(dbt, remark=True)
 
     #1) Extract ALL needed tables into memory (only timestamps not evaluated yet):
