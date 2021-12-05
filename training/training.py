@@ -9,11 +9,11 @@ from training.training_tools import compute_rate, generate_hvec, slice_curves, i
 from evaluation.eval_tools import evaluate_anomalous, evaluate_full
 from export.curves_plotting import curves_to_csv
 
-#TRAINING:
+#PART II.B) TRAINING:
 #Complete population of the Combos, CombosData and Warnings tables.
 # - set TargetMF and StdMF for every ComboID;
 # - learn target curves (altezza_combo, forza_combo and points_std) for every ComboID;
-# - evaluate all Pressate in the DB and flag those not reaching TargetMF (with a sigma) and with curves out of bounds.
+# - evaluate all Pressate in the DB and flag those not reaching TargetMF (if enabled and with a sigma) and with curves out of bounds.
 
 
 def train(epoch=0, resume=False):
@@ -143,7 +143,7 @@ def train(epoch=0, resume=False):
         #INIT CHECK:
         if len(timestamps) < MIN_PRESSATE:
             #skip ComboID:
-            log.info("ComboID skipped {}, number of clean Pressate lower than {}".format(comboid, len(timestamps)))
+            log.info("ComboID skipped {}, number of clean Pressate lower than {}".format(comboid, MIN_PRESSATE))
             
         else:
             #TRAIN!

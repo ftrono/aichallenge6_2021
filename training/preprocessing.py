@@ -10,7 +10,7 @@ from database_functions.extract_data import Collector
 #PART II.A) PREPROCESSING:
 #Start populating Combos and Warnings tables.
 # - set TargetMA and StdMA for every ComboID;
-# - immediately flag all Pressate not reaching TargetMA (with a sigma) or with an anomalous height start, to exclude them from training;
+# - immediately flag all Pressate not reaching TargetMA (if enabled and with a sigma) or with an anomalous height start, to exclude them from training;
 # - also flag riduttori that have an anomalous number of Pressate for each component.
 
 
