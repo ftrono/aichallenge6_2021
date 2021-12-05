@@ -37,7 +37,7 @@ def extract_data(dbt, stype='current', timestamp=None, comboid=None):
     Parameters:
     -------------------
     input:
-    - dbt (dict) -> dict with cnxn, cursor and logging objects
+    - dbt (dict) -> dict with cnxn and cursor objects
     - stype (str) -> must be either 'current' (to extract data for the current Pressata) or 'target' (to extract target data for a ComboID)
     - timestamp (int - needed if stype="current") -> timestamp of the pressata under analysis
     - comboid (str - needed if stype="target") -> ComboID of the Combo under analysis
@@ -47,7 +47,6 @@ def extract_data(dbt, stype='current', timestamp=None, comboid=None):
     '''
     cursor = dbt['cursor']
     cnxn = dbt['cnxn']
-    logging = dbt['logging']
     
     #args check:
     if (stype != 'current') and (stype != 'target'):
@@ -63,7 +62,6 @@ def extract_data(dbt, stype='current', timestamp=None, comboid=None):
         #init collector:
         current = Collector()
         current.timestamp = timestamp
-        logging.debug("Extracting data for Pressata {}".format(timestamp))
 
         #EXTRACT DATA FOR CURRENT TIMESTAMP:
         try:
@@ -99,7 +97,6 @@ def extract_data(dbt, stype='current', timestamp=None, comboid=None):
         #extract data:
         current.forza = list(df['Forza'].to_numpy())
         current.altezza = list(df['Altezza'].to_numpy())
-        logging.debug("Extraction complete")
         return current
 
     #b) extract key data for target ComboID:
@@ -111,7 +108,6 @@ def extract_data(dbt, stype='current', timestamp=None, comboid=None):
         #init collector:
         target = Collector()
         target.comboid = comboid
-        logging.debug("Extracting target data for ComboID {}".format(comboid))
 
         #EXTRACT TARGET COMBO DATA:
         try:
@@ -140,5 +136,4 @@ def extract_data(dbt, stype='current', timestamp=None, comboid=None):
         target.forza = list(df['Forza'].to_numpy())
         target.altezza = list(df['Altezza'].to_numpy())
         target.std = list(df['Std'].to_numpy())
-        logging.debug("Extraction complete")
         return target 

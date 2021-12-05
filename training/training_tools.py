@@ -140,7 +140,7 @@ def interpolate_curve(altezza_combo, altezza, forza):
     new_forza = []
 
     #filling:
-    f = interpolate.interp1d(altezza, forza, kind='cubic', fill_value='extrapolate')
+    f = interpolate.interp1d(altezza, forza, kind='linear', fill_value='extrapolate')
 
     #interpolate & pad:
     for point in altezza_combo:
@@ -153,7 +153,7 @@ def interpolate_curve(altezza_combo, altezza, forza):
     return new_forza
 
 
-#helper: calculate curve of means:
+#calculate curve of means:
 def ideal_curve(batch_forces):
     '''
     Function to compute the ideal curve for a specific combination given by 
@@ -189,7 +189,7 @@ def ideal_curve(batch_forces):
     return out_curve
 
 
-#helper: calculate stdev of force curve:
+#calculate stdev of force curve:
 def stdev_curve(batch_forces):
     '''
     Function to compute the average std_dev to be used as threshold 

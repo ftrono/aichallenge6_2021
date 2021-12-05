@@ -186,10 +186,19 @@ def plot_original(timestamp):
     current = extract_data(dbt, stype='current', timestamp=timestamp)
     target = extract_data(dbt, stype='target', comboid=current.comboid)
 
-    #cut forza at its max:
+    #min cut:
+    min_ind = 0
+    for p in current.altezza:
+        if p >= MIN_ALTEZZA:
+            min_ind = current.altezza.index(p)
+    #max cut:
     max_ind = current.forza.index(max(current.forza))
-    cur_altezza = current.altezza[:(max_ind+2)]
-    cur_forza = current.forza[:(max_ind+2)]
+    try:
+        cur_altezza = current.altezza[min_ind:(max_ind+2)]
+        cur_forza = current.forza[min_ind:(max_ind+2)]
+    except:
+        cur_altezza = current.altezza[min_ind:(max_ind)]
+        cur_forza = current.forza[min_ind:(max_ind)]
 
     #slice:
     sliced_altezza, sliced_forza = slice_curves(target.altezza, current.altezza, current.forza)
