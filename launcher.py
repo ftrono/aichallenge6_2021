@@ -11,10 +11,10 @@ from evaluation.evaluation import call_evaluate
 #____________________________________________________________
 
 
-#1) Preprocess:
+#1) PREPROCESS:
 preprocessing()
 
-# 2) Train:
+#2) TRAIN:
 #First epoch:
 '''
 - resume option:
@@ -27,7 +27,7 @@ if EPOCHS > 1:
     for epoch in range(1, EPOCHS):
         train(epoch)
 
-#3) Evaluate:
-#Sample timestamps: 1584106142, 1584348510, 1584348501, 1584349549, 1584369231, 1590414268, 1603464095, 1603455160
+#3) EVALUATE:
+#Sample timestamps: 1613487226, 1613576433
 timestamp = input("Evaluate: insert timestamp here -> ")
 call_evaluate(timestamp, png=True, csv=True)
