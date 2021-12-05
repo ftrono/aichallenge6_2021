@@ -7,10 +7,10 @@ from globals import *
 from database_functions.extract_data import extract_data 
 from database_functions.db_connect import db_connect, db_disconnect
 from training.training_tools import slice_curves, interpolate_curve, get_boundaries
+from export.export_tools import prepend_lines
 
 #CURVES PLOTTING:
 # - commons_generator()
-# - prepend_lines()
 # - export_curves() - to csv
 # - visualize() - to png or to a Matplotlib window
 
@@ -40,38 +40,6 @@ def commons_generator(current, wid, ftype):
         header = "ComboID,Timestamp,WID,RiduttoreID,Stazione,Assembly_Date,Master,Rapporto,Stadi,Cd"
         values = str(current.comboid)+","+str(current.timestamp)+","+str(wid)+","+str(current.riduttoreid)+","+str(current.stazione)+","+str(datetime.fromtimestamp(int(current.timestamp)))+","+str(current.master)+","+str(current.rapporto)+","+str(current.stadi)+","+str(current.cd)
         return fout, header, values
-
-
-#prepend informational lines to csv:
-def prepend_lines(fout, temp, lines):
-    '''
-    Insert informational lines at the beginning of a csv file.
-    Input:
-    - fout (str) -> full filename of original csv
-    - temp (str) -> full filename of temporary csv to use
-    - lines (list) -> list of string lines to prepend.
-    '''
-    header = True
-    #open original file in read mode and temp file in write mode:
-    with open(fout, 'r') as read_obj, open(temp, 'w') as write_obj:
-        #first, write informational text to temp file:
-        for line in lines:
-            write_obj.write(str(line) + '\n')
-        #second, migrate original file (fout) to temp, line by line:
-        for line in read_obj:
-            if header == True:
-                #add Index keyword to header:
-                extline = "Index"+line
-                write_obj.write(extline)
-                header = False
-            else:
-                #migrate all other lines:
-                write_obj.write(line)
-    #remove original file:
-    os.remove(fout)
-    #rename temp file as the original file:
-    os.rename(temp, fout)
-    return 0
 
 
 #Export to csv target curve, boundaries & current curve for visualization:
@@ -107,10 +75,6 @@ def curves_to_csv(dbt=None, timestamp=None, current=None, target=None, wid=None)
     #generate filename, title and the other captions:
     fout, header, values = commons_generator(current, wid, ftype='csv')
     lines = [header, values]
-
-    #temp file:
-    fpath = OUTPUT_PATH+"/curves/"+str(current.comboid)
-    temp = fpath+"/temp.csv"
     
     #boundaries:
     if target.boundup == [] or target.boundlow == []:
@@ -123,7 +87,8 @@ def curves_to_csv(dbt=None, timestamp=None, current=None, target=None, wid=None)
     df.to_csv(fout) 
 
     #insert informational text:
-    prepend_lines(fout, temp, lines)
+    fpath = OUTPUT_PATH+"/curves/"+str(current.comboid)
+    prepend_lines(fpath, fout, lines)
 
     if close:
         db_disconnect(cnxn, cursor)
