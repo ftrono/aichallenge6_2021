@@ -162,8 +162,9 @@ def plot_original(timestamp):
     for p in current.altezza:
         if p >= MIN_ALTEZZA:
             min_ind = current.altezza.index(p)
+            break
     #max cut:
-    max_ind = current.forza.index(max(current.forza))
+    max_ind = current.altezza.index(max(current.altezza))
     try:
         cur_altezza = current.altezza[min_ind:(max_ind+2)]
         cur_forza = current.forza[min_ind:(max_ind+2)]
@@ -192,7 +193,7 @@ def plot_original(timestamp):
     #subplot 1: original curves:
     orig = axis[0]
     orig.plot(cur_altezza, cur_forza, color='darkgoldenrod', linewidth=2)
-    orig.set_title("Full original (up to MF)", fontsize='small')
+    orig.set_title("Full original (up to MA)", fontsize='small')
     orig.set(xlabel='Altezza (mm)', ylabel='Forza (kN)')
 
     #subplot 2: elaborated curves:

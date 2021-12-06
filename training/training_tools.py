@@ -245,7 +245,7 @@ def get_boundaries(target):
     boundlow = []
     for i in range(len(target.forza)):
         p = target.forza[i] - (target.std[i]*SIGMA_CURVE)
-        if p >= 0:
+        if p >= 0.3:
             boundlow.append(p)
         else:
             boundlow.append(0)
