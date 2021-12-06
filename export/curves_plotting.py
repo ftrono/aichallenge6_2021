@@ -71,6 +71,12 @@ def curves_to_csv(dbt=None, timestamp=None, current=None, target=None, wid=None)
         current.altezza, current.forza = slice_curves(target.altezza, current.altezza, current.forza)
         if len(current.altezza) > 3:
             current.forza = interpolate_curve(target.altezza, current.altezza,current.forza)
+    
+    #truncate decimals:
+    tgt_forza = ["{:.3f}".format(i) for i in target.forza]
+    tgt_forza = [float(i[:-2]) for i in tgt_forza]
+    cur_forza = ["{:.3f}".format(i) for i in current.forza]
+    cur_forza = [float(i[:-2]) for i in cur_forza]
 
     #generate filename, title and the other captions:
     fout, header, values = commons_generator(current, wid, ftype='csv')
@@ -81,8 +87,8 @@ def curves_to_csv(dbt=None, timestamp=None, current=None, target=None, wid=None)
         target.boundup, target.boundlow = get_boundaries(target)
 
     #dataframe export:
-    data = {'Target_Altezza':target.altezza, 'Target_Forza':target.forza, 'Upper_Boundary': target.boundup, 
-            'Lower_Boundary': target.boundlow, 'Current_Forza':current.forza}
+    data = {'Target_Altezza':target.altezza, 'Target_Forza':tgt_forza, 'Upper_Boundary': target.boundup, 
+            'Lower_Boundary': target.boundlow, 'Current_Forza':cur_forza}
     df = pd.DataFrame(data)
     df.to_csv(fout) 
 

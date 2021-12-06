@@ -1,5 +1,4 @@
-import pandas as pd
-import sys,os
+import sys, os
 sys.path.insert(0, os.getcwd())
 from globals import *
 from export.curves_plotting import get_boundaries, curves_to_png
@@ -38,13 +37,19 @@ def evaluate_ma(log, current, target):
 
     #b) (if enabled) evaluate current MA if within StdMA +- sigma:
     if CHECK_MA == True:
+        cur = "{:.3f}".format(current.ma)
+        cur = float(cur[:-2])
+        tgt = "{:.3f}".format(target.ma)
+        tgt = float(tgt[:-2])
         dev = target.std_ma * SIGMA_MA
-        if (current.ma >= (target.ma - dev)) and (current.ma <= (target.ma + dev)):
+        dev = "{:.3f}".format(dev)
+        dev = float(dev[:-2])
+        if (cur >= (tgt - dev)) and (cur <= (tgt + dev)):
             log.debug("ComboID: {}: Timestamp {}: MaxAltezza OK".format(target.comboid, current.timestamp))
             return 0, 0 #ok
         else:
             wid = 1
-            message = "ComboID: {}: Timestamp {}: WID {}. MaxAltezza out of acceptable range! Current: {}, target: {}, dev: {}. Please check the assembly.".format(target.comboid, current.timestamp, wid, current.ma, target.ma, dev)
+            message = "ComboID: {}: Timestamp {}: WID {}. MaxAltezza out of acceptable range! Current: {}, target: {}, dev: {}. Please check the assembly.".format(target.comboid, current.timestamp, wid, cur, tgt, dev)
             log.warning(message)
             return wid, message
     else:
@@ -68,21 +73,29 @@ def evaluate_mf(log, current, target):
     - message (str) -> log warning string (for verbose print)
     '''
     #a) check flat curve:
+    cur = "{:.3f}".format(current.mf)
+    cur = float(cur[:-2])
+    tgt = "{:.3f}".format(target.mf)
+    tgt = float(tgt[:-2])
     threshold = target.mf * FLAT_THRESHOLD_PERC
-    if current.mf < threshold:
+    threshold = "{:.3f}".format(threshold)
+    threshold = float(threshold[:-2])
+    if cur < threshold:
         wid = 3
-        message = "ComboID: {}: Timestamp {}: WID {}. Flat curve: Max_forza below threshold! Current: {}, target: {}, threshold: {}. Please check the assembly.".format(target.comboid, current.timestamp, wid, current.mf, target.mf, threshold)
+        message = "ComboID: {}: Timestamp {}: WID {}. Flat curve: Max_forza below threshold! Current: {}, target: {}, threshold: {}. Please check the assembly.".format(target.comboid, current.timestamp, wid, cur, tgt, threshold)
         log.warning(message)
         return wid, message
 
     #b) evaluate current MF if within StdMF +- sigma:
     dev = target.std_mf * SIGMA_MF
-    if (current.mf >= (target.mf - dev)) and (current.mf <= (target.mf + dev)):
+    dev = "{:.3f}".format(dev)
+    dev = float(dev[:-2])
+    if (cur >= (tgt - dev)) and (cur <= (tgt + dev)):
         log.debug("ComboID: {}: Timestamp {}: MaxForza OK".format(target.comboid, current.timestamp))
         return 0, 0 #ok
     else:
         wid = 3
-        message = "ComboID: {}: Timestamp {}: WID {}. MaxForza out of acceptable range! Current: {}, target: {}, dev: {}. Please check the assembly.".format(target.comboid, current.timestamp, wid, current.mf, target.mf, dev)
+        message = "ComboID: {}: Timestamp {}: WID {}. MaxForza out of acceptable range! Current: {}, target: {}, dev: {}. Please check the assembly.".format(target.comboid, current.timestamp, wid, cur, tgt, dev)
         log.warning(message)
         return wid, message
 
@@ -155,13 +168,15 @@ def evaluate_points(log, current, target):
     target.boundup, target.boundlow = get_boundaries(target)
     
     #count points out of bounds:
-    for i in range(len(current.forza)):
-        if (current.forza[i] < target.boundlow[i]) or (current.forza[i] > target.boundup[i]):
+    cur_forza = ["{:.3f}".format(i) for i in current.forza]
+    cur_forza = [float(i[:-2]) for i in cur_forza]
+    for i in range(len(cur_forza)):
+        if (cur_forza[i] < target.boundlow[i]) or (cur_forza[i] > target.boundup[i]):
             count_out = count_out + 1
             indices.append(i)
-
+    print(indices)
     #final check on curve:
-    threshold= int(len(current.forza)*MIN_POINTS_PERC)
+    threshold = int(len(current.forza)*MIN_POINTS_PERC)
     if count_out <= threshold: #ok
         log.debug("ComboID: {}: Timestamp {}: assembly success. No warnings.".format(current.comboid, current.timestamp))
         return count_out, threshold, 0

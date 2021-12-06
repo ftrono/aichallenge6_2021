@@ -1,4 +1,4 @@
-import sys, statistics,os
+import sys, os, statistics
 sys.path.insert(0, os.getcwd())
 #sys.path.insert(0, './')
 from globals import *
@@ -239,6 +239,8 @@ def get_boundaries(target):
     '''
     #upper boundary:
     boundup = [(target.forza[i] + (target.std[i]*SIGMA_CURVE)) for i in range(len(target.forza))]
+    boundup = ["{:.3f}".format(i) for i in boundup]
+    boundup = [float(i[:-2])+0.1 for i in boundup] #round up upper boundary
     #limit lower boundary:
     boundlow = []
     for i in range(len(target.forza)):
@@ -247,4 +249,6 @@ def get_boundaries(target):
             boundlow.append(p)
         else:
             boundlow.append(0)
+    boundlow = ["{:.3f}".format(i) for i in boundlow]
+    boundlow = [float(i[:-2]) for i in boundlow] #round down lower boundary
     return boundup, boundlow
