@@ -174,7 +174,7 @@ def evaluate_points(log, current, target):
         if (cur_forza[i] < target.boundlow[i]) or (cur_forza[i] > target.boundup[i]):
             count_out = count_out + 1
             indices.append(i)
-    print(indices)
+    #print(indices)
     #final check on curve:
     threshold = int(len(current.forza)*MIN_POINTS_PERC)
     if count_out <= threshold: #ok

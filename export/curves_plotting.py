@@ -1,6 +1,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-from datetime import datetime
+from datetime import datetime, timezone
 import sys, os
 sys.path.insert(0, os.getcwd())
 from globals import *
@@ -33,12 +33,12 @@ def commons_generator(current, wid, ftype):
     #informational text:
     if ftype == 'png':
         text1 = "ComboID: "+str(current.comboid)+", Timestamp: "+str(current.timestamp)+", WID: "+str(wid)
-        text2 = "RiduttoreID: "+str(current.riduttoreid)+", Stazione: "+str(current.stazione)+", Assembly date: "+str(datetime.fromtimestamp(int(current.timestamp)))
+        text2 = "RiduttoreID: "+str(current.riduttoreid)+", Stazione: "+str(current.stazione)+", Assembly date: "+str(datetime.fromtimestamp(int(current.timestamp)).replace(tzinfo=timezone.utc))
         text3 = "Master: "+str(current.master)+", Rapporto: "+str(current.rapporto)+", Stadi: "+str(current.stadi)+", Cd: "+str(current.cd)
         return fout, text1, text2, text3
     else:
         header = "ComboID,Timestamp,WID,RiduttoreID,Stazione,Assembly_Date,Master,Rapporto,Stadi,Cd"
-        values = str(current.comboid)+","+str(current.timestamp)+","+str(wid)+","+str(current.riduttoreid)+","+str(current.stazione)+","+str(datetime.fromtimestamp(int(current.timestamp)))+","+str(current.master)+","+str(current.rapporto)+","+str(current.stadi)+","+str(current.cd)
+        values = str(current.comboid)+","+str(current.timestamp)+","+str(wid)+","+str(current.riduttoreid)+","+str(current.stazione)+","+str(datetime.fromtimestamp(int(current.timestamp)).replace(tzinfo=timezone.utc))+","+str(current.master)+","+str(current.rapporto)+","+str(current.stadi)+","+str(current.cd)
         return fout, header, values
 
 
@@ -186,7 +186,7 @@ def plot_original(timestamp):
     #filename:
     fout = OUTPUT_PATH+"/curves/"+str(current.riduttoreid)+"_"+str(current.timestamp)+"_orig.png"
     title = "ComboID: "+str(current.comboid)+", Timestamp: "+str(current.timestamp)
-    caption1 = "RiduttoreID: "+str(current.riduttoreid)+", Stazione: "+str(current.stazione)+", Assembly date: "+str(datetime.fromtimestamp(int(current.timestamp)))
+    caption1 = "RiduttoreID: "+str(current.riduttoreid)+", Stazione: "+str(current.stazione)+", Assembly date: "+str(datetime.fromtimestamp(int(current.timestamp)).replace(tzinfo=timezone.utc))
     caption2 = "Master: "+str(current.master)+", Rapporto: "+str(current.rapporto)+", Stadi: "+str(current.stadi)+", Cd: "+str(current.cd)
 
     #subplot 1: original curves:
