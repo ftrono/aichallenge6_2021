@@ -30,16 +30,21 @@ def commons_generator(current, wid, ftype):
         os.mkdir(fpath)
     #filename:
     fout = fpath+"/"+str(current.riduttoreid)+"_"+str(current.timestamp)+"_wid"+str(wid)+"."+ftype
+    str_ma = str(SIGMA_MA) if CHECK_MA else "n/a"
     #informational text:
     if ftype == 'png':
         text1 = "ComboID: "+str(current.comboid)+", Timestamp: "+str(current.timestamp)+", WID: "+str(wid)
         text2 = "RiduttoreID: "+str(current.riduttoreid)+", Stazione: "+str(current.stazione)+", Assembly date: "+str(datetime.fromtimestamp(int(current.timestamp)).replace(tzinfo=timezone.utc))
         text3 = "Master: "+str(current.master)+", Rapporto: "+str(current.rapporto)+", Stadi: "+str(current.stadi)+", Cd: "+str(current.cd)
-        return fout, text1, text2, text3
+        text4 = "GLOBALS: MinRowsinCsv: "+str(MIN_ORIG_ROWS)+", SigmaMA: "+str_ma+", FlatCurveThreshold: "+str(FLAT_THRESHOLD_PERC*100)+"%, SigmaMF: "+str(SIGMA_MF)+", SigmaCurve: "+str(SIGMA_CURVE)+", MinPointsOut: "+str(MIN_POINTS_PERC*100)+"%"
+        return fout, text1, text2, text3, text4
     else:
-        header = "ComboID,Timestamp,WID,RiduttoreID,Stazione,Assembly_Date,Master,Rapporto,Stadi,Cd"
-        values = str(current.comboid)+","+str(current.timestamp)+","+str(wid)+","+str(current.riduttoreid)+","+str(current.stazione)+","+str(datetime.fromtimestamp(int(current.timestamp)).replace(tzinfo=timezone.utc))+","+str(current.master)+","+str(current.rapporto)+","+str(current.stadi)+","+str(current.cd)
-        return fout, header, values
+        header1 = "ComboID,Timestamp,WID,RiduttoreID,Stazione,Assembly_Date,Master,Rapporto,Stadi,Cd"
+        values1 = str(current.comboid)+","+str(current.timestamp)+","+str(wid)+","+str(current.riduttoreid)+","+str(current.stazione)+","+str(datetime.fromtimestamp(int(current.timestamp)).replace(tzinfo=timezone.utc))+","+str(current.master)+","+str(current.rapporto)+","+str(current.stadi)+","+str(current.cd)
+        header2 = "MinRowsinCsv,SigmaMA,FlatCurveThreshold,SigmaMF,SigmaCurve,MinPointsOut"
+        values2 = str(MIN_ORIG_ROWS)+","+str_ma+","+str(FLAT_THRESHOLD_PERC*100)+"%,"+str(SIGMA_MF)+","+str(SIGMA_CURVE)+","+str(MIN_POINTS_PERC)+"%"
+        lines = [header1, values1, header2, values2]
+        return fout, lines
 
 
 #Export to csv target curve, boundaries & current curve for visualization:
@@ -79,8 +84,7 @@ def curves_to_csv(dbt=None, timestamp=None, current=None, target=None, wid=None)
     cur_forza = [float(i[:-2]) for i in cur_forza]
 
     #generate filename, title and the other captions:
-    fout, header, values = commons_generator(current, wid, ftype='csv')
-    lines = [header, values]
+    fout, lines = commons_generator(current, wid, ftype='csv')
     
     #boundaries:
     if target.boundup == [] or target.boundlow == []:
@@ -129,7 +133,7 @@ def curves_to_png(current, target, wid=0, count_out=0, threshold=0):
     caption0 = "Points out: "+str(count_out)+"/"+str(npoints)+", Threshold: "+str(threshold)
 
     #generate filename, title and the other captions:
-    fout, title, caption1, caption2 = commons_generator(current, wid, ftype='png')
+    fout, title, caption1, caption2, caption3 = commons_generator(current, wid, ftype='png')
 
     #plot:
     fig = plt.figure(figsize=(PNG_SIZE[0]/96, PNG_SIZE[1]/96))
@@ -138,7 +142,7 @@ def curves_to_png(current, target, wid=0, count_out=0, threshold=0):
     plt.plot(target.altezza, target.boundlow, color='red', linestyle='--', linewidth=1, label="Lower boundary")
     plt.plot(target.altezza, current.forza, color='blue', linewidth=2, label="CURRENT CURVE")
     xlab = 'Altezza (mm)'
-    plt.xlabel(xlab+"\n\n"+caption0+"\n"+caption1+"\n"+caption2)
+    plt.xlabel(xlab+"\n\n"+caption0+"\n"+caption1+"\n"+caption2+"\n"+caption3)
     plt.ylabel('Forza (kN)')
     plt.legend(fontsize='x-small', frameon=False)
     plt.title(title, fontsize='small', fontweight='bold', color=titcolor)
