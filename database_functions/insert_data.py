@@ -1,6 +1,5 @@
 import csv, time, datetime, os, logging
 from datetime import timezone
-#import telegram_send
 
 
 #Helper functions:
@@ -179,8 +178,8 @@ def insert_data(dbt,limit=1000000):
     #when you're done
     report = open(os.getcwd()+"/logs/insert_report.txt", 'w')
     report.write("IMPORT CSV REPORT\n\nProcess started at: %s\nProcess completed at: %s\nElapsed time: %s seconds\nInserted riduttori: %s/%s\nInserted combos: %s/%s\nInserted pressate: %s/%s\nInserted data from pressate: %s/%s"%(str(time.ctime(int(start_time))),str(time.ctime(int(time.time()))),str(time.time()-start_time),str(n_rid-e_rid),str(n_rid),str(n_combo-e_combo),str(n_combo),str(n_pres-e_pres),str(n_pres),str(n_pres_data-e_pres_data),str(n_pres_data)))
-    #telegram_send.send(messages=["Import completed! in %s seconds"%(time.time() - start_time)])
-    return 0
+    etime = (time.time() - start_time)
+    return 0, etime
 
 #MAIN:
 if __name__ == '__main__':

@@ -34,8 +34,8 @@ Gli script presenti in questa repository sono stati ideati per essere eseguiti s
 * Importare nella cartella *database_functions* il file **db_credentials.ini** disponibile [qui](https://drive.google.com/drive/u/1/folders/1lFm7PQQA9tgsBYPt7f2rMdNAAO9c__fD) (modificarlo solo se i parametri personali sono diversi).
 
 **PARAMETRI COMUNI:**
-* **DA VSCODE:** hostname ```127.0.0.1```, username ```SA```, password ```AIchallenge6```. Mettere ```NovoticAI``` sia come nome DB che come nome profilo.
-* **DA PYODBC:** driver ```{ODBC Driver 17 for SQL Server}```, server ```127.0.0.1```, database ```NovoticAI```, username ```sa```, password ```AIchallenge6```
+* **DA PYODBC:** driver ```{ODBC Driver 18 for SQL Server}```, server ```127.0.0.1```, database ```NovoticAI```, username ```sa```, password ```AIchallenge6```, encrypt ```no```
+* **DA VSCODE (estensione):** in hostname, inserire la stringa ```SERVER=127.0.0.1;DATABASE=NovoticAI;ENCRYPT=no;UID=sa;PWD=AIchallenge6``` e poi usare ```NovoticAI``` come nome profilo.
 * **DA BASH:** *(solo per creare DB la prima volta o per rare eventualità)* ```sqlcmd -S 127.0.0.1 -U SA -P AIchallenge6``` **NOTA**: alla prima connessione è necessario creare un DB vuoto, chiamato *NovoticAI*, in cui importeremo i dump. Sequire le istruzioni [qui](https://docs.google.com/document/d/1Hg8LUDYuBbO3p3FYNTM139w2DzV25sPZxpKnWhFTuPc/edit) (punto 3) usando GLI STESSI nomi per DB, username e passwords indicati.
 
 
