@@ -6,7 +6,7 @@ After=multi-user.target
 Type=simple
 WorkingDirectory=/home/azureadmin/main
 User=azureadmin
-ExecStart=/usr/bin/python3 /home/azureadmin/main/database_functions/create_db.py
+ExecStart=/usr/bin/python3 /home/azureadmin/main/import.py
 
 [Install]
 WantedBy=multi-user.target
