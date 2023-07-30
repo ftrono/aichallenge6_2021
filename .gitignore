@@ -5,3 +5,4 @@ __pycache__
 database_functions/queries/restore_db.sql
 tmp_img
 tmp_img2
+testfiles/exp
