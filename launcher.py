@@ -1,5 +1,6 @@
 from globals import *
-from training.preprocessing import preprocessing
+# from training.preprocessing import preprocessing
+from training.batch_preprocessing import preprocessing
 from training.training import train
 from evaluation.evaluation import call_evaluate
 
@@ -12,7 +13,7 @@ from evaluation.evaluation import call_evaluate
 
 
 #1) PREPROCESS:
-preprocessing()
+# preprocessing()
 
 #2) TRAIN:
 #First epoch:

@@ -2,10 +2,11 @@ import sys, logging, os, time, math
 import pandas as pd
 sys.path.insert(0, os.getcwd())
 from globals import *
-from database_functions.db_connect import db_connect, db_disconnect
+from database_functions.db_connect import db_connect, db_disconnect, pd_db_connect
 from database_functions.db_tools import empty_table, reset_marks
 from evaluation.eval_tools import evaluate_ma, evaluate_anomalous
 from database_functions.extract_data import Collector
+import sqlalchemy as sa
 
 #PART II.A) PREPROCESSING:
 #Start populating Combos and Warnings tables.
@@ -24,6 +25,7 @@ def preprocessing():
     - flag riduttori if incorrect number of pressate of same id_comps
     '''
     # Connect
+    engine = pd_db_connect()
     cnxn, cursor = db_connect()
 
     #INIT:
@@ -50,18 +52,18 @@ def preprocessing():
 
     #Evaluated marks:
     reset_marks(dbt, remark=False)
-
-    #1) Extract full Pressate table into memory:
-    log.info("Extracting needed tables from SQL DB...")
-    query = "SELECT Timestamp, RiduttoreID, ComboID, MaxForza, MaxAltezza FROM Pressate"
-    Pressate = pd.read_sql(query, cnxn)
-    tot_pressate = len(Pressate['Timestamp'].tolist())
-    log.info("Extracted table 1/2 (Pressate).")
-    
-    #PressateData:
-    query = "SELECT Timestamp, Altezza FROM PressateData"
-    PressateData = pd.read_sql(query, cnxn)
-    log.info("Extracted table 2/2 (PressateData)...")
+    with engine.begin() as conn:
+        #1) Extract full Pressate table into memory:
+        log.info("Extracting needed tables from SQL DB...")
+        query = sa.text("SELECT Timestamp, RiduttoreID, ComboID, MaxForza, MaxAltezza FROM Pressate")
+        Pressate = pd.read_sql(query, conn)
+        tot_pressate = len(Pressate['Timestamp'].tolist())
+        log.info("Extracted table 1/2 (Pressate).")
+        
+        #PressateData:
+        query = sa.text("SELECT Timestamp, Altezza FROM PressateData")
+        PressateData = pd.read_sql(query, conn)
+        log.info("Extracted table 2/2 (PressateData)...")
 
     #2) Extract all ComboIDs:
     combos_list = Pressate['ComboID'].unique().tolist()

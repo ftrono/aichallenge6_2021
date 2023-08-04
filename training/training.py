@@ -2,12 +2,13 @@ import sys, logging, os, time, statistics
 import pandas as pd
 sys.path.insert(0, os.getcwd())
 from globals import *
-from database_functions.db_connect import db_connect, db_disconnect
+from database_functions.db_connect import db_connect, db_disconnect, pd_db_connect
 from database_functions.db_tools import empty_table, reset_warns, reset_marks
 from database_functions.extract_data import Collector
 from training.training_tools import compute_rate, generate_hvec, slice_curves, interpolate_curve, ideal_curve, stdev_curve
 from evaluation.eval_tools import evaluate_anomalous, evaluate_full
 from export.curves_plotting import curves_to_csv
+import sqlalchemy as sa
 
 #PART II.B) TRAINING:
 #Complete population of the Combos, CombosData and Warnings tables.
@@ -35,6 +36,7 @@ def train(epoch=0, resume=False):
     '''
     # Connect
     cnxn, cursor = db_connect()
+    engine = pd_db_connect()
 
     #Note: resume training can be used only for one epoch!
     if resume == True:
@@ -59,7 +61,7 @@ def train(epoch=0, resume=False):
     print("Epoch {}: Training STARTED".format(e))
 
     #DB tools:
-    dbt = {'cnxn': cnxn, 'cursor': cursor, 'logging': log}
+    dbt = {'cnxn': cnxn, 'cursor': cursor, 'logging': log, 'engine': engine}
 
     #accumulation lists:
     sets_curves = []
@@ -80,275 +82,274 @@ def train(epoch=0, resume=False):
             reset_warns(dbt)
         reset_marks(dbt, remark=True)
 
-    #1) Extract ALL needed tables into memory (only timestamps not evaluated yet):
-    #Pressate:
-    log.info("Extracting tables from SQL DB...")
-    if SAVE_PNG == True or SAVE_CSV == True:
-        #full info extraction:
-        query = "SELECT Pressate.Timestamp, Pressate.RiduttoreID, Pressate.ComboID, Pressate.MaxForza, Pressate.MaxAltezza, Pressate.Stazione, Riduttori.Master, Riduttori.Rapporto, Riduttori.Stadi, Riduttori.Cd FROM Pressate INNER JOIN Riduttori on Pressate.RiduttoreID = Riduttori.RiduttoreID WHERE Evaluated = 0"
-    else:
-        #extract only data needed for training:
-        query = "SELECT Timestamp, RiduttoreID, ComboID, MaxForza, MaxAltezza FROM Pressate WHERE Evaluated = 0"
-    Pressate = pd.read_sql(query, cnxn)
-    tot_pressate = len(Pressate['Timestamp'].tolist())
-    log.info("Extracted table 1/3 (Pressate)")
-
-    #PressateData:
-    query = "SELECT PressateData.Timestamp, Pressate.ComboID, PressateData.Forza, PressateData.Altezza FROM PressateData INNER JOIN Pressate ON PressateData.Timestamp = Pressate.Timestamp WHERE Pressate.Evaluated = 0"
-    PressateData = pd.read_sql(query, cnxn)
-    log.info("Extracted table 2/3 (PressateData)")
-
-    #Combos:
-    if resume == False:
-        query = "SELECT ComboID, TargetMA, StdMA FROM Combos"
-    else:
-        query = "SELECT ComboID, TargetMA, StdMA, TargetMF, StdMF, StdCurveAvg FROM Combos"
-    Combos = pd.read_sql(query, cnxn)
-    log.info("Extracted table 3/3 (Combos)")
-    #list of ComboIDs:
-    combos_list = Combos['ComboID'].tolist()
-
-    #CombosData (only if resume):
-    if resume == True:
-        #extract already learned curves:
-        query = "SELECT * FROM CombosData"
-        CombosData = pd.read_sql(query, cnxn)
-        c_trained = CombosData['ComboID'].unique().tolist()
-        log.info("Extracted additional table for resume training (CombosData)")
-
-    res = len(combos_list)-len(c_trained)
-    log.info("Total number of Combos to train: {}/{}".format(res, len(combos_list)))
-    print("Total number of Combos to train: {}/{}".format(res, len(combos_list)))
-
-
-    #2) For each ComboID:
-    for comboid in combos_list:
-        #training accumulation lists:
-        currents = []
-        batch_heights = []
-        batch_forces = []
-        cnt = 0
-        combo_start = time.time()
-        query = 'ComboID == "'+comboid+'"'
-
-        #extract portion of Pressate table only with the current ComboID:
-        log.info("NEW ComboID: {}. Initializing data for training...".format(comboid))
-        PressateCombo = Pressate.query(query)
-        #remove this portion from the original Pressate table (to save memory):
-        rows = PressateCombo.index.values.tolist()
-        Pressate.drop(rows, inplace=True)
-        #list of clean Pressate:
-        timestamps = PressateCombo['Timestamp'].tolist()
-
-        #INIT CHECK:
-        if len(timestamps) < MIN_PRESSATE:
-            #skip ComboID:
-            log.info("ComboID skipped {}, number of clean Pressate lower than {}".format(comboid, MIN_PRESSATE))
-            
+    with engine.begin() as conn:
+        #1) Extract ALL needed tables into memory (only timestamps not evaluated yet):
+        #Pressate:
+        log.info("Extracting tables from SQL DB...")
+        if SAVE_PNG == True or SAVE_CSV == True:
+            #full info extraction:
+            query = "SELECT Pressate.Timestamp, Pressate.RiduttoreID, Pressate.ComboID, Pressate.MaxForza, Pressate.MaxAltezza, Pressate.Stazione, Riduttori.Master, Riduttori.Rapporto, Riduttori.Stadi, Riduttori.Cd FROM Pressate INNER JOIN Riduttori on Pressate.RiduttoreID = Riduttori.RiduttoreID WHERE Evaluated = 0"
         else:
-            #TRAIN!
-            log.info("Training {} Pressate for ComboID {}".format(len(timestamps), comboid))
-            print("\nTraining {} Pressate for ComboID {}".format(len(timestamps), comboid))
+            #extract only data needed for training:
+            query = "SELECT Timestamp, RiduttoreID, ComboID, MaxForza, MaxAltezza FROM Pressate WHERE Evaluated = 0"
+        query = sa.text(query)
+        Pressate = pd.read_sql(query, conn)
+        tot_pressate = len(Pressate['Timestamp'].tolist())
+        log.info("Extracted table 1/2 (Pressate)")
+
+        #Combos:
+        if resume == False:
+            query = "SELECT ComboID, TargetMA, StdMA FROM Combos"
+        else:
+            query = "SELECT ComboID, TargetMA, StdMA, TargetMF, StdMF, StdCurveAvg FROM Combos"
+        
+        query = sa.text(query)
+        Combos = pd.read_sql(query, conn)
+        log.info("Extracted table 2/2 (Combos)")
+        #list of ComboIDs:
+        combos_list = Combos['ComboID'].tolist()
+
+        #CombosData (only if resume):
+        if resume == True:
+            #extract already learned curves:
+            query = "SELECT * FROM CombosData"
+            CombosData = pd.read_sql(query, cnxn)
+            c_trained = CombosData['ComboID'].unique().tolist()
+            log.info("Extracted additional table for resume training (CombosData)")
+
+        res = len(combos_list)-len(c_trained)
+        log.info("Total number of Combos to train: {}/{}".format(res, len(combos_list)))
+        print("Total number of Combos to train: {}/{}".format(res, len(combos_list)))
 
 
-            #1) INIT:
-            #init target Collector:
-            target = Collector()
-            target.comboid = str(comboid)
-            Combo = Combos.query(query)
-            target.ma = float(Combo['TargetMA'].iloc[0])
-            target.std_ma = float(Combo['StdMA'].iloc[0])
-            #convert TargetMA to max acceptable TargetMA (for training):
-            target.ma = target.ma + target.std_ma*SIGMA_MA
+        #2) For each ComboID:
+        for comboid in combos_list:
+            #training accumulation lists:
+            currents = []
+            batch_heights = []
+            batch_forces = []
+            cnt = 0
+            combo_start = time.time()
+            query = 'ComboID == "'+comboid+'"'
 
-            #extract curves of interest for the Combo:
-            log.debug("ComboID: {}: Extracting original curves...".format(comboid))
-
-            #a. from PressateData:
-            PressateComboData = PressateData.query(query)
+            #extract portion of Pressate table only with the current ComboID:
+            log.info("NEW ComboID: {}. Initializing data for training...".format(comboid))
+            PressateCombo = Pressate.query(query)
             #remove this portion from the original Pressate table (to save memory):
-            rows = PressateComboData.index.values.tolist()
-            PressateData.drop(rows, inplace=True)
+            rows = PressateCombo.index.values.tolist()
+            Pressate.drop(rows, inplace=True)
+            #list of clean Pressate:
+            timestamps = PressateCombo['Timestamp'].tolist()
 
-            #b. from CombosData (only if ComboID already trained):
-            if resume == True and comboid in c_trained:
-                ComboData = CombosData.query(query)
-                #remove this portion from the original CombosData table (to save memory):
-                rows = ComboData.index.values.tolist()
-                CombosData.drop(rows, inplace=True)
-
-
-            #2) LEARN:           
-            #i) Populating Collectors for every Pressata:
-            for i in range(len(timestamps)):
-                #init target Collector:
-                currents.append(Collector())
-                currents[i].timestamp = timestamps[i]
-                #getting Pressata:
-                Pressata = PressateCombo[PressateCombo['Timestamp'] == timestamps[i]]
-                #getting PressataData:
-                PressataData = PressateComboData[PressateComboData['Timestamp'] == timestamps[i]]
-
-                #populate Collector with Pressata's data:
-                currents[i].comboid = comboid
-                currents[i].mf = float(Pressata['MaxForza'].iloc[0])
-                currents[i].ma = float(Pressata['MaxAltezza'].iloc[0])
-                currents[i].riduttoreid = int(Pressata['RiduttoreID'].iloc[0])
-                currents[i].altezza = PressataData['Altezza'].tolist()
-                batch_heights.append(currents[i].altezza)
-                currents[i].forza = PressataData['Forza'].tolist()
-
-                if SAVE_PNG == True or SAVE_CSV == True:
-                    #full info extraction:
-                    currents[i].stazione = str(Pressata['Stazione'].iloc[0])
-                    currents[i].master = int(Pressata['Master'].iloc[0])
-                    currents[i].rapporto = int(Pressata['Rapporto'].iloc[0])
-                    currents[i].stadi = int(Pressata['Stadi'].iloc[0])
-                    currents[i].cd = float(Pressata['Cd'].iloc[0])
-            log.debug("ComboID: {}: Collectors ready".format(comboid))
-            
-            #clean memory:
-            del Pressata
-            del PressataData
-
-
-            #ii) Learn the target Forza parameters and target height vector for the Combo:
-            if resume == True and comboid in c_trained:
-                #get already learned Forza parameters and target h vectors:
-                target.mf = float(Combo['TargetMF'].iloc[0])
-                target.std_mf = float(Combo['StdMF'].iloc[0])
-                target.altezza = ComboData['Altezza'].tolist()
-                log.debug("ComboID {}. Prelearned target Altezza curve extracted".format(comboid))
-            else:
-                #learn:
-                # TargetMF and StdMF:
-                target.mf = float(PressateCombo['MaxForza'].mean())
-                try:
-                    target.std_mf = float(PressateCombo['MaxForza'].std()) + 1
-                except:
-                    target.std_mf = 1
-                log.debug("ComboID {}. TargetMF and StdMF generated".format(comboid))
-
-                # h vector:
-                sample_rate = compute_rate(batch_heights)
-                target.altezza = generate_hvec(sample_rate, MIN_ALTEZZA, target.ma)
-                #error check:
-                if len(target.altezza) <= 3:
-                    log.error("ComboID skipped {}, the learned target Altezza vector is shorter than 3 points.".format(comboid))
-                    print("ComboID skipped {}, the learned target Altezza vector is shorter than 3 points.".format(comboid))
-                    #skip to next Combo:
-                    continue
-                #else: go on:
-                log.debug("ComboID: {}: Learned target Altezza vector".format(comboid))
-                del batch_heights
-
-
-            #iii) Slice & interpolate original curves:
-            max_l = 0
-            for current in currents:
-                #1. slice portions of interest of original curves:
-                current.altezza, current.forza = slice_curves(target.altezza, current.altezza, current.forza)
-                #2. check anomalous sliced curve:
-                wid = evaluate_anomalous(log, current, target, sliced=True)
-                if wid != 0:
-                    cnt = cnt+1
-                    #accumulate warnings (WID 2: anomalous height curve):
-                    sets_warnings.append((current.riduttoreid, current.timestamp, wid))
-                else:
-                    #update checker var:
-                    cur_l = len(current.altezza)
-                    if cur_l > max_l:
-                        max_l = cur_l
-
-                    #3. interpolate force curve:
-                    current.forza = interpolate_curve(target.altezza, current.altezza, current.forza)
-                    batch_forces.append(current.forza)
-            log.debug("ComboID: {}: Sliced and interpolated original curves in all Collectors".format(comboid))
-
-            #check if can proceed:
-            if max_l <= 3:
-                log.error("ComboID skipped {}, all sliced vectors are shorter than 3 points.".format(comboid))
-                print("ComboID skipped {}, all sliced vectors are shorter than 3 points.".format(comboid))
-                #skip to next Combo:
-                continue
-            
-
-            #iv) Learn the target Forza curve, Std_curve and StdCurveAvg for the Combo:
-            if resume == True and comboid in c_trained:
-                #use already learned data:
-                target.forza = ComboData['Forza'].tolist()
-                target.std = ComboData['Std'].tolist()
-                target.std_curve_avg = float(Combo['StdCurveAvg'].iloc[0])
-                log.debug("ComboID {}. Prelearned target Forza curve and std_curve extracted".format(comboid))
-            else:
-                #learn:
-                #target Forza curve, Std_curve and StdCurveAvg:
-                target.forza = ideal_curve(batch_forces)
-                target.std = stdev_curve(batch_forces)
-                target.std_curve_avg = float(statistics.mean(target.std))
-                del batch_forces
-                log.debug("ComboID {}. Target Forza curve, Std_curve and StdCurveAvg generated".format(comboid))
-
-                #accumulate every index in target lists:
-                for i in range(len(target.altezza)):
-                    sets_curves.append((comboid, float(target.altezza[i]), float(target.forza[i]), float(target.std[i])))
-
-
-                #BULK STORE ALL LEARNED PARAMETERS AND CURVES TO SQL DB (if not stored yet):
-                #Store TargetMF, StdMF and StdCurveAvg:
-                try:
-                    cursor.execute("UPDATE Combos SET TargetMF = ?, StdMF = ?, StdCurveAvg = ? WHERE ComboID = ?", float(target.mf), float(target.std_mf), float(target.std_curve_avg), comboid)
-                    cnxn.commit()
-                    log.info("ComboID {}: Successfully stored TargetMF, StdMF and StdCurveAvg into DB.".format(comboid))
-                    print("ComboID {}: Successfully stored TargetMF, StdMF and StdCurveAvg into DB.".format(comboid))
-                except:
-                    db_errors.append(comboid)
-                    log.error("ComboID {}: Insert error: TargetMF, StdMF and StdCurveAvg not stored to DB. Please retry later.".format(comboid))
-                    print("ComboID {}: Insert error: TargetMF, StdMF and StdCurveAvg not stored to DB. Please retry later.".format(comboid))
-
-                #Bulk store target curves (index by index):
-                try:
-                    cursor.fast_executemany = True
-                    cursor.executemany("INSERT INTO CombosData (ComboID, Altezza, Forza, Std) VALUES (?, ?, ?, ?)", sets_curves)
-                    cnxn.commit()
-                    log.info("ComboID {}: Successfully stored target curves into DB.".format(comboid))
-                    print("ComboID {}: Successfully stored target curves into DB.".format(comboid))
-                except:
-                    if comboid not in db_errors:
-                        db_errors.append(comboid)
-                    log.error("ComboID {}: Insert error: target curves not stored to DB. Please retry later.".format(comboid))
-                    print("ComboID {}: Insert error: target curves not stored to DB. Please retry later.".format(comboid))
+            #INIT CHECK:
+            if len(timestamps) < MIN_PRESSATE:
+                #skip ComboID:
+                log.info("ComboID skipped {}, number of clean Pressate lower than {}".format(comboid, MIN_PRESSATE))
                 
-                #reset accumulation list:
-                sets_curves = []
+            else:
+                #TRAIN!
+                log.info("Training {} Pressate for ComboID {}".format(len(timestamps), comboid))
+                print("\nTraining {} Pressate for ComboID {}".format(len(timestamps), comboid))
 
 
-            #4) EVALUATE:
-            #Evaluate all the Pressate ("current" Collectors) extracted for the ComboID:
-            log.info("ComboID {}. Evaluating {} Pressate".format(comboid, len(timestamps)))
-            print("ComboID {}. Evaluating {} Pressate".format(comboid, len(timestamps)))
-            for i in range(len(currents)):
-                #status update:
-                pstr = "ComboID "+str(comboid)+": evaluating Pressata "+str(i+1)+"/"+str(len(currents))
-                print(pstr, end = "                                          \r")
-                #if timestamp was not flagged with WID 2 after slicing (so, it was successfully interpolated):
-                if len(currents[i].forza) == len(target.altezza):
-                    #evaluate current Pressata:
-                    wid = evaluate_full(log, currents[i], target, preprocessed=True)
-                    if SAVE_CSV == True:
-                        curves_to_csv(dbt=dbt, current=currents[i], target=target, wid=wid)
+                #1) INIT:
+                #init target Collector:
+                target = Collector()
+                target.comboid = str(comboid)
+                Combo = Combos.query(query)
+                target.ma = float(Combo['TargetMA'].iloc[0])
+                target.std_ma = float(Combo['StdMA'].iloc[0])
+                #convert TargetMA to max acceptable TargetMA (for training):
+                target.ma = target.ma + target.std_ma*SIGMA_MA
+
+                #extract curves of interest for the Combo:
+                log.debug("ComboID: {}: Extracting original curves...".format(comboid))
+
+                #a. from PressateData:
+                query = sa.text("SELECT PressateData.Timestamp, Pressate.ComboID, PressateData.Forza, PressateData.Altezza FROM PressateData INNER JOIN Pressate ON PressateData.Timestamp = Pressate.Timestamp WHERE Pressate.Evaluated = 0 AND Pressate.ComboID = '{}'".format(comboid))
+                PressateComboData = pd.read_sql(query, conn)
+                #remove this portion from the original Pressate table (to save memory):
+                rows = PressateComboData.index.values.tolist()
+
+                #b. from CombosData (only if ComboID already trained):
+                if resume == True and comboid in c_trained:
+                    ComboData = CombosData.query(query)
+                    #remove this portion from the original CombosData table (to save memory):
+                    rows = ComboData.index.values.tolist()
+                    CombosData.drop(rows, inplace=True)
+
+
+                #2) LEARN:           
+                #i) Populating Collectors for every Pressata:
+                for i in range(len(timestamps)):
+                    #init target Collector:
+                    currents.append(Collector())
+                    currents[i].timestamp = timestamps[i]
+                    #getting Pressata:
+                    Pressata = PressateCombo[PressateCombo['Timestamp'] == timestamps[i]]
+                    #getting PressataData:
+                    PressataData = PressateComboData[PressateComboData['Timestamp'] == timestamps[i]]
+
+                    #populate Collector with Pressata's data:
+                    currents[i].comboid = comboid
+                    currents[i].mf = float(Pressata['MaxForza'].iloc[0])
+                    currents[i].ma = float(Pressata['MaxAltezza'].iloc[0])
+                    currents[i].riduttoreid = int(Pressata['RiduttoreID'].iloc[0])
+                    currents[i].altezza = PressataData['Altezza'].tolist()
+                    batch_heights.append(currents[i].altezza)
+                    currents[i].forza = PressataData['Forza'].tolist()
+
+                    if SAVE_PNG == True or SAVE_CSV == True:
+                        #full info extraction:
+                        currents[i].stazione = str(Pressata['Stazione'].iloc[0])
+                        currents[i].master = int(Pressata['Master'].iloc[0])
+                        currents[i].rapporto = int(Pressata['Rapporto'].iloc[0])
+                        currents[i].stadi = int(Pressata['Stadi'].iloc[0])
+                        currents[i].cd = float(Pressata['Cd'].iloc[0])
+                log.debug("ComboID: {}: Collectors ready".format(comboid))
+                
+                #clean memory:
+                del Pressata
+                del PressataData
+
+
+                #ii) Learn the target Forza parameters and target height vector for the Combo:
+                if resume == True and comboid in c_trained:
+                    #get already learned Forza parameters and target h vectors:
+                    target.mf = float(Combo['TargetMF'].iloc[0])
+                    target.std_mf = float(Combo['StdMF'].iloc[0])
+                    target.altezza = ComboData['Altezza'].tolist()
+                    log.debug("ComboID {}. Prelearned target Altezza curve extracted".format(comboid))
+                else:
+                    #learn:
+                    # TargetMF and StdMF:
+                    target.mf = float(PressateCombo['MaxForza'].mean())
+                    try:
+                        target.std_mf = float(PressateCombo['MaxForza'].std()) + 1
+                    except:
+                        target.std_mf = 1
+                    log.debug("ComboID {}. TargetMF and StdMF generated".format(comboid))
+
+                    # h vector:
+                    sample_rate = compute_rate(batch_heights)
+                    target.altezza = generate_hvec(sample_rate, MIN_ALTEZZA, target.ma)
+                    #error check:
+                    if len(target.altezza) <= 3:
+                        log.error("ComboID skipped {}, the learned target Altezza vector is shorter than 3 points.".format(comboid))
+                        print("ComboID skipped {}, the learned target Altezza vector is shorter than 3 points.".format(comboid))
+                        #skip to next Combo:
+                        continue
+                    #else: go on:
+                    log.debug("ComboID: {}: Learned target Altezza vector".format(comboid))
+                    del batch_heights
+
+
+                #iii) Slice & interpolate original curves:
+                max_l = 0
+                for current in currents:
+                    #1. slice portions of interest of original curves:
+                    current.altezza, current.forza = slice_curves(target.altezza, current.altezza, current.forza)
+                    #2. check anomalous sliced curve:
+                    wid = evaluate_anomalous(log, current, target, sliced=True)
                     if wid != 0:
                         cnt = cnt+1
-                        #accumulate warnings (either WID 3 - MaxForza or WID 4 - Curve):
-                        sets_warnings.append((currents[i].riduttoreid, currents[i].timestamp, wid))
-                sets_eval.append((1, currents[i].timestamp))
-            
+                        #accumulate warnings (WID 2: anomalous height curve):
+                        sets_warnings.append((current.riduttoreid, current.timestamp, wid))
+                    else:
+                        #update checker var:
+                        cur_l = len(current.altezza)
+                        if cur_l > max_l:
+                            max_l = cur_l
 
-            #4) END STATISTICS:
-            combo_end = time.time()
-            tot_cnt = tot_cnt + cnt
-            log.info("ComboID {}: training completed in {} seconds. Found {} Pressate to be flagged out of {}.".format(comboid, round((combo_end-combo_start),2), cnt, len(timestamps)))
-            print("\nComboID {}: training completed in {} seconds. Found {} Pressate to be flagged out of {}.".format(comboid, round((combo_end-combo_start),2), cnt, len(timestamps)))
+                        #3. interpolate force curve:
+                        current.forza = interpolate_curve(target.altezza, current.altezza, current.forza)
+                        batch_forces.append(current.forza)
+                log.debug("ComboID: {}: Sliced and interpolated original curves in all Collectors".format(comboid))
+
+                #check if can proceed:
+                if max_l <= 3:
+                    log.error("ComboID skipped {}, all sliced vectors are shorter than 3 points.".format(comboid))
+                    print("ComboID skipped {}, all sliced vectors are shorter than 3 points.".format(comboid))
+                    #skip to next Combo:
+                    continue
+                
+
+                #iv) Learn the target Forza curve, Std_curve and StdCurveAvg for the Combo:
+                if resume == True and comboid in c_trained:
+                    #use already learned data:
+                    target.forza = ComboData['Forza'].tolist()
+                    target.std = ComboData['Std'].tolist()
+                    target.std_curve_avg = float(Combo['StdCurveAvg'].iloc[0])
+                    log.debug("ComboID {}. Prelearned target Forza curve and std_curve extracted".format(comboid))
+                else:
+                    #learn:
+                    #target Forza curve, Std_curve and StdCurveAvg:
+                    target.forza = ideal_curve(batch_forces)
+                    target.std = stdev_curve(batch_forces)
+                    target.std_curve_avg = float(statistics.mean(target.std))
+                    del batch_forces
+                    log.debug("ComboID {}. Target Forza curve, Std_curve and StdCurveAvg generated".format(comboid))
+
+                    #accumulate every index in target lists:
+                    for i in range(len(target.altezza)):
+                        sets_curves.append((comboid, float(target.altezza[i]), float(target.forza[i]), float(target.std[i])))
+
+
+                    #BULK STORE ALL LEARNED PARAMETERS AND CURVES TO SQL DB (if not stored yet):
+                    #Store TargetMF, StdMF and StdCurveAvg:
+                    try:
+                        cursor.execute("UPDATE Combos SET TargetMF = ?, StdMF = ?, StdCurveAvg = ? WHERE ComboID = ?", float(target.mf), float(target.std_mf), float(target.std_curve_avg), comboid)
+                        cnxn.commit()
+                        log.info("ComboID {}: Successfully stored TargetMF, StdMF and StdCurveAvg into DB.".format(comboid))
+                        print("ComboID {}: Successfully stored TargetMF, StdMF and StdCurveAvg into DB.".format(comboid))
+                    except:
+                        db_errors.append(comboid)
+                        log.error("ComboID {}: Insert error: TargetMF, StdMF and StdCurveAvg not stored to DB. Please retry later.".format(comboid))
+                        print("ComboID {}: Insert error: TargetMF, StdMF and StdCurveAvg not stored to DB. Please retry later.".format(comboid))
+
+                    #Bulk store target curves (index by index):
+                    try:
+                        cursor.fast_executemany = True
+                        cursor.executemany("INSERT INTO CombosData (ComboID, Altezza, Forza, Std) VALUES (?, ?, ?, ?)", sets_curves)
+                        cnxn.commit()
+                        log.info("ComboID {}: Successfully stored target curves into DB.".format(comboid))
+                        print("ComboID {}: Successfully stored target curves into DB.".format(comboid))
+                    except:
+                        if comboid not in db_errors:
+                            db_errors.append(comboid)
+                        log.error("ComboID {}: Insert error: target curves not stored to DB. Please retry later.".format(comboid))
+                        print("ComboID {}: Insert error: target curves not stored to DB. Please retry later.".format(comboid))
+                    
+                    #reset accumulation list:
+                    sets_curves = []
+
+
+                #4) EVALUATE:
+                #Evaluate all the Pressate ("current" Collectors) extracted for the ComboID:
+                log.info("ComboID {}. Evaluating {} Pressate".format(comboid, len(timestamps)))
+                print("ComboID {}. Evaluating {} Pressate".format(comboid, len(timestamps)))
+                for i in range(len(currents)):
+                    #status update:
+                    pstr = "ComboID "+str(comboid)+": evaluating Pressata "+str(i+1)+"/"+str(len(currents))
+                    print(pstr, end = "                                          \r")
+                    #if timestamp was not flagged with WID 2 after slicing (so, it was successfully interpolated):
+                    if len(currents[i].forza) == len(target.altezza):
+                        #evaluate current Pressata:
+                        wid = evaluate_full(log, currents[i], target, preprocessed=True)
+                        if SAVE_CSV == True:
+                            curves_to_csv(dbt=dbt, current=currents[i], target=target, wid=wid)
+                        if wid != 0:
+                            cnt = cnt+1
+                            #accumulate warnings (either WID 3 - MaxForza or WID 4 - Curve):
+                            sets_warnings.append((currents[i].riduttoreid, currents[i].timestamp, wid))
+                    sets_eval.append((1, currents[i].timestamp))
+                
+
+                #4) END STATISTICS:
+                combo_end = time.time()
+                tot_cnt = tot_cnt + cnt
+                log.info("ComboID {}: training completed in {} seconds. Found {} Pressate to be flagged out of {}.".format(comboid, round((combo_end-combo_start),2), cnt, len(timestamps)))
+                print("\nComboID {}: training completed in {} seconds. Found {} Pressate to be flagged out of {}.".format(comboid, round((combo_end-combo_start),2), cnt, len(timestamps)))
 
 
     #3) BULK STORE WARNINGS:

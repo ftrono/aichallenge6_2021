@@ -1,7 +1,7 @@
 import sys, logging,os
 sys.path.insert(0, os.getcwd())
 from globals import *
-from database_functions.db_connect import db_connect, db_disconnect
+from database_functions.db_connect import db_connect, db_disconnect, pd_db_connect
 from database_functions.extract_data import extract_data
 from evaluation.eval_tools import evaluate_full
 from export.curves_plotting import curves_to_csv
@@ -27,7 +27,7 @@ def call_evaluate(timestamp, png=SAVE_PNG, csv=SAVE_CSV):
     '''
     # Connect
     cnxn, cursor = db_connect()
-
+    engine = pd_db_connect()
     # Set logger:
     log=logging.getLogger('evaluate')
     hdl=logging.FileHandler('./logs/evaluate.log',mode='a')
@@ -43,13 +43,13 @@ def call_evaluate(timestamp, png=SAVE_PNG, csv=SAVE_CSV):
     #QUERY:
     #call extract_params, which return 2 objects with all needed params 
     #(one for the current pressata, the other for the target combo):
-    current = extract_data(dbt, stype='current', timestamp=timestamp)
+    current = extract_data(engine, stype='current', timestamp=timestamp)
     if current == -1:
         print("ERROR: timestamp {} not found.".format(timestamp))
         db_disconnect(cnxn, cursor)
         return -1
     
-    target = extract_data(dbt, stype='target', comboid=current.comboid)
+    target = extract_data(engine, stype='target', comboid=current.comboid)
 
     #Call:
     wid = evaluate_full(log, current, target, preprocessed=False, save=png, verbose=True)

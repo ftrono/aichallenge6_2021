@@ -1,4 +1,5 @@
 import pandas as pd
+import sqlalchemy as sa
 
 #CENTRALIZED DATA EXTRACTOR:
 # - (helper) class Collector(id)
@@ -30,7 +31,7 @@ class Collector:
 
 
 #Extract data from DB:
-def extract_data(dbt, stype='current', timestamp=None, comboid=None):
+def extract_data(engine, stype='current', timestamp=None, comboid=None):
     '''
     Function that extracts from the DB all the needed parameters and values for the evaluation.
 
@@ -45,8 +46,10 @@ def extract_data(dbt, stype='current', timestamp=None, comboid=None):
     output:
     - current or target (Collector) -> 1 of 2 Collector objects (depending on "stype") storing provisionally all the parameters and values needed: one for the current pressata under analysis, the other for the target reference combo.
     '''
-    cursor = dbt['cursor']
-    cnxn = dbt['cnxn']
+    
+    # cursor = dbt['cursor']
+    # cnxn = dbt['cnxn']
+    
     
     #args check:
     if (stype != 'current') and (stype != 'target'):
@@ -65,8 +68,9 @@ def extract_data(dbt, stype='current', timestamp=None, comboid=None):
 
         #EXTRACT DATA FOR CURRENT TIMESTAMP:
         try:
-            query = "SELECT Pressate.ComboID, Pressate.MaxForza, Pressate.MaxAltezza, Pressate.RiduttoreID, Pressate.Evaluated, Pressate.Stazione, Riduttori.Master, Riduttori.Rapporto, Riduttori.Stadi, Riduttori.Cd FROM Pressate INNER JOIN Riduttori on Pressate.RiduttoreID = Riduttori.RiduttoreID WHERE Timestamp="+str(timestamp)
-            df = pd.read_sql(query, cnxn)
+            with engine.begin() as conn:
+                query = sa.text("SELECT Pressate.ComboID, Pressate.MaxForza, Pressate.MaxAltezza, Pressate.RiduttoreID, Pressate.Evaluated, Pressate.Stazione, Riduttori.Master, Riduttori.Rapporto, Riduttori.Stadi, Riduttori.Cd FROM Pressate INNER JOIN Riduttori on Pressate.RiduttoreID = Riduttori.RiduttoreID WHERE Timestamp="+str(timestamp))
+                df = pd.read_sql(query, conn)
         except:
             return -1
 
@@ -91,9 +95,10 @@ def extract_data(dbt, stype='current', timestamp=None, comboid=None):
         current.cd = float(df['Cd'].iloc[0])
 
         #EXTRACT ORIGINAL CURVES FOR CURRENT TIMESTAMP:
-        query = "SELECT Forza, Altezza FROM PressateData WHERE Timestamp="+str(timestamp)
-        #store to Pandas dataframe
-        df = pd.read_sql(query, cnxn)
+
+        with engine.begin() as conn:
+            query = sa.text("SELECT Forza, Altezza FROM PressateData WHERE Timestamp="+str(timestamp))
+            df = pd.read_sql(query, conn)
         #extract data:
         current.forza = list(df['Forza'].to_numpy())
         current.altezza = list(df['Altezza'].to_numpy())
@@ -111,8 +116,9 @@ def extract_data(dbt, stype='current', timestamp=None, comboid=None):
 
         #EXTRACT TARGET COMBO DATA:
         try:
-            query = "SELECT TargetMA, TargetMF, StdMA, StdMF, StdCurveAvg FROM Combos WHERE ComboID='"+str(comboid)+"'"
-            df = pd.read_sql(query, cnxn)
+            with engine.begin() as conn:
+                query = sa.text("SELECT TargetMA, TargetMF, StdMA, StdMF, StdCurveAvg FROM Combos WHERE ComboID='"+str(comboid)+"'")
+                df = pd.read_sql(query, conn)
         except:
             return -1
 
@@ -129,9 +135,9 @@ def extract_data(dbt, stype='current', timestamp=None, comboid=None):
         target.std_curve_avg = float(df['StdCurveAvg'][0])
 
         #EXTRACT TARGET CURVES FOR THE COMBO:
-        query = "SELECT Forza, Altezza, Std FROM CombosData WHERE ComboID='"+str(comboid)+"'"
-        #store to Pandas dataframe
-        df = pd.read_sql(query, cnxn)
+        with engine.begin() as conn:
+            query = sa.text("SELECT Forza, Altezza, Std FROM CombosData WHERE ComboID='"+str(comboid)+"'")
+            df = pd.read_sql(query, conn)
         #extract data:
         target.forza = list(df['Forza'].to_numpy())
         target.altezza = list(df['Altezza'].to_numpy())

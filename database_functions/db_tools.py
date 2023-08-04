@@ -1,5 +1,6 @@
 import logging
 import pandas as pd
+import sqlalchemy as sa
 
 #KEY DB FUNCTIONS:
 # - drop_all()
@@ -72,6 +73,7 @@ def reset_marks(dbt, remark=False):
     cursor = dbt['cursor']
     cnxn = dbt['cnxn']
     log = dbt['logging']
+    engine = dbt['engine']
 
     #1) reset whole Evaluated column:
     log.info("Resetting Evaluated marks")
@@ -87,10 +89,11 @@ def reset_marks(dbt, remark=False):
     #2) remarking Timestamps with a Warning:
     if remark == True:
         log.info("Remarking the timestamps with a warning as Evaluated")
-        query = "SELECT Pressate.Timestamp FROM Pressate INNER JOIN Warnings ON Pressate.Timestamp = Warnings.Timestamp"
-        pressate_tomark = pd.read_sql(query, cnxn)
-        pressate_tomark = pressate_tomark['Timestamp'].tolist()
-        sets_tomark = [(1, int(p)) for p in pressate_tomark]
+        with engine.begin() as conn: 
+            query = sa.text("SELECT Pressate.Timestamp FROM Pressate INNER JOIN Warnings ON Pressate.Timestamp = Warnings.Timestamp")
+            pressate_tomark = pd.read_sql(query, conn)
+            pressate_tomark = pressate_tomark['Timestamp'].tolist()
+            sets_tomark = [(1, int(p)) for p in pressate_tomark]
         
         #Bulk remark all timestamps with a Warning to SQL DB:
         try:

@@ -5,7 +5,7 @@ import sys, os
 sys.path.insert(0, os.getcwd())
 from globals import *
 from database_functions.extract_data import extract_data 
-from database_functions.db_connect import db_connect, db_disconnect
+from database_functions.db_connect import db_connect, db_disconnect, pd_db_connect
 from training.training_tools import slice_curves, interpolate_curve, get_boundaries
 from export.export_tools import prepend_lines
 
@@ -52,13 +52,14 @@ def curves_to_csv(dbt=None, timestamp=None, current=None, target=None, wid=None)
     close = False
     if not dbt:
         cnxn, cursor = db_connect()
+        engine = pd_db_connect()
         dbt = {'cnxn': cnxn, 'cursor': cursor}
         close = True
 
     if not current:
-        current = extract_data(dbt, stype='current', timestamp=timestamp)
+        current = extract_data(engine, stype='current', timestamp=timestamp)
     if not target:
-        target = extract_data(dbt, stype='target', comboid=current.comboid)
+        target = extract_data(engine, stype='target', comboid=current.comboid)
     if not wid:
         if not close:
             cnxn, cursor = db_connect()
@@ -154,12 +155,11 @@ def curves_to_png(current, target, wid=0, count_out=0, threshold=0):
 
 #original png:
 def plot_original(timestamp):
-    cnxn, cursor = db_connect()
-    dbt = {'cnxn': cnxn, 'cursor': cursor}
+    engine = pd_db_connect()
 
     #extract data:
-    current = extract_data(dbt, stype='current', timestamp=timestamp)
-    target = extract_data(dbt, stype='target', comboid=current.comboid)
+    current = extract_data(engine, stype='current', timestamp=timestamp)
+    target = extract_data(engine, stype='target', comboid=current.comboid)
 
     #min cut:
     min_ind = 0
@@ -218,6 +218,5 @@ def plot_original(timestamp):
     fig.tight_layout()
     plt.savefig(fout)
     plt.close(fig)
-
-    db_disconnect(cnxn, cursor)
+    
     return 0
