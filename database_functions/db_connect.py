@@ -12,10 +12,11 @@ def db_connect():
     db = config['DB']
 
     #build conn string:
-    if db.get('auth') != '':
-        # use azure AD
-        con_string = 'DRIVER=%s;SERVER=%s;DATABASE=%s;UID=%s;PWD=%s;Authentication=%s;ENCRYPT=%s' % (db.get('driver'), db.get('server'), db.get('database'), db.get('user'), db.get('password'), db.get('auth'), db.get('encrypt'))
-    elif db.get('dsn') != '':
+    # if db.get('auth') != '':
+    #     # use azure AD
+    #     con_string = 'DRIVER=%s;SERVER=%s;DATABASE=%s;UID=%s;PWD=%s;Authentication=%s;ENCRYPT=%s' % (db.get('driver'), db.get('server'), db.get('database'), db.get('user'), db.get('password'), db.get('auth'), db.get('encrypt'))
+    # el
+    if db.get('dsn') != '':
         #use dsn:
         con_string = 'DSN=%s;UID=%s;PWD=%s;DATABASE=%s;ENCRYPT=%s' % (db.get('dsn'), db.get('user'), db.get('password'), db.get('database'), db.get('encrypt')) 
     else:
